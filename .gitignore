@@ -1,0 +1,4 @@
+__pycache__/
+Authentication_details.txt
+venv/
+.env

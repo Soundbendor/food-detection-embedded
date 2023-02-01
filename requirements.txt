@@ -1,0 +1,6 @@
+python-dotenv
+picamera
+Adafruit-Blinka
+adafruit-circuitpython-neopixel
+requests
+pillow

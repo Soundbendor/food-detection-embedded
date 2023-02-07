@@ -30,6 +30,28 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+#set GPIO Pins constants
+GPIO_TRIGGER = 12
+GPIO_ECHO = 16
+
+#----- Setup Functions: -----
+
+def setup_gpio():
+    #GPIO Mode (BOARD / BCM)
+    GPIO.setmode(GPIO.BCM)
+
+    #set GPIO direction (IN / OUT)
+    GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
+    GPIO.setup(GPIO_ECHO, GPIO.IN)
+
+def setup_button():
+    # Button to recalibrate the sensors
+    caliButton = board.D21
+    calibrateButton = digitalio.DigitalInOut(caliButton)
+    calibrateButton.direction = digitalio.Direction.INPUT
+    calibrateButton.pull = digitalio.Pull.UP
+    return calibrateButton
+
 def WasteDetectionCalibration():
     
     # Yellow for Calibration Phase
@@ -67,7 +89,17 @@ def WasteDetectionCalibration():
     #pixels.fill((0,0,0))
     
     return initDist
- 
+
+def get_ngrok_link():
+    print('Getting ngrok link')
+    response = requests.get(os.getenv("PROXY_ID_NUM")) 
+    ngrok_url = f"https://{response.text.strip()}.ngrok.io"
+    print('Ngrok link:', response.status_code, ngrok_url)
+    return ngrok_url
+
+
+#----- Main Loop Functions: -----
+
 # Manually reads the pmw from the ultrasonic sensor. More consistent than the adafruit library using the pulseio library.
 def distance():
     # set Trigger to HIGH
@@ -186,37 +218,22 @@ def postImage(imageFile = 'Images/calibrationimage.jpg', imagename = 'calibratio
     FileReturn.write(request.content)
     FileReturn.close()
     return apiFile
-    
-#GPIO Mode (BOARD / BCM)
-GPIO.setmode(GPIO.BCM)
- 
-#set GPIO Pins
-GPIO_TRIGGER = 12
-GPIO_ECHO = 16
- 
-#set GPIO direction (IN / OUT)
-GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
-GPIO.setup(GPIO_ECHO, GPIO.IN)
+
+
+#----- Startup procedure / calibration -----
+setup_gpio()
 
 # Neopixel Led pins
 pixelsPin = board.D18
 
-#----- Startup procedure / calibration -----
 # Setup Camera object and neopixel object
 camera = picamera.PiCamera()
 pixels = neopixel.NeoPixel(pixelsPin, 16)
 hx = HX711(5, 6)
 
-# Button to recalibrate the sensors
-caliButton = board.D21
-calibrateButton = digitalio.DigitalInOut(caliButton)
-calibrateButton.direction = digitalio.Direction.INPUT
-calibrateButton.pull = digitalio.Pull.UP
+calibrateButton = setup_button()
 
-print('Getting ngrok link')
-response = requests.get(os.getenv("PROXY_ID_NUM")) 
-ngrok_url = f"https://{response.text.strip()}.ngrok.io"
-print('Ngrok link:', response.status_code, ngrok_url)
+ngrok_url = get_ngrok_link()
 
 initdist = WasteDetectionCalibration()
 
@@ -241,10 +258,7 @@ except Exception as e:
     print(e)
     pass
 
-    
 finally:
     pixels.fill((0,0,0))
     GPIO.cleanup()
     print('Error Encountered: GPIO cleaned up, all done')
-        
-

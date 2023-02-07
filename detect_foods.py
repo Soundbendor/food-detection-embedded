@@ -27,12 +27,16 @@ import requests
 from PIL import Image
 import os
 from dotenv import load_dotenv
+import asyncio
+import httpx
 
 load_dotenv()
 
 #set GPIO Pins constants
 GPIO_TRIGGER = 12
 GPIO_ECHO = 16
+
+client = httpx.AsyncClient()
 
 #----- Setup Functions: -----
 
@@ -90,11 +94,10 @@ def WasteDetectionCalibration():
     
     return initDist
 
-def get_ngrok_link():
+async def get_ngrok_link():
     print('Getting ngrok link')
-    response = requests.get(os.getenv("PROXY_ID_NUM")) 
+    response = await client.get(os.getenv("PROXY_ID_NUM")) 
     ngrok_url = f"https://{response.text.strip()}.ngrok.io"
-    print('Ngrok link:', response.status_code, ngrok_url)
     return ngrok_url
 
 
@@ -139,8 +142,9 @@ def weight():
         GPIO.cleanup()
     return weight
     
+    
 # Main Detection function. accepts 
-def WasteDetection(initDistance = 0):
+async def WasteDetection(remote_url, initDistance = 0):
     # Distance delta and weight delta
     dist = initDistance - distance()
     weightgram = weight()
@@ -175,7 +179,8 @@ def WasteDetection(initDistance = 0):
         
         # Sent off image and wait for return
         try:
-            ApiReturnFile = postImage(imageFile = imageCapture, imagename = ImageName)
+            ApiReturnFile = await asyncio.create_task(postImage(remote_url, imageFile = imageCapture, imagename = ImageName))
+            
             #Opens the new image 
             #im = Image.open(ApiReturnFile)
             #im.show()
@@ -197,28 +202,30 @@ def WasteDetection(initDistance = 0):
         return
       
       
-def postImage(imageFile = 'Images/calibrationimage.jpg', imagename = 'calibrationimage.jpg'):    
+def postImage(remote_url, imageFile = 'Images/calibrationimage.jpg', imagename = 'calibrationimage.jpg'):    
     files = {'img_file': (imageFile, open(imageFile, 'rb'), 'image/jpg')}
     
     #request = requests.post('https://127.0.0.1:8001/api/model/detect_v1', data = {'img_name': imagename}, files = files)    
     
+    print('found', f'{remote_url}/api/model/detect')
+
     apikey = os.getenv("API_KEY")
     authorization = os.getenv("PROXY_LOGIN")
-    request = requests.post(f'{ngrok_url}/api/model/detect', data = {'img_name': imagename},
-                            headers={'token': apikey, 'Authorization':authorization}, files = files)    
+    request = client.post(f'{remote_url}/api/model/detect', data = {'img_name': imagename},
+                            headers={'token': apikey, 'Authorization':authorization}, files = files, timeout=45.0)    
     
     
     #request = requests.post('https://10.217.116.7:8000/api/model/detect_v1', data = {'img_name': imagename}, files = files)    
                          
     # Appends the file to know which is the returned image
-    apiFile = imageFile + 'apiReturn'
+    # apiFile = imageFile + 'apiReturn'
     
-    # Create the file and write the request content to it.
-    FileReturn = open(apiFile, 'wb')
-    FileReturn.write(request.content)
-    FileReturn.close()
-    return apiFile
-
+    # # Create the file and write the request content to it.
+    # FileReturn = open(apiFile, 'wb')
+    # FileReturn.write(request.content)
+    # FileReturn.close()
+    # return apiFile
+    return request
 
 #----- Startup procedure / calibration -----
 setup_gpio()
@@ -233,32 +240,41 @@ hx = HX711(5, 6)
 
 calibrateButton = setup_button()
 
-ngrok_url = get_ngrok_link()
 
-initdist = WasteDetectionCalibration()
+async def main():
 
-#----- Main Loop -----
-try:
-    while True:
-        try:
-            WasteDetection(initDistance = initdist)
-            time.sleep(1)
-            if calibrateButton.value == False:
-                initdist = WasteDetectionCalibration()
+    ngrok_url = asyncio.create_task(get_ngrok_link())
+
+    initdist = WasteDetectionCalibration()
+
+    await ngrok_url
+    print("ngrok link:", ngrok_url.result())
+
+    #----- Main Loop -----
+    try:
+        while True:
+            try:
+                await WasteDetection(ngrok_url.result(), initDistance = initdist)
+                time.sleep(1)
+                if calibrateButton.value == False:
+                    initdist = WasteDetectionCalibration()
+                
+            except RuntimeError:
+                print('Timed Out RuntimeError')
+                #GPIO.cleanup()
+                time.sleep(1.5)
+                pass
+            except Exception as e:
+                print(e)
             
-        except RuntimeError:
-            print('Timed Out RuntimeError')
-            #GPIO.cleanup()
-            time.sleep(1.5)
-            pass
-        except Exception as e:
-            print(e)
-        
-except Exception as e:
-    print(e)
-    pass
+    except Exception as e:
+        print(e)
+        pass
 
-finally:
-    pixels.fill((0,0,0))
-    GPIO.cleanup()
-    print('Error Encountered: GPIO cleaned up, all done')
+    finally:
+        pixels.fill((0,0,0))
+        GPIO.cleanup()
+        print('Error Encountered: GPIO cleaned up, all done')
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())

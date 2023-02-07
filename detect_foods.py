@@ -31,6 +31,7 @@ import asyncio
 import httpx
 
 load_dotenv()
+# TODO: handle errors loading environment variables
 
 #set GPIO Pins constants
 GPIO_TRIGGER = 12
@@ -179,8 +180,10 @@ async def WasteDetection(remote_url, initDistance = 0):
         
         # Sent off image and wait for return
         try:
-            ApiReturnFile = await asyncio.create_task(postImage(remote_url, imageFile = imageCapture, imagename = ImageName))
-            
+            ApiReturnFile = asyncio.create_task(postImage(remote_url, imageFile = imageCapture, imagename = ImageName))
+
+            # TODO: move the error handling to inside the actual postImage function.
+
             #Opens the new image 
             #im = Image.open(ApiReturnFile)
             #im.show()
@@ -255,7 +258,7 @@ async def main():
         while True:
             try:
                 await WasteDetection(ngrok_url.result(), initDistance = initdist)
-                time.sleep(1)
+                await asyncio.sleep(1)
                 if calibrateButton.value == False:
                     initdist = WasteDetectionCalibration()
                 
@@ -277,4 +280,15 @@ async def main():
         print('Error Encountered: GPIO cleaned up, all done')
 
 loop = asyncio.get_event_loop()
-loop.run_until_complete(main())
+
+try:
+    loop.run_until_complete(main())
+except Exception as e:
+    print(e)
+    pass
+
+finally:
+    pixels.fill((0,0,0))
+    GPIO.cleanup()
+    print('Error Encountered: GPIO cleaned up, all done')
+

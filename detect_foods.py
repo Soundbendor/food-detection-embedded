@@ -31,15 +31,23 @@ import asyncio
 import httpx
 
 load_dotenv()
-# TODO: handle errors loading environment variables
 
 #set GPIO Pins constants
 GPIO_TRIGGER = 12
 GPIO_ECHO = 16
 
-client = httpx.AsyncClient()
+httpx_client = httpx.AsyncClient()
+
 
 #----- Setup Functions: -----
+
+def check_for_secrets():
+    if os.getenv("PROXY_ID_NUM") is None \
+        or os.getenv("API_KEY") is None \
+        or os.getenv("PROXY_LOGIN") is None:
+        print("Secrets could not be found in current directory. Please include them in a .env file.")
+        return False
+    return True
 
 def setup_gpio():
     #GPIO Mode (BOARD / BCM)
@@ -97,7 +105,7 @@ def WasteDetectionCalibration():
 
 async def get_ngrok_link():
     print('Getting ngrok link')
-    response = await client.get(os.getenv("PROXY_ID_NUM")) 
+    response = await httpx_client.get(os.getenv("PROXY_ID_NUM")) 
     ngrok_url = f"https://{response.text.strip()}.ngrok.io"
     return ngrok_url
 
@@ -214,7 +222,7 @@ def postImage(remote_url, imageFile = 'Images/calibrationimage.jpg', imagename =
 
     apikey = os.getenv("API_KEY")
     authorization = os.getenv("PROXY_LOGIN")
-    request = client.post(f'{remote_url}/api/model/detect', data = {'img_name': imagename},
+    request = httpx_client.post(f'{remote_url}/api/model/detect', data = {'img_name': imagename},
                             headers={'token': apikey, 'Authorization':authorization}, files = files, timeout=45.0)    
     
     
@@ -245,6 +253,9 @@ calibrateButton = setup_button()
 
 
 async def main():
+
+    if not check_for_secrets():
+        return
 
     ngrok_url = asyncio.create_task(get_ngrok_link())
 

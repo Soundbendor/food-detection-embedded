@@ -73,9 +73,9 @@ def calibrate_sensors():
 
     # Ultrasonic Sensor Calibration: 5 point average with a 0.125 sec delay between to try to eliminate outliers.
     dist1 = 0 
-    sumDist = distance()
+    sumDist = measure_distance()
     for i in range(4):
-        dist1 = distance()
+        dist1 = measure_distance()
         sumDist = dist1 + sumDist
         time.sleep(0.125)
     initDist = sumDist / 5
@@ -125,7 +125,7 @@ async def get_ngrok_link():
 #----- Main Loop Functions: -----
 
 # Manually reads the pmw from the ultrasonic sensor. More consistent than the adafruit library using the pulseio library.
-def distance():
+def measure_distance():
     # set Trigger to HIGH
     GPIO.output(GPIO_TRIGGER, True)
  
@@ -153,7 +153,7 @@ def distance():
     return distance
 
 # Grabs the weight from the load cell using the hx711 library.
-def weight():
+def measure_weight():
     weight = 0
     try:
         weight = hx.get_weight()
@@ -163,69 +163,8 @@ def weight():
         GPIO.cleanup()
     return weight
     
-    
-# Main Detection function. accepts 
-async def WasteDetection(remote_url, initDistance = 0):
-    # Distance delta and weight delta
-    dist = initDistance - distance()
-    weightgram = weight()
-        
-    # Ambient light to know that the system is on.
-    pixels.fill((25,25,10))
-    print('Weight: {:0.2f}kg   Distance Change: {:0.1f}cm'.format(abs(weightgram/1000), abs(dist)))
-    
-    # Main detection Conditions. dist = distance delta in cm, weightgram = weight delta in grams
-    if dist >= 0.5 and weightgram >= 200:
-        # Print and light up the scene / tray.
-        print('Object detected')
-        pixels.fill((255,255,50))
-        time.sleep(0.25)
-        # Gets Current Time
-        now = "{};{};{}".format(datetime.now().time().hour,
-                                datetime.now().time().minute,
-                                datetime.now().time().second)
-        
-        # Makes the name of the file and the location for capture and displaying.
-        ImageName = 'waste{}.jpg'.format(now)
-        ImageLocation = '/home/pi/Desktop/FoodWasteImages/waste{}.jpg'.format(now)
-        
-        # Annotates the text with distance, time, weight and captures the image.
-        # camera.annotate_text = "Captured: {} \n Weight: {:0.2f} Distance: {:0.2f}".format(now, weightgram, dist) 
 
-        camera.capture(ImageLocation)
-        
-        imageCapture = ImageLocation
-        
-        print('Picture Taken {:0.1f} {:0.1f}'.format(dist,weightgram))
-        
-        # Sent off image and wait for return
-        try:
-            ApiReturnFile = asyncio.create_task(postImage(remote_url, imageFile = imageCapture, imagename = ImageName))
-
-            # TODO: move the error handling to inside the actual postImage function.
-
-            #Opens the new image 
-            #im = Image.open(ApiReturnFile)
-            #im.show()
-        except Exception as e:
-            print(e)
-            print('PostImage Failed. Likely exceeded retries.')
-            #im = Image.open(ImageLocation)
-            #im.show()
-            pass
-        time.sleep(1)
-        
-        pixels.fill((0,255,0))
-        time.sleep(0.5)
-        
-        # Re-polls weight and distance to determine if the tray is still there
-        while (initDistance - distance()) >= 0.5 and weight() >= 200:
-            print('Tray is still there Dist: {:0.1f} Weight: {:0.1f}'.format(distance(),weight()))
-            time.sleep(1)
-        return
-      
-      
-def postImage(remote_url, imageFile = 'Images/calibrationimage.jpg', imagename = 'calibrationimage.jpg'):    
+def post_image_for_detection(remote_url, imageFile = 'Images/calibrationimage.jpg', imagename = 'calibrationimage.jpg'):    
     files = {'img_file': (imageFile, open(imageFile, 'rb'), 'image/jpg')}
     
     #request = requests.post('https://127.0.0.1:8001/api/model/detect_v1', data = {'img_name': imagename}, files = files)    
@@ -250,7 +189,70 @@ def postImage(remote_url, imageFile = 'Images/calibrationimage.jpg', imagename =
     # return apiFile
     return request
 
+    
+# Main Detection function. accepts 
+async def run_waste_detection(remote_url, initDistance = 0):
+    # Distance delta and weight delta
+    dist = initDistance - measure_distance()
+    weightgram = measure_weight()
+        
+    # Ambient light to know that the system is on.
+    pixels.fill((25,25,10))
+    print('Weight: {:0.2f}kg   Distance Change: {:0.1f}cm'.format(abs(weightgram/1000), abs(dist)))
+    
+    # Main detection Conditions. dist = distance delta in cm, weightgram = weight delta in grams
+    if dist >= 0.5 and weightgram >= 200:
+        # Print and light up the scene / tray.
+        print('Object detected')
+        pixels.fill((255,255,50))
+        time.sleep(0.50)
+        # Gets Current Time
+        now = "{};{};{}".format(datetime.now().time().hour,
+                                datetime.now().time().minute,
+                                datetime.now().time().second)
+        
+        # Makes the name of the file and the location for capture and displaying.
+        ImageName = 'waste{}.jpg'.format(now)
+        ImageLocation = '/home/pi/Desktop/FoodWasteImages/waste{}.jpg'.format(now)
+        
+        # Annotates the text with distance, time, weight and captures the image.
+        # camera.annotate_text = "Captured: {} \n Weight: {:0.2f} Distance: {:0.2f}".format(now, weightgram, dist) 
+
+        camera.capture(ImageLocation)
+        
+        imageCapture = ImageLocation
+        
+        print('Picture Taken {:0.1f} {:0.1f}'.format(dist,weightgram))
+        
+        # Sent off image and wait for return
+        try:
+            ApiReturnFile = asyncio.create_task(post_image_for_detection(remote_url, imageFile = imageCapture, imagename = ImageName))
+
+            # TODO: move the error handling to inside the actual post_image_for_detection function.
+
+            #Opens the new image 
+            #im = Image.open(ApiReturnFile)
+            #im.show()
+        except Exception as e:
+            print(e)
+            print('post_image_for_detection Failed. Likely exceeded retries.')
+            #im = Image.open(ImageLocation)
+            #im.show()
+            pass
+        time.sleep(1)
+        
+        pixels.fill((0,255,0))
+        time.sleep(0.5)
+        
+        # Re-polls weight and distance to determine if the tray is still there
+        while (initDistance - measure_distance()) >= 0.5 and measure_weight() >= 200:
+            print('Tray is still there Dist: {:0.1f} Weight: {:0.1f}'.format(measure_distance(),measure_weight()))
+            time.sleep(1)
+        return
+      
+
 #----- Startup procedure / calibration -----
+
 setup_gpio()
 
 # Neopixel Led pins
@@ -269,14 +271,15 @@ async def main():
     if not check_for_secrets():
         return
 
-    ngrok_url = asyncio.create_task(get_ngrok_link())
+    ngrok_url_task = asyncio.create_task(get_ngrok_link())
 
     initdist = calibrate_sensors()
 
-    await ngrok_url
-    if ngrok_url.result() is None:
+    await ngrok_url_task
+    ngrok_url = ngrok_url_task.result()
+    if ngrok_url is None:
         return
-    print("ngrok link:", ngrok_url.result())
+    print("ngrok link:", ngrok_url)
 
     # Set lights green! Ready to go!
     pixels.fill((0,255,0))
@@ -286,10 +289,10 @@ async def main():
     try:
         while True:
             try:
-                await WasteDetection(ngrok_url.result(), initDistance = initdist)
+                await run_waste_detection(ngrok_url, initDistance = initdist)
                 await asyncio.sleep(1)
                 if calibrateButton.value == False:
-                    initdist = WasteDetectionCalibration()
+                    initdist = calibrate_sensors()
                 
             except RuntimeError:
                 print('Timed Out RuntimeError')

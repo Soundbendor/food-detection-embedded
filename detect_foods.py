@@ -65,7 +65,7 @@ def setup_button():
     calibrateButton.pull = digitalio.Pull.UP
     return calibrateButton
 
-def WasteDetectionCalibration():
+def calibrate_sensors():
     
     # Yellow for Calibration Phase
     pixels.fill((255,200,0))
@@ -271,10 +271,10 @@ async def main():
 
     ngrok_url = asyncio.create_task(get_ngrok_link())
 
-    initdist = WasteDetectionCalibration()
+    initdist = calibrate_sensors()
 
     await ngrok_url
-    if ngrok_url is None:
+    if ngrok_url.result() is None:
         return
     print("ngrok link:", ngrok_url.result())
 

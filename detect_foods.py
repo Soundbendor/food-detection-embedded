@@ -42,7 +42,7 @@ httpx_client = httpx.AsyncClient()
 #----- Setup Functions: -----
 
 def check_for_secrets():
-    if os.getenv("PROXY_ID_NUM") is None \
+    if os.getenv("PROXY_ID_NUM_LINK") is None \
         or os.getenv("API_KEY") is None \
         or os.getenv("PROXY_LOGIN") is None:
         print("Secrets could not be found in current directory. Please include them in a .env file.")
@@ -87,15 +87,15 @@ def WasteDetectionCalibration():
     hx.reset()
     hx.tare(times = 5)
     
-    # Camera calibration image. Lights up and takes an image and waits a bit
+    # Camera calibration image. Lights up and takes an image and waits a bit.
     print('Calibration in Progress: Camera')
     pixels.fill((255,255,100))
     camera.capture('/home/pi/Desktop/FoodWaste/Images/calibrationimage.jpg')
     time.sleep(0.5)
     
-    # Green! Ready to go!
+    # Sensors ready, set color to blue.
     print('Calibration Complete!')
-    pixels.fill((0,255,0))
+    pixels.fill((0,0,200))
     time.sleep(0.75)
     
     # No lights until something is detected under the camera.
@@ -105,9 +105,21 @@ def WasteDetectionCalibration():
 
 async def get_ngrok_link():
     print('Getting ngrok link')
-    response = await httpx_client.get(os.getenv("PROXY_ID_NUM")) 
-    ngrok_url = f"https://{response.text.strip()}.ngrok.io"
-    return ngrok_url
+    num_attepmts = 3
+    for _ in range(num_attepmts):
+        try:
+            response = await httpx_client.get(os.getenv("PROXY_ID_NUM_LINK"))
+            if response.status_code == 200:
+                ngrok_url = f"https://{response.text.strip()}.ngrok.io"
+                return ngrok_url
+            print(f"Error in connecting to get ngrok link, status code: {response.status_code}")
+        except ConnectionError as e:
+            print("Connection error in getting ngrok link, retrying.")
+        except BaseException as e:
+            print("Exception in getting ngrok link, retrying.")
+    
+    print(f"Could not get ngrok link after {num_attepmts} attempts. Aborting.")
+    return None
 
 
 #----- Main Loop Functions: -----
@@ -262,7 +274,13 @@ async def main():
     initdist = WasteDetectionCalibration()
 
     await ngrok_url
+    if ngrok_url is None:
+        return
     print("ngrok link:", ngrok_url.result())
+
+    # Set lights green! Ready to go!
+    pixels.fill((0,255,0))
+    await asyncio.sleep(0.5)
 
     #----- Main Loop -----
     try:
@@ -276,7 +294,7 @@ async def main():
             except RuntimeError:
                 print('Timed Out RuntimeError')
                 #GPIO.cleanup()
-                time.sleep(1.5)
+                await asyncio.sleep(1.5)
                 pass
             except Exception as e:
                 print(e)

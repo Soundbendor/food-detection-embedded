@@ -2,3 +2,6 @@ __pycache__/
 Authentication_details.txt
 venv/
 .env
+
+archive_detection_images/
+archive_check_focus_images/

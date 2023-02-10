@@ -29,27 +29,36 @@ async def get_ngrok_link(httpx_client):
     print(f"Could not get ngrok link after {num_attepmts} attempts. Aborting.")
     return None
 
-def post_image_for_detection(remote_url, httpx_client, imageFile = 'Images/calibrationimage.jpg', imagename = 'calibrationimage.jpg'):    
-    files = {'img_file': (imageFile, open(imageFile, 'rb'), 'image/jpg')}
+
+async def post_image_for_detection(remote_url, httpx_client, image_location, image_name):    
+    files = {'img_file': (image_location, open(image_location, 'rb'), 'image/jpg')}
     
-    #request = requests.post('https://127.0.0.1:8001/api/model/detect_v1', data = {'img_name': imagename}, files = files)    
-    
-    print('found', f'{remote_url}/api/model/detect')
+    print(f'Posting image to {remote_url}/api/model/detect for detection')
 
     apikey = os.getenv("API_KEY")
     authorization = os.getenv("PROXY_LOGIN")
-    request = httpx_client.post(f'{remote_url}/api/model/detect', data = {'img_name': imagename},
-                            headers={'token': apikey, 'Authorization':authorization}, files = files, timeout=45.0)    
-    
-    
-    #request = requests.post('https://10.217.116.7:8000/api/model/detect_v1', data = {'img_name': imagename}, files = files)    
-                         
-    # Appends the file to know which is the returned image
-    # apiFile = imageFile + 'apiReturn'
-    
-    # # Create the file and write the request content to it.
-    # FileReturn = open(apiFile, 'wb')
-    # FileReturn.write(request.content)
-    # FileReturn.close()
-    # return apiFile
-    return request
+
+    num_attempts = 3
+    for i in range(num_attempts):
+        try:
+            request = await httpx_client.post(f'{remote_url}/api/model/detect', data = {'img_name': image_name},
+                                    headers={'token': apikey, 'Authorization':authorization}, files = files, timeout=45.0)    
+
+            print(f'API call received response: {request}')
+            
+            # Save the returned image to the detection archive for later reference.
+            api_response_file_location = f'archive_detection_images/post_detection_{image_name}'
+            
+            # Create the file and write the request content to it.
+            FileReturn = open(api_response_file_location, 'wb')
+            FileReturn.write(request.content)
+            FileReturn.close()
+            return api_response_file_location
+        
+        except ConnectionError as e:
+            print("Connection error in getting ngrok link, retrying.")
+        except BaseException as e:
+            print(e)
+            print(f"post_image_for_detection attempt #{i + 1} failed.{' Trying again.' if i < num_attempts - 1 else ' Done retrying.'}")
+
+    return None

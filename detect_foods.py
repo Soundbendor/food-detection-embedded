@@ -75,39 +75,31 @@ async def run_waste_detection(remote_url, initDistance = 0):
             datetime.now().second)
         
         # Makes the name of the file and the location for capture and displaying.
-        ImageName = 'waste_{}.jpg'.format(curr_datetime_str)
-        ImageLocation = 'archive_check_focus_images/waste_{}.jpg'.format(curr_datetime_str)
+        image_name = 'waste_{}.jpg'.format(curr_datetime_str)
+        image_location = f'archive_check_focus_images/pre_detection_{image_name}.jpg'
         
         # Annotates the text with distance, time, weight and captures the image.
         # camera.annotate_text = "Captured: {} \n Weight: {:0.2f} Distance: {:0.2f}".format(curr_datetime_str, weightgram, dist) 
 
-        camera.capture(ImageLocation)
-        
-        imageCapture = ImageLocation
+        camera.capture(image_location)
         
         print('Picture Taken {:0.1f} {:0.1f}'.format(dist,weightgram))
         
         if SHOW_IMAGES_ON_PI_DESKTOP:
             # Opens the new image 
-            im = Image.open(imageCapture)
+            im = Image.open(image_location)
             im.show()
 
-        # Send off image and wait for return
-        try:
-            ApiReturnFile = asyncio.create_task(api_calls.post_image_for_detection(remote_url, httpx_client, imageFile = imageCapture, imagename = ImageName))
+        # Send off image as a background task
+        ApiReturnFile = asyncio.create_task(api_calls.post_image_for_detection(remote_url, httpx_client, image_location, image_name))
 
-            # TODO: move the error handling to inside the actual post_image_for_detection function.
-            
-        except Exception as e:
-            print(e)
-            print('post_image_for_detection Failed. Likely exceeded retries.')
-
-        time.sleep(1)
+        await asyncio.sleep(1)
         
+        # Show green for the user.
         pixels.fill((0,255,0))
-        time.sleep(0.5)
+        await asyncio.sleep(0.5)
         
-        # Re-polls weight and distance to determine if the tray is still there
+        # Re-polls weight and distance to determine if the tray is still there.
         while (initDistance - measure_sensor.measure_distance(GPIO, GPIO_TRIGGER, GPIO_ECHO)) >= 0.5 and measure_sensor.measure_weight(GPIO, hx) >= 200:
             print('Tray is still there Dist: {:0.1f} Weight: {:0.1f}'.format(measure_sensor.measure_distance(GPIO, GPIO_TRIGGER, GPIO_ECHO), measure_sensor.measure_weight(GPIO, hx)))
             time.sleep(1)

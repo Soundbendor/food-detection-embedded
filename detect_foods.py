@@ -91,7 +91,7 @@ async def run_waste_detection(remote_url, initDistance = 0):
             im.show()
 
         # Send off image as a background task
-        post_detection_image_location = asyncio.create_task(api_calls.post_image_for_detection(remote_url, httpx_client, image_location, image_name, SHOW_IMAGES_ON_PI_DESKTOP))
+        post_detection_image_location = asyncio.create_task(api_calls.post_image_for_detection(remote_url, httpx_client, image_location, image_name))
 
         await asyncio.sleep(1)
         

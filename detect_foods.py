@@ -21,7 +21,6 @@ import board
 import digitalio
 import neopixel
 import RPi.GPIO as GPIO
-from hx711 import HX711
 from datetime import datetime
 import requests
 from PIL import Image
@@ -29,6 +28,14 @@ import os
 from dotenv import load_dotenv
 import asyncio
 import httpx
+import sys
+
+# Local code
+import helper_functions.api_calls as api_calls
+from helper_functions.hx711 import HX711
+import helper_functions.initialize_sensors as init_sensors
+import helper_functions.measure_sensor as measure_sensor
+
 
 load_dotenv()
 
@@ -38,164 +45,15 @@ GPIO_ECHO = 16
 
 httpx_client = httpx.AsyncClient()
 
-# TODO: move helper functions into separate files!
-
-#----- Setup Functions: -----
-
-def check_for_secrets():
-    if os.getenv("PROXY_ID_NUM_LINK") is None \
-        or os.getenv("API_KEY") is None \
-        or os.getenv("PROXY_LOGIN") is None:
-        print("Secrets could not be found in current directory. Please include them in a .env file.")
-        return False
-    return True
-
-def setup_gpio():
-    #GPIO Mode (BOARD / BCM)
-    GPIO.setmode(GPIO.BCM)
-
-    #set GPIO direction (IN / OUT)
-    GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
-    GPIO.setup(GPIO_ECHO, GPIO.IN)
-
-def setup_button():
-    # Button to recalibrate the sensors
-    caliButton = board.D21
-    calibrateButton = digitalio.DigitalInOut(caliButton)
-    calibrateButton.direction = digitalio.Direction.INPUT
-    calibrateButton.pull = digitalio.Pull.UP
-    return calibrateButton
-
-def calibrate_sensors():
-    
-    # Yellow for Calibration Phase
-    pixels.fill((255,200,0))
-    print('Calibration in Progress: Ultrasonic Sensor')
-
-    # Ultrasonic Sensor Calibration: 5 point average with a 0.125 sec delay between to try to eliminate outliers.
-    dist1 = 0 
-    sumDist = measure_distance()
-    for i in range(4):
-        dist1 = measure_distance()
-        sumDist = dist1 + sumDist
-        time.sleep(0.125)
-    initDist = sumDist / 5
-    
-    # Load Cell Calibration. Uses a lot of the HX711 library.
-    print('Calibration in Progress: Loadcell Sensor')
-    hx.set_reading_format("MSB", "MSB")
-    hx.set_reference_unit(87)
-    hx.reset()
-    hx.tare(times = 5)
-    
-    # Camera calibration image. Lights up and takes an image and waits a bit.
-    print('Calibration in Progress: Camera')
-    pixels.fill((255,255,100))
-    camera.capture('/home/pi/Desktop/FoodWaste/Images/calibrationimage.jpg')
-    time.sleep(0.5)
-    
-    # Sensors ready, set color to blue.
-    print('Calibration Complete!')
-    pixels.fill((0,0,200))
-    time.sleep(0.75)
-    
-    # No lights until something is detected under the camera.
-    #pixels.fill((0,0,0))
-    
-    return initDist
-
-async def get_ngrok_link():
-    print('Getting ngrok link')
-    num_attepmts = 3
-    for _ in range(num_attepmts):
-        try:
-            response = await httpx_client.get(os.getenv("PROXY_ID_NUM_LINK"))
-            if response.status_code == 200:
-                ngrok_url = f"https://{response.text.strip()}.ngrok.io"
-                return ngrok_url
-            print(f"Error in connecting to get ngrok link, status code: {response.status_code}")
-        except ConnectionError as e:
-            print("Connection error in getting ngrok link, retrying.")
-        except BaseException as e:
-            print("Exception in getting ngrok link, retrying.")
-    
-    print(f"Could not get ngrok link after {num_attepmts} attempts. Aborting.")
-    return None
+args = sys.argv
+SHOW_IMAGES_ON_PI_DESKTOP = len(args) > 1 and args[1] == 'show'
 
 
-#----- Main Loop Functions: -----
-
-# Manually reads the pmw from the ultrasonic sensor. More consistent than the adafruit library using the pulseio library.
-def measure_distance():
-    # set Trigger to HIGH
-    GPIO.output(GPIO_TRIGGER, True)
- 
-    # set Trigger after 0.01ms to LOW
-    time.sleep(0.00001)
-    GPIO.output(GPIO_TRIGGER, False)
- 
-    StartTime = time.time()
-    StopTime = time.time()
- 
-    # save StartTime
-    while GPIO.input(GPIO_ECHO) == 0:
-        StartTime = time.time()
- 
-    # save time of arrival
-    while GPIO.input(GPIO_ECHO) == 1:
-        StopTime = time.time()
- 
-    # time difference between start and arrival
-    TimeElapsed = StopTime - StartTime
-    # multiply with the sonic speed (34300 cm/s)
-    # and divide by 2, because there and back
-    distance = (TimeElapsed * 34300) / 2
- 
-    return distance
-
-# Grabs the weight from the load cell using the hx711 library.
-def measure_weight():
-    weight = 0
-    try:
-        weight = hx.get_weight()
-        hx.power_down()
-        hx.power_up()
-    except (KeyboardInterrupt, SystemExit):
-        GPIO.cleanup()
-    return weight
-    
-
-def post_image_for_detection(remote_url, imageFile = 'Images/calibrationimage.jpg', imagename = 'calibrationimage.jpg'):    
-    files = {'img_file': (imageFile, open(imageFile, 'rb'), 'image/jpg')}
-    
-    #request = requests.post('https://127.0.0.1:8001/api/model/detect_v1', data = {'img_name': imagename}, files = files)    
-    
-    print('found', f'{remote_url}/api/model/detect')
-
-    apikey = os.getenv("API_KEY")
-    authorization = os.getenv("PROXY_LOGIN")
-    request = httpx_client.post(f'{remote_url}/api/model/detect', data = {'img_name': imagename},
-                            headers={'token': apikey, 'Authorization':authorization}, files = files, timeout=45.0)    
-    
-    
-    #request = requests.post('https://10.217.116.7:8000/api/model/detect_v1', data = {'img_name': imagename}, files = files)    
-                         
-    # Appends the file to know which is the returned image
-    # apiFile = imageFile + 'apiReturn'
-    
-    # # Create the file and write the request content to it.
-    # FileReturn = open(apiFile, 'wb')
-    # FileReturn.write(request.content)
-    # FileReturn.close()
-    # return apiFile
-    return request
-
-    
-# Main Detection function. accepts 
+# Main Detection function.
 async def run_waste_detection(remote_url, initDistance = 0):
     # Distance delta and weight delta
-    dist = initDistance - measure_distance()
-    weightgram = measure_weight()
+    dist = initDistance - measure_sensor.measure_distance(GPIO, GPIO_TRIGGER, GPIO_ECHO)
+    weightgram = measure_sensor.measure_weight(GPIO, hx)
         
     # Ambient light to know that the system is on.
     pixels.fill((25,25,10))
@@ -208,16 +66,20 @@ async def run_waste_detection(remote_url, initDistance = 0):
         pixels.fill((255,255,50))
         time.sleep(0.50)
         # Gets Current Time
-        now = "{};{};{}".format(datetime.now().time().hour,
-                                datetime.now().time().minute,
-                                datetime.now().time().second)
+        curr_datetime_str = "{}-{}-{}__{}-{}-{}".format(
+            datetime.now().year,
+            datetime.now().month,
+            datetime.now().day,
+            datetime.now().hour,
+            datetime.now().minute,
+            datetime.now().second)
         
         # Makes the name of the file and the location for capture and displaying.
-        ImageName = 'waste{}.jpg'.format(now)
-        ImageLocation = '/home/pi/Desktop/FoodWasteImages/waste{}.jpg'.format(now)
+        ImageName = 'waste_{}.jpg'.format(curr_datetime_str)
+        ImageLocation = 'archive_check_focus_images/waste_{}.jpg'.format(curr_datetime_str)
         
         # Annotates the text with distance, time, weight and captures the image.
-        # camera.annotate_text = "Captured: {} \n Weight: {:0.2f} Distance: {:0.2f}".format(now, weightgram, dist) 
+        # camera.annotate_text = "Captured: {} \n Weight: {:0.2f} Distance: {:0.2f}".format(curr_datetime_str, weightgram, dist) 
 
         camera.capture(ImageLocation)
         
@@ -225,36 +87,36 @@ async def run_waste_detection(remote_url, initDistance = 0):
         
         print('Picture Taken {:0.1f} {:0.1f}'.format(dist,weightgram))
         
-        # Sent off image and wait for return
+        if SHOW_IMAGES_ON_PI_DESKTOP:
+            # Opens the new image 
+            im = Image.open(imageCapture)
+            im.show()
+
+        # Send off image and wait for return
         try:
-            ApiReturnFile = asyncio.create_task(post_image_for_detection(remote_url, imageFile = imageCapture, imagename = ImageName))
+            ApiReturnFile = asyncio.create_task(api_calls.post_image_for_detection(remote_url, httpx_client, imageFile = imageCapture, imagename = ImageName))
 
             # TODO: move the error handling to inside the actual post_image_for_detection function.
-
-            #Opens the new image 
-            #im = Image.open(ApiReturnFile)
-            #im.show()
+            
         except Exception as e:
             print(e)
             print('post_image_for_detection Failed. Likely exceeded retries.')
-            #im = Image.open(ImageLocation)
-            #im.show()
-            pass
+
         time.sleep(1)
         
         pixels.fill((0,255,0))
         time.sleep(0.5)
         
         # Re-polls weight and distance to determine if the tray is still there
-        while (initDistance - measure_distance()) >= 0.5 and measure_weight() >= 200:
-            print('Tray is still there Dist: {:0.1f} Weight: {:0.1f}'.format(measure_distance(),measure_weight()))
+        while (initDistance - measure_sensor.measure_distance(GPIO, GPIO_TRIGGER, GPIO_ECHO)) >= 0.5 and measure_sensor.measure_weight(GPIO, hx) >= 200:
+            print('Tray is still there Dist: {:0.1f} Weight: {:0.1f}'.format(measure_sensor.measure_distance(GPIO, GPIO_TRIGGER, GPIO_ECHO), measure_sensor.measure_weight(GPIO, hx)))
             time.sleep(1)
         return
       
 
 #----- Startup procedure / calibration -----
 
-setup_gpio()
+init_sensors.setup_gpio(GPIO, GPIO_TRIGGER, GPIO_ECHO)
 
 # Neopixel Led pins
 pixelsPin = board.D18
@@ -264,17 +126,17 @@ camera = picamera.PiCamera()
 pixels = neopixel.NeoPixel(pixelsPin, 16)
 hx = HX711(5, 6)
 
-calibrateButton = setup_button()
+calibrateButton = init_sensors.setup_button(board, digitalio)
 
 
 async def main():
 
-    if not check_for_secrets():
+    if not api_calls.check_for_secrets():
         return
 
-    ngrok_url_task = asyncio.create_task(get_ngrok_link())
+    ngrok_url_task = asyncio.create_task(api_calls.get_ngrok_link(httpx_client))
 
-    initdist = calibrate_sensors()
+    initdist = init_sensors.calibrate_sensors(pixels, hx, camera, measure_sensor.measure_distance, GPIO, GPIO_TRIGGER, GPIO_ECHO)
 
     await ngrok_url_task
     ngrok_url = ngrok_url_task.result()
@@ -293,10 +155,13 @@ async def main():
                 await run_waste_detection(ngrok_url, initDistance = initdist)
                 await asyncio.sleep(1)
                 if calibrateButton.value == False:
-                    initdist = calibrate_sensors()
+                    initdist = calibrate_sensors(pixels, hx, camera, measure_sensor.measure_distance, GPIO, GPIO_TRIGGER, GPIO_ECHO)
                 
+            except KeyboardInterrupt:
+                print('Keyboard interupt, quitting')
+                return
             except RuntimeError:
-                print('Timed Out RuntimeError')
+                print('RuntimeError, request likely timed out.')
                 #GPIO.cleanup()
                 await asyncio.sleep(1.5)
                 pass

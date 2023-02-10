@@ -21,7 +21,6 @@ import board
 import digitalio
 import neopixel
 import RPi.GPIO as GPIO
-from hx711 import HX711
 from datetime import datetime
 import requests
 from PIL import Image
@@ -29,10 +28,14 @@ import os
 from dotenv import load_dotenv
 import asyncio
 import httpx
+import sys
 
-import api_calls
-import initialize_sensors as init_sensors
-import measure_sensor
+# Local code
+import helper_functions.api_calls as api_calls
+from helper_functions.hx711 import HX711
+import helper_functions.initialize_sensors as init_sensors
+import helper_functions.measure_sensor as measure_sensor
+
 
 load_dotenv()
 
@@ -42,8 +45,11 @@ GPIO_ECHO = 16
 
 httpx_client = httpx.AsyncClient()
 
+args = sys.argv
+SHOW_IMAGES_ON_PI_DESKTOP = len(args) > 1 and args[1] == 'show'
 
-# Main Detection function. accepts 
+
+# Main Detection function.
 async def run_waste_detection(remote_url, initDistance = 0):
     # Distance delta and weight delta
     dist = initDistance - measure_sensor.measure_distance(GPIO, GPIO_TRIGGER, GPIO_ECHO)
@@ -81,21 +87,11 @@ async def run_waste_detection(remote_url, initDistance = 0):
         
         print('Picture Taken {:0.1f} {:0.1f}'.format(dist,weightgram))
         
-        # Sent off image and wait for return
-        # try:
-        #     # ApiReturnFile = asyncio.create_task(post_image_for_detection(remote_url, imageFile = imageCapture, imagename = ImageName))
+        if SHOW_IMAGES_ON_PI_DESKTOP:
+            # Opens the new image 
+            im = Image.open(imageCapture)
+            im.show()
 
-        #     # TODO: move the error handling to inside the actual post_image_for_detection function.
-
-        #     #Opens the new image 
-        #     # im = Image.open(imageCapture)
-        #     # im.show()
-        # except Exception as e:
-        #     print(e)
-        #     print('post_image_for_detection Failed. Likely exceeded retries.')
-        #     #im = Image.open(ImageLocation)
-        #     #im.show()
-        #     pass
         time.sleep(1)
         
         pixels.fill((0,255,0))

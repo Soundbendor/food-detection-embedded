@@ -38,6 +38,7 @@ GPIO_ECHO = 16
 
 httpx_client = httpx.AsyncClient()
 
+# TODO: move helper functions into separate files!
 
 #----- Setup Functions: -----
 

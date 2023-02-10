@@ -91,7 +91,7 @@ async def run_waste_detection(remote_url, initDistance = 0):
             im.show()
 
         # Send off image as a background task
-        ApiReturnFile = asyncio.create_task(api_calls.post_image_for_detection(remote_url, httpx_client, image_location, image_name))
+        post_detection_image_location = asyncio.create_task(api_calls.post_image_for_detection(remote_url, httpx_client, image_location, image_name, SHOW_IMAGES_ON_PI_DESKTOP))
 
         await asyncio.sleep(1)
         
@@ -181,4 +181,3 @@ finally:
     pixels.fill((0,0,0))
     GPIO.cleanup()
     print('Error Encountered: GPIO cleaned up, all done')
-

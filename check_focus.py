@@ -147,10 +147,14 @@ async def main():
                 if calibrateButton.value == False:
                     initdist = calibrate_sensors(pixels, hx, camera, measure_sensor.measure_distance, GPIO, GPIO_TRIGGER, GPIO_ECHO)
                 
-            except KeyboardInterrupt:
-                print('Keyboard interupt, quitting')
-                return
-            except RuntimeError:
+            except RuntimeError as e:
+                if 'Keyboard' in str(e):
+                    print('Keyboard interupt, quitting')
+                    return
+                elif 'StopIteration' in str(e):
+                    print('Detected second stop from ultrasonic sensors, quitting.')
+                    return
+
                 print('RuntimeError, request likely timed out.')
                 #GPIO.cleanup()
                 await asyncio.sleep(1.5)

@@ -59,6 +59,12 @@ async def run_waste_detection(remote_url, initDistance = 0):
     pixels.fill((25,25,10))
     print('Weight: {:0.2f}kg   Distance Change: {:0.1f}cm'.format(abs(weightgram/1000), abs(dist)))
     
+    if dist < -500:
+        print('Detected stop from ultrasonic sensors, waiting 1 second.')
+        await asyncio.sleep(1)
+        if dist < -500:
+            raise StopIteration
+
     # Main detection Conditions. dist = distance delta in cm, weightgram = weight delta in grams
     if dist >= 0.5 and weightgram >= 200:
         # Print and light up the scene / tray.
@@ -149,10 +155,14 @@ async def main():
                 if calibrateButton.value == False:
                     initdist = calibrate_sensors(pixels, hx, camera, measure_sensor.measure_distance, GPIO, GPIO_TRIGGER, GPIO_ECHO)
                 
-            except KeyboardInterrupt:
-                print('Keyboard interupt, quitting')
-                return
-            except RuntimeError:
+            except RuntimeError as e:
+                if 'Keyboard' in str(e):
+                    print('Keyboard interupt, quitting')
+                    return
+                elif 'StopIteration' in str(e):
+                    print('Detected second stop from ultrasonic sensors, quitting.')
+                    return
+
                 print('RuntimeError, request likely timed out.')
                 #GPIO.cleanup()
                 await asyncio.sleep(1.5)

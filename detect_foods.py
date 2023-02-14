@@ -130,6 +130,7 @@ calibrateButton = init_sensors.setup_button(board, digitalio)
 async def main():
     print('Starting food detector!')
 
+    pixels.fill((70,0,0))
     if not api_calls.check_for_secrets():
         return
 

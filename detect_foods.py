@@ -76,7 +76,7 @@ async def run_waste_detection(remote_url, initDistance = 0):
         
         # Makes the name of the file and the location for capture and displaying.
         image_name = 'waste_{}.jpg'.format(curr_datetime_str)
-        image_location = f'archive_check_focus_images/pre_detection_{image_name}.jpg'
+        image_location = f'archive_check_detection_images/pre_detection_{image_name}.jpg'
         
         # Annotates the text with distance, time, weight and captures the image.
         # camera.annotate_text = "Captured: {} \n Weight: {:0.2f} Distance: {:0.2f}".format(curr_datetime_str, weightgram, dist) 

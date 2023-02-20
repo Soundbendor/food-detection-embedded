@@ -19,6 +19,10 @@ SSH or open up a terminal on the raspberry pi and run the following commands:
 Exit the terminal, unplug the raspberry pi, wait 10 seconds. <br>
 Then, plug the raspberry pi back in, wait 30 seconds, and the pi should automatically light up to detect foods!
 
+<br>
+
+Note: do not unplug the raspberry pi while the detection script is running, this could damage the sensors. Instead: <br>
+**To stop the detection script**: hold your fingers right up against/under the ultrasonic sensor for 5 seconds. The lights will turn off and the script will stop. Then you can unplug the device.
 
 <br>
 

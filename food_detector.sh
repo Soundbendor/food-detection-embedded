@@ -24,6 +24,7 @@ if [ "${command_arg}" == "install" ]; then
 
     mkdir archive_detection_images
     mkdir archive_check_focus_images
+    mkdir logs
 
     echo 'Creating virtual environment for dependencies...'
     cd ./food-detection-embedded

@@ -11,7 +11,9 @@ SSH or open up a terminal on the raspberry pi and run the following commands:
 5. `chmod +x food_detector.sh`
 6. `./food_detector.sh install`
 7. add the .env file with the secrets to current directory (`auto-detect/`)
-8. `crontab -e` and add the following as the last line: <br>
+8. `crontab -e`
+  - the program will ask you which text editor to use, select nano or your preferred editor.
+  - then, add the following as the last line: <br>
 `@reboot /bin/sleep 15 && cd /home/pi/Desktop/auto-detect/ && /home/pi/Desktop/auto-detect/food_detector.sh pull+detect >> /home/pi/Desktop/auto-detect/logs/auto_detect_log_$(date).txt 2>&1`
 
 <br>

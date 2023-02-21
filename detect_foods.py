@@ -66,9 +66,10 @@ async def run_waste_detection(remote_url, initDistance = 0):
             raise StopIteration
 
     # Main detection Conditions. dist = distance delta in cm, weightgram = weight delta in grams
-    if dist >= 0.4 and weightgram >= 100:
+    if weightgram >= 60:
         # Print and light up the scene / tray.
         print('Object detected')
+        time.sleep(0.10)
         pixels.fill((200,200,30))
         time.sleep(0.50)
         # Gets Current Time
@@ -106,9 +107,10 @@ async def run_waste_detection(remote_url, initDistance = 0):
         await asyncio.sleep(0.5)
         
         # Re-polls weight and distance to determine if the tray is still there.
-        while (initDistance - measure_sensor.measure_distance(GPIO, GPIO_TRIGGER, GPIO_ECHO)) >= 0.4 and measure_sensor.measure_weight(GPIO, hx) >= 100:
+        while measure_sensor.measure_weight(GPIO, hx) >= 60:
             print('Tray is still there Dist: {:0.1f} Weight: {:0.1f}'.format(measure_sensor.measure_distance(GPIO, GPIO_TRIGGER, GPIO_ECHO), measure_sensor.measure_weight(GPIO, hx)))
-            time.sleep(1)
+            time.sleep(0.8)
+        
         return
       
 

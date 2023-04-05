@@ -57,7 +57,7 @@ async def run_waste_detection(remote_url, initDistance = 0):
         
     # Ambient light to know that the system is on.
     pixels.fill((25,25,10))
-    print('Weight: {:0.2f}kg   Distance Change: {:0.1f}cm'.format(abs(weightgram/1000), abs(dist)))
+    print('Weight: {:0.2f}g   Distance Change: {:0.1f}cm'.format(weightgram, abs(dist)))
     
     if dist < -500:
         print('Detected stop from ultrasonic sensors, waiting 1 second.')

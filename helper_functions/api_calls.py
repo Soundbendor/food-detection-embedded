@@ -18,7 +18,7 @@ async def get_ngrok_link(httpx_client):
         try:
             response = await httpx_client.get(os.getenv("PROXY_ID_NUM_LINK"))
             if response.status_code == 200:
-                ngrok_url = f"https://{response.text.strip()}.ngrok.io"
+                ngrok_url = f"https://{response.text.strip()}.ngrok-free.app"
                 return ngrok_url
             print(f"Error in connecting to get ngrok link, status code: {response.status_code}")
         except ConnectionError as e:

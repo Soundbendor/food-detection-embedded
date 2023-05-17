@@ -6,8 +6,8 @@ Food Waste Project
 Brayden Morse, Oregon State University-Cascades, 2022
 Food Waste Project
 
-Detects whether or not a tray is in place under the camera using ultrasonic sensor
-and load cell sensor. Begins with a calibration of the load cell, ultrasonic sensor, and camera.
+Detects whether or not a tray is in place under the camera using the load cell sensor.
+Begins with a calibration of the load cell, ultrasonic sensor, and camera.
 Once detected, the neopixel light ring lights up and the camera takes a photo.
 Utilizes adafruit-blinka library for neopixel ring, HCSR04, and a github library for hx711 sensor.
 
@@ -43,6 +43,7 @@ load_dotenv()
 GPIO_TRIGGER = 12
 GPIO_ECHO = 16
 
+SERVER_URL = 'http://ec2-54-244-119-45.us-west-2.compute.amazonaws.com'
 httpx_client = httpx.AsyncClient()
 
 args = sys.argv
@@ -136,15 +137,9 @@ async def main():
     if not api_calls.check_for_secrets():
         return
 
-    ngrok_url_task = asyncio.create_task(api_calls.get_ngrok_link(httpx_client))
-
     initdist = init_sensors.calibrate_sensors(pixels, hx, camera, measure_sensor.measure_distance, GPIO, GPIO_TRIGGER, GPIO_ECHO)
 
-    await ngrok_url_task
-    ngrok_url = ngrok_url_task.result()
-    if ngrok_url is None:
-        return
-    print("ngrok link:", ngrok_url)
+
 
     # Set lights green! Ready to go!
     pixels.fill((0,255,0))
@@ -154,10 +149,10 @@ async def main():
     try:
         while True:
             try:
-                await run_waste_detection(ngrok_url, initDistance = initdist)
+                await run_waste_detection(SERVER_URL, initDistance = initdist)
                 await asyncio.sleep(1)
                 if calibrateButton.value == False:
-                    initdist = calibrate_sensors(pixels, hx, camera, measure_sensor.measure_distance, GPIO, GPIO_TRIGGER, GPIO_ECHO)
+                    initdist = init_sensors.calibrate_sensors(pixels, hx, camera, measure_sensor.measure_distance, GPIO, GPIO_TRIGGER, GPIO_ECHO)
                 
             except RuntimeError as e:
                 if 'Keyboard' in str(e):

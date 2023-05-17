@@ -3,31 +3,10 @@ import os
 #----- Functions to help with API calls: -----
 
 def check_for_secrets():
-    if os.getenv("PROXY_ID_NUM_LINK") is None \
-        or os.getenv("API_KEY") is None \
-        or os.getenv("PROXY_LOGIN") is None:
+    if os.getenv("API_KEY") is None:
         print("Secrets could not be found in current directory. Please include them in a .env file.")
         return False
     return True
-
-
-async def get_ngrok_link(httpx_client):
-    print('Getting ngrok link')
-    num_attepmts = 3
-    for _ in range(num_attepmts):
-        try:
-            response = await httpx_client.get(os.getenv("PROXY_ID_NUM_LINK"))
-            if response.status_code == 200:
-                ngrok_url = f"https://{response.text.strip()}.ngrok-free.app"
-                return ngrok_url
-            print(f"Error in connecting to get ngrok link, status code: {response.status_code}")
-        except ConnectionError as e:
-            print("Connection error in getting ngrok link, retrying.")
-        except BaseException as e:
-            print("Exception in getting ngrok link, retrying.")
-    
-    print(f"Could not get ngrok link after {num_attepmts} attempts. Aborting.")
-    return None
 
 
 async def post_image_for_detection(remote_url, httpx_client, image_location, image_name):    
@@ -35,14 +14,13 @@ async def post_image_for_detection(remote_url, httpx_client, image_location, ima
     
     print(f'Posting image to {remote_url}/api/model/detect for detection')
 
-    apikey = os.getenv("API_KEY")
-    authorization = os.getenv("PROXY_LOGIN")
+    api_key = os.getenv("API_KEY")
 
     num_attempts = 3
     for i in range(num_attempts):
         try:
             request = await httpx_client.post(f'{remote_url}/api/model/detect', data = {'img_name': image_name},
-                                    headers={'token': apikey, 'Authorization':authorization}, files = files, timeout=45.0)    
+                                    headers={'token': api_key}, files = files, timeout=45.0)    
 
             print(f'API call received response: {request}')
             

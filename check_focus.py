@@ -6,8 +6,10 @@ Food Waste Project
 Brayden Morse, Oregon State University-Cascades, 2022
 Food Waste Project
 
-Detects whether or not a tray is in place under the camera using ultrasonic sensor
-and load cell sensor. Begins with a calibration of the load cell, ultrasonic sensor, and camera.
+In this script, we don't send images to the server.
+Instead, we just save them locally.
+
+Detects whether or not a tray is in place under the camera using load cell sensor. Begins with a calibration of the load cell, ultrasonic sensor, and camera.
 Once detected, the neopixel light ring lights up and the camera takes a photo.
 Utilizes adafruit-blinka library for neopixel ring, HCSR04, and a github library for hx711 sensor.
 
@@ -43,6 +45,7 @@ load_dotenv()
 GPIO_TRIGGER = 12
 GPIO_ECHO = 16
 
+SERVER_URL = 'http://ec2-54-244-119-45.us-west-2.compute.amazonaws.com'
 httpx_client = httpx.AsyncClient()
 
 args = sys.argv
@@ -54,13 +57,19 @@ async def run_waste_detection(remote_url, initDistance = 0):
     # Distance delta and weight delta
     dist = initDistance - measure_sensor.measure_distance(GPIO, GPIO_TRIGGER, GPIO_ECHO)
     weightgram = measure_sensor.measure_weight(GPIO, hx)
-        
+    
     # Ambient light to know that the system is on.
     pixels.fill((25,25,10))
     print('Weight: {:0.2f}g   Distance Change: {:0.1f}cm'.format(weightgram, abs(dist)))
     
+    if dist < -500:
+        print('Detected stop from ultrasonic sensors, waiting 1 second.')
+        await asyncio.sleep(1)
+        if dist < -500:
+            raise StopIteration
+
     # Main detection Conditions. dist = distance delta in cm, weightgram = weight delta in grams
-    if dist >= 0.5 and weightgram >= 200:
+    if weightgram >= 60:
         # Print and light up the scene / tray.
         print('Object detected')
         pixels.fill((255,255,50))
@@ -91,6 +100,9 @@ async def run_waste_detection(remote_url, initDistance = 0):
             # Opens the new image 
             im = Image.open(imageCapture)
             im.show()
+
+        # In this script, we don't send images to the server.
+        # Instead, we just save them locally.
 
         time.sleep(1)
         
@@ -124,15 +136,7 @@ async def main():
     if not api_calls.check_for_secrets():
         return
 
-    ngrok_url_task = asyncio.create_task(api_calls.get_ngrok_link(httpx_client))
-
     initdist = init_sensors.calibrate_sensors(pixels, hx, camera, measure_sensor.measure_distance, GPIO, GPIO_TRIGGER, GPIO_ECHO)
-
-    await ngrok_url_task
-    ngrok_url = ngrok_url_task.result()
-    if ngrok_url is None:
-        return
-    print("ngrok link:", ngrok_url)
 
     # Set lights green! Ready to go!
     pixels.fill((0,255,0))
@@ -142,10 +146,10 @@ async def main():
     try:
         while True:
             try:
-                await run_waste_detection(ngrok_url, initDistance = initdist)
+                await run_waste_detection(SERVER_URL, initDistance = initdist)
                 await asyncio.sleep(1)
                 if calibrateButton.value == False:
-                    initdist = calibrate_sensors(pixels, hx, camera, measure_sensor.measure_distance, GPIO, GPIO_TRIGGER, GPIO_ECHO)
+                    initdist = init_sensors.calibrate_sensors(pixels, hx, camera, measure_sensor.measure_distance, GPIO, GPIO_TRIGGER, GPIO_ECHO)
                 
             except RuntimeError as e:
                 if 'Keyboard' in str(e):

@@ -46,6 +46,9 @@ GPIO_ECHO = 16
 SERVER_URL = 'http://ec2-54-244-119-45.us-west-2.compute.amazonaws.com'
 httpx_client = httpx.AsyncClient()
 
+LOCAL_SAVE_IMG_DIR = 'archive_detection_images'
+if not os.path.exists(LOCAL_SAVE_IMG_DIR): os.makedirs(LOCAL_SAVE_IMG_DIR)
+
 args = sys.argv
 SHOW_IMAGES_ON_PI_DESKTOP = len(args) > 1 and args[1] == 'show'
 
@@ -84,7 +87,7 @@ async def run_waste_detection(remote_url, initDistance = 0):
         
         # Makes the name of the file and the location for capture and displaying.
         image_name = 'waste_{}.jpg'.format(curr_datetime_str)
-        image_location = f'archive_detection_images/pre_detection_{image_name}.jpg'
+        image_location = f'{LOCAL_SAVE_IMG_DIR}/pre_detection_{image_name}.jpg'
         
         # Annotates the text with distance, time, weight and captures the image.
         # camera.annotate_text = "Captured: {} \n Weight: {:0.2f} Distance: {:0.2f}".format(curr_datetime_str, weightgram, dist) 

@@ -45,12 +45,14 @@ load_dotenv()
 GPIO_TRIGGER = 12
 GPIO_ECHO = 16
 
+LOCAL_SAVE_IMG_DIR = 'archive_check_focus_images'
+if not os.path.exists(LOCAL_SAVE_IMG_DIR): os.makedirs(LOCAL_SAVE_IMG_DIR)
+
 SERVER_URL = 'http://ec2-54-244-119-45.us-west-2.compute.amazonaws.com'
 httpx_client = httpx.AsyncClient()
 
 args = sys.argv
 SHOW_IMAGES_ON_PI_DESKTOP = len(args) > 1 and args[1] == 'show'
-
 
 # Main Detection function.
 async def run_waste_detection(remote_url, initDistance = 0):
@@ -85,7 +87,7 @@ async def run_waste_detection(remote_url, initDistance = 0):
         
         # Makes the name of the file and the location for capture and displaying.
         # ImageName = 'waste_{}.jpg'.format(curr_datetime_str)
-        ImageLocation = 'archive_check_focus_images/waste_{}.jpg'.format(curr_datetime_str)
+        ImageLocation = '{}/waste_{}.jpg'.format(LOCAL_SAVE_IMG_DIR, curr_datetime_str)
         
         # Annotates the text with distance, time, weight and captures the image.
         # camera.annotate_text = "Captured: {} \n Weight: {:0.2f} Distance: {:0.2f}".format(curr_datetime_str, weightgram, dist) 

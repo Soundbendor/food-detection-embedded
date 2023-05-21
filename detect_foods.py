@@ -28,6 +28,7 @@ import os
 from dotenv import load_dotenv
 import asyncio
 import httpx
+import signal
 import sys
 
 # Local code
@@ -46,11 +47,27 @@ GPIO_ECHO = 16
 SERVER_URL = 'http://ec2-54-244-119-45.us-west-2.compute.amazonaws.com'
 httpx_client = httpx.AsyncClient()
 
-LOCAL_SAVE_IMG_DIR = 'archive_detection_images'
-if not os.path.exists(LOCAL_SAVE_IMG_DIR): os.makedirs(LOCAL_SAVE_IMG_DIR)
 
 args = sys.argv
-SHOW_IMAGES_ON_PI_DESKTOP = len(args) > 1 and args[1] == 'show'
+FOCUS_MODE = len(args) > 1 and args[1] == 'focus'
+SHOW_IMAGES_ON_PI_DESKTOP = len(args) > 2 and args[2] == 'show'
+
+if FOCUS_MODE:
+    print("Focus mode is on! Images are not sent to detection server.\n")
+
+LOCAL_SAVE_IMG_DIR = 'archive_check_focus_images' if FOCUS_MODE else 'archive_detection_images'
+if not os.path.exists(LOCAL_SAVE_IMG_DIR): os.makedirs(LOCAL_SAVE_IMG_DIR)
+
+AMBIENT_COLOR = (25, 25, 10)
+
+def signal_handler(sig, frame):
+    print("Taring...")
+    pixels.fill((180, 20, 0))
+    hx.reset()
+    hx.tare(times=5)
+    pixels.fill(AMBIENT_COLOR)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 
 # Main Detection function.
@@ -60,7 +77,7 @@ async def run_waste_detection(remote_url, initDistance = 0):
     weightgram = measure_sensor.measure_weight(GPIO, hx)
         
     # Ambient light to know that the system is on.
-    pixels.fill((25,25,10))
+    pixels.fill(AMBIENT_COLOR)
     print('Weight: {:0.2f}g   Distance Change: {:0.1f}cm'.format(weightgram, abs(dist)))
     
     if dist < -500:
@@ -86,7 +103,7 @@ async def run_waste_detection(remote_url, initDistance = 0):
             datetime.now().second)
         
         # Makes the name of the file and the location for capture and displaying.
-        image_name = 'waste_{}.jpg'.format(curr_datetime_str)
+        image_name = 'waste_{}'.format(curr_datetime_str)
         image_location = f'{LOCAL_SAVE_IMG_DIR}/pre_detection_{image_name}.jpg'
         
         # Annotates the text with distance, time, weight and captures the image.
@@ -101,8 +118,9 @@ async def run_waste_detection(remote_url, initDistance = 0):
             im = Image.open(image_location)
             im.show()
 
-        # Send off image as a background task
-        post_detection_image_location = asyncio.create_task(api_calls.post_image_for_detection(remote_url, httpx_client, image_location, image_name))
+        if not FOCUS_MODE:
+            # Send off image as a background task
+            post_detection_image_location = asyncio.create_task(api_calls.post_image_for_detection(remote_url, httpx_client, image_location, image_name))
 
         await asyncio.sleep(1)
         
@@ -156,7 +174,13 @@ async def main():
                 await asyncio.sleep(1)
                 if calibrateButton.value == False:
                     initdist = init_sensors.calibrate_sensors(pixels, hx, camera, measure_sensor.measure_distance, GPIO, GPIO_TRIGGER, GPIO_ECHO)
-                
+
+            except KeyboardInterrupt:
+                hx.reset()
+                print("Taring in progress")
+                hx.tare(times=5)
+                continue
+
             except RuntimeError as e:
                 if 'Keyboard' in str(e):
                     print('Keyboard interupt, quitting')

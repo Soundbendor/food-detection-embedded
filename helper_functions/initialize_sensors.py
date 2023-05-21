@@ -38,7 +38,7 @@ def calibrate_sensors(pixels, hx, camera, measure_distance_func, GPIO, gpio_trig
     # Load Cell Calibration. Uses a lot of the HX711 library.
     print('Calibration in Progress: Loadcell Sensor')
     hx.set_reading_format("MSB", "MSB")
-    hx.set_reference_unit(87)
+    hx.set_reference_unit(94)
     hx.reset()
     hx.tare(times = 5)
     

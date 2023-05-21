@@ -22,9 +22,9 @@ function run_detection {
 if [ "${command_arg}" == "install" ]; then
     git clone https://github.com/Soundbendor/food-detection-embedded.git
 
-    mkdir archive_detection_images
-    mkdir archive_check_focus_images
-    mkdir logs
+    mkdir -p archive_detection_images
+    mkdir -p archive_check_focus_images
+    mkdir -p logs
 
     echo 'Creating virtual environment for dependencies...'
     cd ./food-detection-embedded
@@ -52,7 +52,7 @@ elif [ "${command_arg}" == "detect" ]; then
 elif [ "${command_arg}" == "focus" ]; then
     echo 'Checking camera focus...'
     echo '(press ctrl+c to stop)'
-    sudo ./food-detection-embedded/venv/bin/python3 ./food-detection-embedded/check_focus.py $2
+    sudo ./food-detection-embedded/venv/bin/python3 ./food-detection-embedded/detect_foods.py focus $2
 
 elif [ "${command_arg}" == "clean" ]; then
     echo 'This will delete all files and code in the repo (but keep the archive files). Are you sure you want to proceed? (y/n)'

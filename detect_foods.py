@@ -60,14 +60,22 @@ if not os.path.exists(LOCAL_SAVE_IMG_DIR): os.makedirs(LOCAL_SAVE_IMG_DIR)
 
 AMBIENT_COLOR = (25, 25, 10)
 
-def signal_handler(sig, frame):
+isInterrupt = False
+
+def signal_handler():
+    global isInterrupt
     print("Taring...")
     pixels.fill((180, 20, 0))
     hx.reset()
     hx.tare(times=5)
     pixels.fill(AMBIENT_COLOR)
+    isInterrupt = False
 
-signal.signal(signal.SIGINT, signal_handler)
+def send_signal(sig, frame):
+    global isInterrupt
+    isInterrupt = True
+
+signal.signal(signal.SIGINT, send_signal)
 
 
 # Main Detection function.
@@ -175,11 +183,9 @@ async def main():
                 if calibrateButton.value == False:
                     initdist = init_sensors.calibrate_sensors(pixels, hx, camera, measure_sensor.measure_distance, GPIO, GPIO_TRIGGER, GPIO_ECHO)
 
-            except KeyboardInterrupt:
-                hx.reset()
-                print("Taring in progress")
-                hx.tare(times=5)
-                continue
+                # If an interrupt happened during the last frame, tare the sensor and reset the interrupt flag
+                if isInterrupt:
+                    signal_handler()
 
             except RuntimeError as e:
                 if 'Keyboard' in str(e):

@@ -77,17 +77,21 @@ def send_signal(sig, frame):
 
 signal.signal(signal.SIGINT, send_signal)
 
+# To avoid false positives from faulty weights
+last_weight = None
 
 # Main Detection function.
 async def run_waste_detection(remote_url, initDistance = 0):
     # Distance delta and weight delta
     dist = initDistance - measure_sensor.measure_distance(GPIO, GPIO_TRIGGER, GPIO_ECHO)
     weightgram = measure_sensor.measure_weight(GPIO, hx)
-        
+    if last_weight is None:
+        last_weight = weightgram
+
     # Ambient light to know that the system is on.
     pixels.fill(AMBIENT_COLOR)
     print('Weight: {:0.2f}g   Distance Change: {:0.1f}cm'.format(weightgram, abs(dist)))
-    
+
     if dist < -500:
         print('Detected stop from ultrasonic sensors, waiting 1 second.')
         await asyncio.sleep(1)
@@ -95,7 +99,7 @@ async def run_waste_detection(remote_url, initDistance = 0):
             raise StopIteration
 
     # Main detection Conditions. dist = distance delta in cm, weightgram = weight delta in grams
-    if weightgram >= 60:
+    if weightgram >= 60 and last_weight >= 60:
         # Print and light up the scene / tray.
         print('Object detected')
         time.sleep(0.10)
@@ -109,20 +113,20 @@ async def run_waste_detection(remote_url, initDistance = 0):
             datetime.now().hour,
             datetime.now().minute,
             datetime.now().second)
-        
+
         # Makes the name of the file and the location for capture and displaying.
         image_name = 'waste_{}'.format(curr_datetime_str)
         image_location = f'{LOCAL_SAVE_IMG_DIR}/pre_detection_{image_name}.jpg'
-        
+
         # Annotates the text with distance, time, weight and captures the image.
-        # camera.annotate_text = "Captured: {} \n Weight: {:0.2f} Distance: {:0.2f}".format(curr_datetime_str, weightgram, dist) 
+        # camera.annotate_text = "Captured: {} \n Weight: {:0.2f} Distance: {:0.2f}".format(curr_datetime_str, weightgram, dist)
 
         camera.capture(image_location)
-        
+
         print('Picture Taken {:0.1f} {:0.1f}'.format(dist,weightgram))
-        
+
         if SHOW_IMAGES_ON_PI_DESKTOP:
-            # Opens the new image 
+            # Opens the new image
             im = Image.open(image_location)
             im.show()
 
@@ -131,18 +135,19 @@ async def run_waste_detection(remote_url, initDistance = 0):
             post_detection_image_location = asyncio.create_task(api_calls.post_image_for_detection(remote_url, httpx_client, image_location, image_name))
 
         await asyncio.sleep(1)
-        
+
         # Show green for the user.
         pixels.fill((0,255,0))
         await asyncio.sleep(0.5)
-        
+
         # Re-polls weight and distance to determine if the tray is still there.
         while measure_sensor.measure_weight(GPIO, hx) >= 60:
             print('Tray is still there Dist: {:0.1f} Weight: {:0.1f}'.format(measure_sensor.measure_distance(GPIO, GPIO_TRIGGER, GPIO_ECHO), measure_sensor.measure_weight(GPIO, hx)))
             time.sleep(0.8)
-        
+
         return
-      
+    last_weight = weightgram
+
 
 #----- Startup procedure / calibration -----
 
@@ -201,7 +206,7 @@ async def main():
                 pass
             except Exception as e:
                 print(e)
-            
+
     except Exception as e:
         print(e)
         pass

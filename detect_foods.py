@@ -85,6 +85,7 @@ async def run_waste_detection(remote_url, initDistance = 0):
     # Distance delta and weight delta
     dist = initDistance - measure_sensor.measure_distance(GPIO, GPIO_TRIGGER, GPIO_ECHO)
     weightgram = measure_sensor.measure_weight(GPIO, hx)
+    global last_weight
     if last_weight is None:
         last_weight = weightgram
 

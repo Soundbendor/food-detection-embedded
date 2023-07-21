@@ -52,6 +52,7 @@ class ImageApi:
     :param name: The name of the image to post.
     :returns: The path to the image returned by the server.
     :raises RequestFailedError: If the request fails.
+    :raises MissingSecretsError: See :func:`get_secret`.
     """
     files = {
       "img_file": (

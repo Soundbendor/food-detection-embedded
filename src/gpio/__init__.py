@@ -1,0 +1,43 @@
+import RPi.GPIO as GPIO
+from type import GPIO_DIRECTION
+
+def setup_io(mode = GPIO_MODE['BCM']):
+  """
+  Sets up the GPIO for use. By default, sets the mode to BCM.
+
+  :param mode: The mode to set the GPIO to. See :py:const:`GPIO_MODE`.
+  """
+  GPIO.setmode(mode)
+
+def setup(pin, direction):
+  """
+  Sets up a GPIO pin for use as an input or output.
+
+  :param pin: The pin to set up.
+  :param direction: The direction to set the pin to. See :py:const:`GPIO_DIRECTION`.
+  """
+  GPIO.setup(pin, direction)
+
+def cleanup():
+  """
+  Cleans up the GPIO.
+  """
+  GPIO.cleanup()
+
+def read(pin):
+  """
+  Reads the value of a GPIO pin.
+
+  :param pin: The pin to read from.
+  :returns: The value of the pin.
+  """
+  return GPIO.input(pin)
+
+def write(pin, value):
+  """
+  Writes a value to a GPIO pin.
+
+  :param pin: The pin to write to.
+  :param value: The value to write to the pin.
+  """
+  GPIO.output(pin, value)

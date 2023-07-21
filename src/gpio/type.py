@@ -1,0 +1,11 @@
+import RPi.GPIO as GPIO
+
+GPIO_MODE = {
+  'BOARD': GPIO.BOARD,
+  'BCM': GPIO.BCM
+}
+
+GPIO_DIRECTION = {
+  'IN': GPIO.IN,
+  'OUT': GPIO.OUT
+}

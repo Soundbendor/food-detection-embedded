@@ -1,4 +1,4 @@
-import RPi.GPIO as GPIO
+import Jetson.GPIO as GPIO
 from type import GPIO_DIRECTION
 
 def setup_io(mode = GPIO_MODE['BCM']):
@@ -29,7 +29,7 @@ def read(pin):
   Reads the value of a GPIO pin.
 
   :param pin: The pin to read from.
-  :returns: The value of the pin.
+  :returns: The value of the pin. See :py:const:`GPIO_VALUE`.
   """
   return GPIO.input(pin)
 
@@ -38,6 +38,6 @@ def write(pin, value):
   Writes a value to a GPIO pin.
 
   :param pin: The pin to write to.
-  :param value: The value to write to the pin.
+  :param value: The value to write to the pin. See :py:const:`GPIO_VALUE`.
   """
   GPIO.output(pin, value)

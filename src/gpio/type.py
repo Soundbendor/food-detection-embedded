@@ -1,4 +1,4 @@
-import RPi.GPIO as GPIO
+import Jetson.GPIO as GPIO
 
 GPIO_MODE = {
   'BOARD': GPIO.BOARD,
@@ -8,4 +8,9 @@ GPIO_MODE = {
 GPIO_DIRECTION = {
   'IN': GPIO.IN,
   'OUT': GPIO.OUT
+}
+
+GPIO_VALUE = {
+  'HIGH': GPIO.HIGH,
+  'LOW': GPIO.LOW
 }

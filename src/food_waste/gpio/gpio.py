@@ -1,7 +1,7 @@
 import Jetson.GPIO as GPIO
-from type import GPIO_DIRECTION
+import food_waste.gpio.mode as GPIO_MODE
 
-def setup_io(mode = GPIO_MODE['BCM']):
+def setup_io(mode = GPIO_MODE.BCM):
   """
   Sets up the GPIO for use. By default, sets the mode to BCM.
 

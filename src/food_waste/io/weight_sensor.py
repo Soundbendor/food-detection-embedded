@@ -21,6 +21,12 @@ class WeightSensor(EventEmitter):
 
   def setup(self):
     self.hx = HX711(out_pin, in_pin)
+
+    self.hx.set_reading_format("MSB", "MSB")
+    self.hx.set_reference_unit(94) # Copied from original code
+    self.hx.reset()
+    self.hx.tare(times = 5)
+
     self.loop_thread = threading.Thread(target=self.loop)
     self.loop_thread.start()
 

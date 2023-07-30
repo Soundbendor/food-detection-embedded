@@ -41,7 +41,7 @@ argument_parser.add_argument('--dry', action='store_true', help='See how the pro
 argument_parser.add_argument('-v', '--verbose', action='store_true', help='Prints more information to the console. Also enabled by the DEBUG environment variable.')
 args = argument_parser.parse_args()
 
-if args['verbose']:
+if args.verbose:
   os.environ['DEBUG'] = 'true'
 
 # TODO: Provide pins

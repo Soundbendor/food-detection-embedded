@@ -40,11 +40,14 @@ class WeightSensor(EventEmitter):
       if self.listener_count > 0:
         weight = self.get_weight()
         self.emit(WeightSensorEvents.WEIGHT_MEASURE, weight)
+
+        if weight > self.threshold and self.old_weight > self.threshold:
+          self.emit(WeightSensorEvents.OBJECT_DETECTED)
+
         if self.old_weight != weight:
           self.emit(WeightSensorEvents.WEIGHT_CHANGE, weight)
           self.old_weight = weight
-        if weight > self.threshold and self.old_weight > self.threshold:
-          self.emit(WeightSensorEvents.OBJECT_DETECTED)
+
       time.sleep(0.25)
 
   def measure(self):
@@ -56,6 +59,9 @@ class WeightSensor(EventEmitter):
     except (KeyboardInterrupt, SystemExit):
       GPIO.cleanup()
     return weight
+
+  def tare(self):
+    self.hx.tare()
 
   def on(self, event, callback):
     super().on(event, callback)

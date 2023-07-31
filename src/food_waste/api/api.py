@@ -1,6 +1,7 @@
 import os
 import time
-from api.exception import *
+from food_waste.api.exception import *
+import food_waste.log as console
 
 class ImageApi:
   """
@@ -39,7 +40,7 @@ class ImageApi:
       raise MissingSecretsError("Secrets could not be found in current directory. Please include them in a .env file.")
     return key
 
-  def post_image(self, path, name):
+  async def post_image(self, path, name):
     """
     Posts an image to the remote server for detection.
 
@@ -61,6 +62,7 @@ class ImageApi:
 
     for i in range(self.num_attempts):
       try:
+        console.debug(f"Posting image '{name}' to {self.remote_url}/api/model/detect")
         request = self.client.post(
           f"{self.remote_url}/api/model/detect",
           data = {"img_name": name},
@@ -69,13 +71,15 @@ class ImageApi:
           timeout = self.timeout
         )
 
+        console.debug(f"Archiving image '{name}' to {self.archive_loc_prefix}{name}")
         response_file_location = f"{self.archive_loc_prefix}{name}"
         response_file = open(response_file_location, "wb")
         response_file.write(request.content)
         response_file.close()
         return response_file_location
       except ConnectionError as e:
-        pass
+        console.error(f"Connection error occurred while posting image '{name}' to {self.remote_url}/api/model/detect", f"{i} / {self.num_attempts}", e)
       except BaseException as e:
-        pass
+        console.error(f"Error occurred while posting image '{name}' to {self.remote_url}/api/model/detect", f"{i} / {self.num_attempts}", e)
       time.sleep(1)
+    raise RequestFailedError("The request failed. Check the logs for more information.")

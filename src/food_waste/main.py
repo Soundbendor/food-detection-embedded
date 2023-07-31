@@ -44,12 +44,17 @@ args = argument_parser.parse_args()
 if args.verbose:
   os.environ['DEBUG'] = 'true'
 
+httpx_client = httpx.AsyncClient()
+image_api = ImageApi(
+  httpx_client,
+  "http://ec2-54-244-119-45.us-west-2.compute.amazonaws.com"
+)
 weight_sensor = WeightSensor(PIN.WEIGHT_CLK, PIN.WEIGHT_DAT)
 light = Light(PIN.LIGHT)
 button = Button(PIN.BUTTON)
 
 def cleanup():
-  console.log('Error occurred. Cleaning up and exiting.')
+  console.log('Cleaning up.')
   weight_sensor.cleanup()
   light.cleanup()
   button.cleanup()
@@ -61,21 +66,57 @@ async def main():
   GPIO.setup_io()
 
   # setup
+  console.debug("Setting up devices.")
   weight_sensor.setup()
   light.setup()
   button.setup()
 
+  light.set_status(LightStatus.STANDBY)
+
   try:
     while True:
-      button.wait(ButtonEvents.BUTTON_PRESSED)
-      now = time.time()
-      button.wait(ButtonEvents.BUTTON_RELEASED, timeout=6)
-      if time.time() - now > 4.5:
-        # TODO: Exit program properly
-        cleanup()
-        exit(0)
+      try:
+        console.debug("Waiting for button press.")
+        button.wait(ButtonEvents.BUTTON_PRESSED)
+        now = time.time()
+        button.wait(ButtonEvents.BUTTON_RELEASED, timeout=6)
+        console.debug(f"Button pressed for {time.time() - now} seconds.")
+        if time.time() - now > 5:
+          console.log("Shutoff request detected. Exiting.")
+          cleanup()
+          break
+        else:
+          console.log("Activation button pressed. Taring scale.")
+          light.set_status(LightStatus.TARING)
+          weight_sensor.tare()
+
+          console.log("Waiting for object to be placed on scale.")
+          light.set_status(LightStatus.ACTIVE)
+          now = time.time()
+          weight_sensor.wait(WeightSensorEvents.OBJECT_DETECTED, timeout=60)
+          console.debug(f"Object detected after {time.time() - now} seconds.")
+          if time.time() - now > 59:
+            console.log("No object detected. Returning to standby.")
+            light.set_status(LightStatus.STANDBY)
+            continue
+
+          console.log("Object detected. Gathering data.")
+          light.set_status(LightStatus.OBJECT_DETECTED)
+          # TODO: Take photo
+
+          console.log("Photo taken. Uploading to server.")
+          light.set_status(LightStatus.DIRTY)
+          if args.dry:
+            pass
+          else:
+            # Uploads to the server in the background
+            asyncio.create_task(image_api.post_image("TODO.jpg", "TODO.jpg"))
+      except RuntimeError as e:
+        if 'Keyboard' in str(e):
+          console.warning("Keyboard interrupt detected. Exiting.")
+          break
   except Exception as e:
-    console.error(e)
+    console.error("An error ocurred during execution", e)
   finally:
     cleanup()
 
@@ -84,4 +125,5 @@ loop = asyncio.get_event_loop()
 try:
   loop.run_until_complete(main())
 except Exception as e:
+  console.error("An error ocurred during execution", e)
   cleanup()

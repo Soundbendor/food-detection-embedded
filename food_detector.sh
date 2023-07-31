@@ -27,7 +27,7 @@ function install {
     echo 'Creating virtual environment for dependencies...'
     python3 -m venv venv
     echo 'Installing dependencies (may take a minute)...'
-    ./venv/bin/pip3 install -qr requirements.txt
+    ./venv/bin/pip install -qr requirements.txt
 
     echo 'Copying native opencv library to virtual environment...'
     ln -s /usr/lib/python3.6/dist-packages/cv2/python-3.6/cv2*.so ./venv/lib/python3.6/site-packages/cv2.so

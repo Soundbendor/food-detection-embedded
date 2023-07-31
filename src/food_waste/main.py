@@ -44,10 +44,9 @@ args = argument_parser.parse_args()
 if args.verbose:
   os.environ['DEBUG'] = 'true'
 
-# TODO: Provide pins
-weight_sensor = WeightSensor(None, None)
-light = Light(None)
-button = Button(None)
+weight_sensor = WeightSensor(PIN.WEIGHT_CLK, PIN.WEIGHT_DAT)
+light = Light(PIN.LIGHT)
+button = Button(PIN.BUTTON)
 
 def cleanup():
   console.log('Error occurred. Cleaning up and exiting.')

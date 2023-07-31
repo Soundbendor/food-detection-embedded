@@ -1,5 +1,6 @@
 from food_waste.events.emitter import EventEmitter
 import food_waste.gpio as GPIO
+import food_waste.log as console
 import threading
 import time
 
@@ -23,22 +24,30 @@ class Button(EventEmitter):
 
   def cleanup(self):
     self.stopped = True
+    console.debug("Button: Waiting for loop thread to stop.")
     self.loop_thread.join()
+    console.debug("Button: Cleaning up GPIO.")
     GPIO.cleanup()
 
   def loop(self):
     while not self.stopped:
       if self.listener_count > 0:
-        button_status = GPIO.input(self.pin)
+        button_status = self.measure()
         if button_status == GPIO.HIGH and self.old_status != GPIO.HIGH:
+          console.debug("Button: Button pressed.")
           self.emit(ButtonEvents.BUTTON_PRESSED)
         elif button_status == GPIO.LOW and self.old_status != GPIO.LOW:
+          console.debug("Button: Button released.")
           self.emit(ButtonEvents.BUTTON_RELEASED)
         self.old_status = button_status
       time.sleep(0.25)
+    console.debug("Button: Loop thread stopped.")
 
   def measure(self):
-    return GPIO.input(self.pin) == GPIO.HIGH
+    console.debug("Button: Measuring button status.")
+    val = GPIO.input(self.pin) == GPIO.HIGH
+    console.debug(f"Button: Button status is {val}.")
+    return val
 
   def on(self, event, callback):
     super().on(event, callback)

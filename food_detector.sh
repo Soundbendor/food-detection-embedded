@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 command_arg=$1
-MAIN="./src/food_waste/main.py"
+MAIN="./src/main.py"
 
 function pull_changes {
     echo 'Pulling changes from GitHub...'

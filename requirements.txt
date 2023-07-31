@@ -1,22 +1,6 @@
-Adafruit-Blinka==8.14.0
-adafruit-circuitpython-busdevice==5.2.3
-adafruit-circuitpython-neopixel==6.3.8
-adafruit-circuitpython-pixelbuf==2.0.0
-adafruit-circuitpython-requests==1.12.12
-adafruit-circuitpython-typing==1.8.3
-Adafruit-PlatformDetect==3.40.2
-Adafruit-PureIO==1.1.9
-certifi==2022.12.7
-charset-normalizer==3.0.1
-idna==3.4
-Jetson.GPIO
-Pillow==9.4.0
-pyftdi==0.54.0
-pyserial==3.5
-python-dotenv==0.21.1
-pyusb==1.2.1
-requests==2.28.2
-sysv-ipc==1.1.0
-typing-extensions==4.4.0
-urllib3==1.26.14
-httpx==0.23.3
+httpx == 0.24.1
+Jetson.GPIO == 2.1.1
+nanocamera == 0.1.5
+opencv-python == 4.8.0.74
+python-dotenv == 1.0.0
+requests == 2.31.0

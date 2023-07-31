@@ -1,6 +1,5 @@
 httpx ~= 0.22.0
-Jetson.GPIO == 2.1.1
-nanocamera == 0.1.5
-opencv-python-headless == 4.8.0.74
+Jetson.GPIO ~= 2.1.1
+nanocamera ~= 0.1.5
 python-dotenv ~= 0.20.0
 requests ~= 2.27.1

@@ -1,7 +1,7 @@
 import os
 import time
-from food_waste.api.exception import *
-import food_waste.log as console
+from .exception import MissingSecretsError, RequestFailedError
+from .. import log as console
 
 class ImageApi:
   """

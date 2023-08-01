@@ -1,4 +1,4 @@
-from ..events import emitter as EventEmitter
+from ..events import EventEmitter
 from .. import gpio as GPIO
 from .. import log as console
 import threading

@@ -48,12 +48,11 @@ def error(*args):
 
 def log(*args, level='info'):
   """Log a message."""
-  match level:
-    case 'debug':
-      logger.debug(*args)
-    case 'warning':
-      logger.warning(*args)
-    case 'error':
-      logger.error(*args)
-    case _:
-      logger.info(*args)
+  if level == 'debug':
+    logger.debug(*args)
+  elif level == 'warning':
+    logger.warning(*args)
+  elif level == 'error':
+    logger.error(*args)
+  else:
+    logger.info(*args)

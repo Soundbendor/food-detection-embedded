@@ -1,2 +1,2 @@
-from api.api import ImageApi
-from api.exception import *
+from food_waste.api.api import ImageApi
+from food_waste.api.exception import *

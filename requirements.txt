@@ -1,9 +1,10 @@
-charset-normalizer ~= 3.0.1
-urllib3 ~= 1.26.16
-numpy ~= 1.19.5
+charset-normalizer ~= 3.2.0
+urllib3 ~= 2.0.4
+opencv-python-headless ~= 4.8.0.74
+numpy ~= 1.25.2
 
-httpx ~= 0.22.0
+httpx ~= 0.24.0
 Jetson.GPIO ~= 2.1.1
 nanocamera ~= 0.1.5
-python-dotenv ~= 0.20.0
-requests ~= 2.27.1
+python-dotenv ~= 1.0.0
+requests ~= 2.31.0

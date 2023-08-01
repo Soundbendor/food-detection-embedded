@@ -32,7 +32,7 @@ import argparse
 import food_waste.gpio as GPIO
 from food_waste.io import PIN, Light, LightStatus, Button, ButtonEvents, WeightSensor, WeightSensorEvents
 import food_waste.log as console
-from food_waste.api import *
+from food_waste.api import ImageApi, MissingSecretsError, RequestFailedError
 
 load_dotenv()
 

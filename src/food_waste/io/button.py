@@ -1,6 +1,6 @@
-from food_waste.events.emitter import EventEmitter
-import food_waste.gpio as GPIO
-import food_waste.log as console
+from ..events import emitter as EventEmitter
+from .. import gpio as GPIO
+from .. import log as console
 import threading
 import time
 

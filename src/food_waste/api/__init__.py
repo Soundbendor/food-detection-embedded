@@ -1,2 +1,2 @@
-from food_waste.api.api import ImageApi
-from food_waste.api.exception import *
+from .api import ImageApi
+from .exception import MissingSecretsError, RequestFailedError

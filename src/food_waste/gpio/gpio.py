@@ -1,5 +1,5 @@
+from . import mode as GPIO_MODE
 import Jetson.GPIO as GPIO
-import food_waste.gpio.mode as GPIO_MODE
 
 def setup_io(mode = GPIO_MODE.BCM):
   """

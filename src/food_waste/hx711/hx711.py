@@ -9,7 +9,7 @@ Lightly Edited by Brayden Morse
 Apache License 2.0
 """
 
-import food_waste.gpio as GPIO
+from .. import gpio as GPIO
 import time
 import threading
 

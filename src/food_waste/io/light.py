@@ -1,4 +1,4 @@
-import food_waste.gpio as GPIO
+from .. import gpio as GPIO
 import threading
 import time
 

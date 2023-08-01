@@ -1,6 +1,6 @@
-from food_waste.events.emitter import EventEmitter
-from food_waste.hx711 import HX711
-import food_waste.log as console
+from ..events import EventEmitter
+from .. import hx711 as HX711
+from .. import log as console
 import threading
 import time
 

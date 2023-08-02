@@ -34,6 +34,9 @@ function install {
     echo 'Building Docker image...'
     sudo docker build -t food-detection-embedded .
 
+    echo 'Removing old container...'
+    sudo docker rm food-detection-embedded
+
     echo 'Creating container...'
     sudo docker create --name food-detection-embedded --privileged -v "$dir_absolute/archive_detection_images:/app/archive_detection_images" -v "$dir_absolute/archive_check_focus_images:/app/archive_check_focus_images" -v "$dir_absolute/logs:/app/logs" food-detection-embedded
 }

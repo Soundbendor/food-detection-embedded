@@ -1,5 +1,5 @@
 from ..events import EventEmitter
-from .. import hx711 as HX711
+from ..hx711 import HX711
 from .. import log as console
 import threading
 import time

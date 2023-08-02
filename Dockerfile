@@ -6,13 +6,11 @@ RUN apt upgrade -y
 RUN DEBIAN_FRONTEND=noninteractive TZ=America/New_York apt install -y wget curl build-essential libncursesw5-dev libssl-dev libsqlite3-dev tk-dev libgdbm-dev tk-dev libc6-dev libbz2-dev libffi-dev zlib1g-dev
 RUN apt install -y python3-venv
 
-# Installing dependencies
-RUN python3.11 -m pip install --upgrade pip
-RUN python3.11 -m pip install --upgrade setuptools
-RUN python3.11 -m pip install --upgrade wheel
-
 WORKDIR /app
 RUN python3.11 -m venv venv
+RUN ./venv/bin/pip install --upgrade pip
+RUN ./venv/bin/pip install --upgrade setuptools
+RUN ./venv/bin/pip install --upgrade wheel
 COPY requirements.txt /app/
 RUN ./venv/bin/pip install -r requirements.txt
 

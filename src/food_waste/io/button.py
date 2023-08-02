@@ -16,6 +16,7 @@ class Button(EventEmitter):
     self.listener_count = 0
     self.stopped = False
     self.old_status = None
+    self.loop_thread = None
 
   def setup(self):
     GPIO.setup(self.pin, GPIO.IN)
@@ -24,9 +25,10 @@ class Button(EventEmitter):
 
   def cleanup(self):
     self.stopped = True
-    console.debug("Button: Waiting for loop thread to stop.")
-    self.loop_thread.join()
-    console.debug("Button: Cleaning up GPIO.")
+    if self.loop_thread is not None:
+      console.debug("Button: Waiting for loop thread to stop.")
+      self.loop_thread.join()
+      console.debug("Button: Cleaning up GPIO.")
     GPIO.cleanup()
 
   def loop(self):

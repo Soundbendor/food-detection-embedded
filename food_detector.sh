@@ -20,9 +20,9 @@ function run_detection {
     echo '(press ctrl+c to stop)'
     if [ $1 == 1 ]; then
         echo 'Checking camera focus...'
-        sudo docker run food-detection-embedded --dry $2
+        sudo docker start food-detection-embedded --dry $2
     else
-        sudo docker run food-detection-embedded $2
+        sudo docker start food-detection-embedded $2
     fi
 }
 

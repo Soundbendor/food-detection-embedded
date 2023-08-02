@@ -1,4 +1,5 @@
 FROM python:3.11
+USER root
 
 # Installing Other stuff
 RUN apt update

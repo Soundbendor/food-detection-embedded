@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 dir="$(dirname "$0")"
+dir_absolute="$(readlink -m "$dir")"
 cd "$dir"
 
 command_arg=$1
@@ -34,7 +35,7 @@ function install {
     sudo docker build -t food-detection-embedded .
 
     echo 'Creating container...'
-    sudo docker create --name food-detection-embedded --privileged -v "$dir/archive_detection_images:/app/archive_detection_images" -v "$dir/archive_check_focus_images:/app/archive_check_focus_images" -v "$dir/logs:/app/logs" food-detection-embedded
+    sudo docker create --name food-detection-embedded --privileged -v "$dir_absolute/archive_detection_images:/app/archive_detection_images" -v "$dir_absolute/archive_check_focus_images:/app/archive_check_focus_images" -v "$dir_absolute/logs:/app/logs" food-detection-embedded
 }
 
 if [ "${command_arg}" == "install" ]; then

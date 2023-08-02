@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+cd "$(dirname "$0")"
+
 command_arg=$1
 MAIN="./src/main.py"
 
@@ -7,16 +9,19 @@ function pull_changes {
     echo 'Pulling changes from GitHub...'
     git pull --ff-only
 
-    echo 'Installing dependencies...'
-    ./venv/bin/pip3 install -qr requirements.txt
-
-    cd ..
+    echo 'Building Docker image...'
+    install
 }
 
 function run_detection {
     echo 'Running detections....'
     echo '(press ctrl+c to stop)'
-    sudo ./venv/bin/python3 $MAIN $2
+    if [ $1 == 1 ]; then
+        echo 'Checking camera focus...'
+        sudo docker run food-detection-embedded --dry $2
+    else
+        sudo docker run food-detection-embedded $2
+    fi
 }
 
 function install {
@@ -24,15 +29,11 @@ function install {
     mkdir -p archive_check_focus_images
     mkdir -p logs
 
-    echo 'Creating virtual environment for dependencies...'
-    python3 -m venv venv
-    echo 'Installing dependencies (may take a minute)...'
-    ./venv/bin/pip install -qr requirements.txt
+    echo 'Building Docker image...'
+    sudo docker build -t food-detection-embedded .
 
-    echo 'Copying native opencv library to virtual environment...'
-    ln -s /usr/lib/python3.6/dist-packages/cv2/python-3.6/cv2*.so ./venv/lib/python3.6/site-packages/cv2.so
-
-    cd ..
+    echo 'Creating container...'
+    sudo docker create --name food-detection-embedded --privileged food-detection-embedded
 }
 
 if [ "${command_arg}" == "install" ]; then
@@ -59,7 +60,7 @@ elif [ "${command_arg}" == "detect" ]; then
 
 elif [ "${command_arg}" == "focus" ]; then
     echo 'Checking camera focus...'
-    sudo ./venv/bin/python3 $MAIN --dry $2
+    run_detection 1
 
 elif [ "${command_arg}" == "clean" ]; then
     echo 'This will delete all files and code in the repo (but copy archive files). Are you sure you want to proceed? (y/n)'
@@ -75,6 +76,6 @@ elif [ "${command_arg}" == "clean" ]; then
         echo 'No files removed.'
     fi
 else
-    echo '`${command_arg}` not recognized as a command.'
+    echo "$command_arg not recognized as a command."
     echo 'Please use: `detect`, `focus`, `pull`, `pull+detect`, `clean`, `install_prod`, or `install`.'
 fi

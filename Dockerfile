@@ -17,4 +17,4 @@ RUN ./venv/bin/pip install -r requirements.txt
 
 COPY . /app/
 
-CMD ["./venv/bin/python3", "./src/main.py"]
+ENTRYPOINT ["./venv/bin/python3", "./src/main.py"]

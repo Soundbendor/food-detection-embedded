@@ -66,6 +66,13 @@ elif [ "${command_arg}" == "focus" ]; then
     echo 'Checking camera focus...'
     run_detection 1
 
+elif [ "${command_arg}" == "debug" ]; then
+    echo 'Removing old container...'
+    sudo docker rm food-detection-embedded
+
+    echo 'Running debug container...'
+    sudo docker run -it --name food-detection-embedded --privileged --entrypoint /bin/bash food-detection-embedded
+
 elif [ "${command_arg}" == "clean" ]; then
     echo 'This will delete all files and code in the repo (but copy archive files). Are you sure you want to proceed? (y/n)'
     read decision

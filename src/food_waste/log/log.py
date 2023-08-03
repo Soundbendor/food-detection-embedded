@@ -23,9 +23,9 @@ class Formatter(logging.Formatter):
     return formatter.format(record)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
+ch.setLevel(logging.DEBUG)
 ch.setFormatter(Formatter())
 logger.addHandler(ch)
 

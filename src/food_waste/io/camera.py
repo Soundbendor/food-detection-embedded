@@ -18,10 +18,7 @@ class Camera:
     Sets up the camera.
     """
     console.debug("Camera: Setting up camera.")
-    try:
-      self.camera = nanocamera.Camera(flip = 0, width = 1920, height = 1080, fps = 5, debug = os.getenv('DEBUG'))
-    except Exception as e:
-      console.error(e)
+    self.camera = nanocamera.Camera(flip = 0, width = 1920, height = 1080, fps = 5, debug = os.getenv('DEBUG'))
     if not self.camera.isReady():
       console.error("Camera: Camera failed to set up. See error code below.")
     code, has_err = self.camera.hasError()

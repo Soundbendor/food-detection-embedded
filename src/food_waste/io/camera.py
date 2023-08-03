@@ -1,8 +1,12 @@
 import nanocamera
 import cv2
 import time
+import os
 
 from .. import log as console
+
+class CameraSetupError(Exception):
+  pass
 
 class Camera:
 
@@ -14,14 +18,13 @@ class Camera:
     Sets up the camera.
     """
     console.debug("Camera: Setting up camera.")
-    self.camera = nanocamera.Camera(flip = 0, width = 1920, height = 1080, fps = 5)
-    console.debug("Camera: Waiting for camera to be ready.")
-    for i in range(30):
-      if self.camera.isReady():
-        console.debug("Camera: Camera is ready.")
-        return
-      time.sleep(0.5)
-    console.error("Camera: Camera failed to become ready in time. Continuing anyway.")
+    self.camera = nanocamera.Camera(flip = 0, width = 1920, height = 1080, fps = 5, debug = os.getenv('DEBUG'))
+    if not self.camera.isReady():
+      console.error("Camera: Camera failed to set up. See error code below.")
+    code, has_err = self.camera.hasError()
+    if has_err:
+      console.error(f"Camera: Camera error: {code}")
+    raise CameraSetupError(f"Camera error: {code}")
 
   def capture(self):
     """

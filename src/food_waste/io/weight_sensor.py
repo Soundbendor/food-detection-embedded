@@ -8,6 +8,7 @@ class WeightSensorEvents:
   WEIGHT_MEASURE = 'weight_measure'
   WEIGHT_CHANGE = 'weight_change'
   OBJECT_DETECTED = 'object_detected'
+  OBJECT_REMOVED = 'object_removed'
 
 class WeightSensor(EventEmitter):
 
@@ -49,6 +50,9 @@ class WeightSensor(EventEmitter):
         if weight > self.threshold and self.old_weight > self.threshold:
           console.debug("Weight Sensor: Object detected.")
           self.emit(WeightSensorEvents.OBJECT_DETECTED)
+        elif weight <= self.threshold and self.old_weight < self.threshold:
+          console.debug("Weight Sensor: Object removed.")
+          self.emit(WeightSensorEvents.OBJECT_REMOVED)
 
         if self.old_weight != weight:
           console.debug(f"Weight Sensor: Weight changed from {self.old_weight} to {weight}.")

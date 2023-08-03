@@ -52,12 +52,16 @@ class Light:
         time.sleep(0.25)
         power_off()
         time.sleep(0.25)
-      case LightStatus.DIRTY: # Slow blink
+      case LightStatus.DIRTY: # 1 Slow blink, 1 fast blink
         console.debug(f"Light: Dirty mode.")
         power_on()
-        time.sleep(1)
+        time.sleep(0.5)
         power_off()
-        time.sleep(1)
+        time.sleep(0.5)
+        power_on()
+        time.sleep(0.25)
+        power_off()
+        time.sleep(0.25)
       case LightStatus.SHUTDOWN: # Two fast blinks, one slow blink
         console.debug(f"Light: Shut down mode.")
         power_on()

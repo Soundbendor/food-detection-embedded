@@ -28,13 +28,16 @@ import httpx
 import signal
 import sys
 import argparse
+import datetime
 
 import food_waste.gpio as GPIO
-from food_waste.io import PIN, Light, LightStatus, Button, ButtonEvents, WeightSensor, WeightSensorEvents
+from food_waste.io import PIN, Light, LightStatus, Button, ButtonEvents, WeightSensor, WeightSensorEvents, Camera
 import food_waste.log as console
 from food_waste.api import ImageApi, MissingSecretsError, RequestFailedError
 
 load_dotenv()
+
+dirname = os.path.dirname(os.path.realpath(__file__))
 
 argument_parser = argparse.ArgumentParser(description='Detects when food is placed on the scale and sends the data to the cloud for processing.')
 argument_parser.add_argument('--dry', action='store_true', help='See how the program would run without sending data to the server.')
@@ -56,6 +59,7 @@ image_api = ImageApi(
 weight_sensor = WeightSensor(PIN.WEIGHT_CLK, PIN.WEIGHT_DAT)
 light = Light(PIN.LIGHT)
 button = Button(PIN.BUTTON)
+camera = Camera()
 
 def cleanup():
   console.log('Cleaning up.')
@@ -64,6 +68,25 @@ def cleanup():
   button.cleanup()
   GPIO.cleanup()
   console.log('Done.')
+
+def get_date_string():
+  return "{}-{}-{}__{}-{}-{}".format(
+    datetime.now().year,
+    datetime.now().month,
+    datetime.now().day,
+    datetime.now().hour,
+    datetime.now().minute,
+    datetime.now().second)
+
+def get_image_name():
+  return f"waste_{get_date_string()}"
+
+def generate_image_path(name):
+  base_dir = "archive_check_focus_images" if args.dry else "archive_detection_images"
+  if not os.path.exists(base_dir):
+    os.makedirs(base_dir)
+  fname = f"pre_detection_{name}.jpg"
+  return os.path.join(dirname, "..", base_dir, name)
 
 async def main():
   console.log('Starting food waste detection.')
@@ -77,43 +100,64 @@ async def main():
 
   light.set_status(LightStatus.STANDBY)
 
+  def tare():
+    console.log("Activation button pressed. Taring scale.")
+    light.set_status(LightStatus.TARING)
+    weight_sensor.tare()
+
+  def wait_for_press():
+    console.debug("Waiting for button press.")
+    button.wait(ButtonEvents.BUTTON_PRESSED)
+    now = time.time()
+    button.wait(ButtonEvents.BUTTON_RELEASED, timeout=6)
+    console.debug(f"Button pressed for {time.time() - now} seconds.")
+    return time.time() - now
+
+  def wait_for_object():
+    console.log("Waiting for object to be placed on scale.")
+    light.set_status(LightStatus.ACTIVE)
+    now = time.time()
+    weight_sensor.wait(WeightSensorEvents.OBJECT_DETECTED, timeout=60)
+    console.debug(f"Object detected after {time.time() - now} seconds.")
+    return time.time() - now
+
   try:
     while True:
       try:
-        console.debug("Waiting for button press.")
-        button.wait(ButtonEvents.BUTTON_PRESSED)
-        now = time.time()
-        button.wait(ButtonEvents.BUTTON_RELEASED, timeout=6)
-        console.debug(f"Button pressed for {time.time() - now} seconds.")
-        if time.time() - now > 5:
+        button_press_duration = wait_for_press()
+        if button_press_duration > 5:
           console.log("Shutoff request detected. Exiting.")
           cleanup()
           break
         else:
-          console.log("Activation button pressed. Taring scale.")
-          light.set_status(LightStatus.TARING)
-          weight_sensor.tare()
+          tare()
 
-          console.log("Waiting for object to be placed on scale.")
-          light.set_status(LightStatus.ACTIVE)
-          now = time.time()
-          weight_sensor.wait(WeightSensorEvents.OBJECT_DETECTED, timeout=60)
-          console.debug(f"Object detected after {time.time() - now} seconds.")
-          if time.time() - now > 59:
+          object_wait_duration = wait_for_object()
+          if object_wait_duration > 59:
             console.log("No object detected. Returning to standby.")
             light.set_status(LightStatus.STANDBY)
             continue
 
           console.log("Object detected. Gathering data.")
           light.set_status(LightStatus.OBJECT_DETECTED)
-          # TODO: Take photo
+          image_name = get_image_name()
+          image_path = generate_image_path(image_name)
+          camera.save(image_path)
 
           console.log("Photo taken. Uploading to server.")
           light.set_status(LightStatus.DIRTY)
-          # TODO: Save image to disk
           if not args.dry:
             # Uploads to the server in the background
-            asyncio.create_task(image_api.post_image("TODO.jpg", "TODO.jpg"))
+            asyncio.create_task(image_api.post_image(image_path, image_name))
+
+          await asyncio.sleep(1)
+
+          # Wait for object to be removed
+          console.log("Waiting for object to be removed.")
+          weight_sensor.wait(WeightSensorEvents.OBJECT_REMOVED)
+
+          console.log("Object removed. Returning to standby.")
+          light.set_status(LightStatus.STANDBY)
       except RuntimeError as e:
         if 'Keyboard' in str(e):
           console.warning("Keyboard interrupt detected. Exiting.")

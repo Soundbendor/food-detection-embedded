@@ -44,6 +44,9 @@ class Button(EventEmitter):
     console.debug("Button: Loop thread stopped.")
 
   def measure(self):
+    """
+    Returns the status of the button.
+    """
     console.debug("Button: Measuring button status.")
     val = GPIO.input(self.pin) == GPIO.HIGH
     console.debug(f"Button: Button status is {val}.")

@@ -71,9 +71,15 @@ class Light:
         time.sleep(0.25)
 
   def power_on(self):
+    """
+    Turns the light on.
+    """
     GPIO.output(self.pin, GPIO.HIGH)
 
   def power_off(self):
+    """
+    Turns the light off.
+    """
     GPIO.output(self.pin, GPIO.LOW)
 
   def setup(self):
@@ -88,6 +94,10 @@ class Light:
     self.set_status(LightStatus.POWER_OFF)
 
   def set_status(self, status):
+    """
+    Sets the status of the light.
+    The status determines the pattern of the light.
+    """
     self.status = status
     if status == LightStatus.POWER_OFF:
       power_off()

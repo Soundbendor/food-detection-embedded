@@ -59,6 +59,9 @@ class WeightSensor(EventEmitter):
     console.debug("Weight Sensor: Loop thread stopped.")
 
   def measure(self):
+    """
+    Returns the weight measured by the sensor.
+    """
     weight = 0
     try:
       console.debug("Weight Sensor: Measuring weight.")
@@ -71,6 +74,9 @@ class WeightSensor(EventEmitter):
     return weight
 
   def tare(self):
+    """
+    Tares the sensor.
+    """
     console.debug("Weight Sensor: Taring.")
     self.hx.tare()
 

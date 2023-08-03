@@ -131,7 +131,7 @@ async def main():
           break
         else:
           tare()
-          await asyncio.sleep(1)
+          await asyncio.sleep(2)
           object_wait_duration = wait_for_object()
           if object_wait_duration > 59:
             console.log("No object detected. Returning to standby.")
@@ -151,7 +151,7 @@ async def main():
             # Uploads to the server in the background
             asyncio.create_task(image_api.post_image(image_path, image_name, object_weight))
 
-          await asyncio.sleep(1)
+          await asyncio.sleep(2)
 
           # Wait for object to be removed
           console.log("Waiting for object to be removed.")

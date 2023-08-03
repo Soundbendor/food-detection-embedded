@@ -19,7 +19,7 @@ class Button(EventEmitter):
     self.loop_thread = None
 
   def setup(self):
-    GPIO.setup(self.pin, GPIO.IN)
+    GPIO.setup(self.pin, GPIO.IN, pull=GPIO.PULL_DOWN)
     self.loop_thread = threading.Thread(target=self.loop)
     self.loop_thread.start()
 

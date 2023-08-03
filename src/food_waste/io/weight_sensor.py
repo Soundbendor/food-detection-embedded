@@ -67,8 +67,8 @@ class WeightSensor(EventEmitter):
       console.debug("Weight Sensor: Measuring weight.")
       weight = self.hx.get_weight()
       console.debug(f"Weight Sensor: Weight measured: {weight}g.")
-      hx.power_down()
-      hx.power_up()
+      self.hx.power_down()
+      self.hx.power_up()
     except (KeyboardInterrupt, SystemExit):
       GPIO.cleanup()
     return weight

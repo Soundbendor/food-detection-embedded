@@ -18,12 +18,11 @@ class Light:
     self.status = LightStatus.POWER_OFF
 
   def setup(self):
-    GPIO.setup(self.pin, GPIO.OUT)
-    GPIO.output(self.pin, GPIO.LOW)
+    GPIO.setup(self.pin, GPIO.OUT, initial=GPIO.LOW)
 
   def cleanup(self):
     GPIO.cleanup()
 
   def set_status(self, status):
     self.status = status
-    # TODO: Set the light to the correct color based on the status
+    # TODO: Set the light based on the status

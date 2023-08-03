@@ -27,20 +27,12 @@ Note: do not unplug the Jetson Nano while the detection script is running, this 
 
 ### Setup:
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-# To link the built-in opencv library to the virtual environment
-ln -s /usr/lib/python3.6/dist-packages/cv2/python-3.6/cv2*.so ./venv/lib/python3.6/site-packages/cv2.so
-```
-
-or
-
-```bash
 ./food_detector.sh install
 ```
 
 ### How to run the detector:
 ```bash
-sudo venv/bin/python src/food_waste/main.py
+# One of the following:
+./food_detector.sh detect
+./food_detector.sh focus
 ```

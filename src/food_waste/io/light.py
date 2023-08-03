@@ -101,4 +101,4 @@ class Light:
     """
     self.status = status
     if status == LightStatus.POWER_OFF:
-      power_off()
+      self.power_off()

@@ -58,5 +58,8 @@ class EventEmitter:
     :param timeout: The maximum time to wait for the event in seconds. If `None`, wait indefinitely.
     """
     waiter = threading.Event()
-    self.once(event, lambda: waiter.set())
-    waiter.wait(timeout=timeout)
+    cb = lambda: waiter.set()
+    self.once(event, cb)
+    flag = waiter.wait(timeout=timeout)
+    if not flag:
+      self.off(event, cb)

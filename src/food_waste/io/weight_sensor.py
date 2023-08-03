@@ -17,7 +17,7 @@ class WeightSensor(EventEmitter):
     self.clk_pin = clk_pin
     self.dat_pin = dat_pin
     self.listener_count = 0
-    self.old_weight = None
+    self.old_weight = 0
     self.stopped = False
     self.threshold = threshold
     self.loop_thread = None

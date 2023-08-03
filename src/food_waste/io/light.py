@@ -23,7 +23,7 @@ class Light:
   def loop(self):
     while not self.stopped:
       if self.status == LightStatus.POWER_OFF:
-        time.sleep(0.25)
+        time.sleep(0.5)
       else:
         self.activate_light()
     console.debug("Light: Loop thread stopped.")

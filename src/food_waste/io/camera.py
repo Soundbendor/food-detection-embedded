@@ -16,11 +16,11 @@ class Camera:
     console.debug("Camera: Setting up camera.")
     self.camera = nanocamera.Camera(flip = 0, width = 1920, height = 1080, fps = 5)
     console.debug("Camera: Waiting for camera to be ready.")
-    for i in range(25):
+    for i in range(30):
       if self.camera.isReady():
         console.debug("Camera: Camera is ready.")
         return
-      time.sleep(0.25)
+      time.sleep(0.5)
     console.error("Camera: Camera failed to become ready in time. Continuing anyway.")
 
   def capture(self):

@@ -42,7 +42,7 @@ class Button(EventEmitter):
         self.old_status = button_status
       else:
         self.old_status = GPIO.LOW
-      time.sleep(0.25)
+      time.sleep(0.5)
     console.debug("Button: Loop thread stopped.")
 
   def measure(self):

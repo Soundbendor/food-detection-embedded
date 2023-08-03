@@ -62,7 +62,7 @@ class WeightSensor(EventEmitter):
           self.emit(WeightSensorEvents.WEIGHT_CHANGE, weight)
           self.old_weight = weight
 
-      time.sleep(0.25)
+      time.sleep(0.5)
     console.debug("Weight Sensor: Loop thread stopped.")
 
   def measure(self):

@@ -429,7 +429,7 @@ class HX711:
         self.power_down()
         self.power_up()
 
-    def cleanup():
+    def cleanup(self):
         GPIO.cleanup()
 
 # EOF - hx711.py

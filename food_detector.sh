@@ -25,7 +25,7 @@ function run_detection {
         arg="--dry"
     fi
     echo 'Running detections....'
-    sudo docker run --name food-detection-embedded --privileged -v "$dir_absolute/archive_detection_images:/app/archive_detection_images" -v "$dir_absolute/archive_check_focus_images:/app/archive_check_focus_images" -v "$dir_absolute/logs:/app/logs" food-detection-embedded $2 $arg
+    sudo docker run -d --name food-detection-embedded --privileged -v "$dir_absolute/archive_detection_images:/app/archive_detection_images" -v "$dir_absolute/archive_check_focus_images:/app/archive_check_focus_images" -v "$dir_absolute/logs:/app/logs" food-detection-embedded $2 $arg
 }
 
 function install {

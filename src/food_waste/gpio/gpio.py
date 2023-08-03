@@ -1,4 +1,5 @@
 from . import mode as GPIO_MODE
+from .. import log as console
 import Jetson.GPIO as GPIO
 
 def setup_io(mode = GPIO_MODE.BCM):
@@ -15,6 +16,7 @@ def setmode(mode):
 
   :param mode: The mode to set the GPIO to. See :py:const:`GPIO_MODE`.
   """
+  console.debug(f"GPIO: Setting GPIO mode to {mode}.")
   GPIO.setmode(mode)
 
 def setup(pin, direction):
@@ -24,6 +26,7 @@ def setup(pin, direction):
   :param pin: The pin to set up.
   :param direction: The direction to set the pin to. See :py:const:`GPIO_DIRECTION`.
   """
+  console.debug(f"GPIO: Setting up pin {pin} as {direction}.")
   GPIO.setup(pin, direction)
 
 def cleanup():

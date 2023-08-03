@@ -131,7 +131,7 @@ async def main():
           break
         else:
           tare()
-
+          await asyncio.sleep(1)
           object_wait_duration = wait_for_object()
           if object_wait_duration > 59:
             console.log("No object detected. Returning to standby.")

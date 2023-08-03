@@ -1,7 +1,11 @@
 __pycache__/
 Authentication_details.txt
 venv/
+.git
 
-logs
+logs/
 archive_detection_images/
 archive_check_focus_images/
+
+food_detector.sh
+README.md

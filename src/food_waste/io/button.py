@@ -28,8 +28,6 @@ class Button(EventEmitter):
     if self.loop_thread is not None:
       console.debug("Button: Waiting for loop thread to stop.")
       self.loop_thread.join()
-      console.debug("Button: Cleaning up GPIO.")
-    GPIO.cleanup()
 
   def loop(self):
     while not self.stopped:

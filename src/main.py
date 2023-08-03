@@ -110,9 +110,8 @@ async def main():
 
           console.log("Photo taken. Uploading to server.")
           light.set_status(LightStatus.DIRTY)
-          if args.dry:
-            pass
-          else:
+          # TODO: Save image to disk
+          if not args.dry:
             # Uploads to the server in the background
             asyncio.create_task(image_api.post_image("TODO.jpg", "TODO.jpg"))
       except RuntimeError as e:

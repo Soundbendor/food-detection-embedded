@@ -11,10 +11,10 @@ class WeightSensorEvents:
 
 class WeightSensor(EventEmitter):
 
-  def __init__(self, out_pin, in_pin, threshold=60):
+  def __init__(self, clk_pin, dat_pin, threshold=60):
     super().__init__()
-    self.out_pin = out_pin
-    self.in_pin = in_pin
+    self.clk_pin = clk_pin
+    self.dat_pin = dat_pin
     self.listener_count = 0
     self.old_weight = None
     self.stopped = False
@@ -23,7 +23,7 @@ class WeightSensor(EventEmitter):
     self.hx = None
 
   def setup(self):
-    self.hx = HX711(self.out_pin, self.in_pin)
+    self.hx = HX711(self.dat_pin, self.clk_pin)
 
     console.debug("Weight Sensor: Setting up HX711.")
     self.hx.set_reading_format("MSB", "MSB")
@@ -39,9 +39,6 @@ class WeightSensor(EventEmitter):
     if self.loop_thread is not None:
       console.debug("Weight Sensor: Waiting for loop thread to stop.")
       self.loop_thread.join()
-      console.debug("Weight Sensor: Cleaning up HX711.")
-    if self.hx is not None:
-      self.hx.cleanup()
 
   def loop(self):
     while not self.stopped:

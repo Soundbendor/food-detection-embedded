@@ -15,7 +15,7 @@ class Button(EventEmitter):
     self.pin = pin
     self.listener_count = 0
     self.stopped = False
-    self.old_status = None
+    self.old_status = GPIO.LOW
     self.loop_thread = None
 
   def setup(self):
@@ -40,6 +40,8 @@ class Button(EventEmitter):
           console.debug("Button: Button released.")
           self.emit(ButtonEvents.BUTTON_RELEASED)
         self.old_status = button_status
+      else:
+        self.old_status = GPIO.LOW
       time.sleep(0.25)
     console.debug("Button: Loop thread stopped.")
 

@@ -16,10 +16,10 @@ LIDAR_MONOCTL = 23 # pin 16
 LIDAR_TXD = 15 # pin 10
 LIDAR_RXD = 14 # pin 8
 
-# Camera
-CAMERA_SCK = 20 # pin 38
-CAMERA_WS = 19 # pin 35
-CAMERA_SD = 18 # pin 12
+# Mic
+MIC_SCK = 20 # pin 38
+MIC_WS = 19 # pin 35
+MIC_SD = 18 # pin 12
 
 # Button/Switch
 BUTTON = 16 # pin 36

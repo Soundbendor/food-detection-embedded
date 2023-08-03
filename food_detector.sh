@@ -16,14 +16,16 @@ function pull_changes {
 }
 
 function run_detection {
-    echo 'Running detections....'
-    echo '(press ctrl+c to stop)'
-    if [ $1 == 1 ]; then
-        echo 'Checking camera focus...'
-        sudo docker start food-detection-embedded --dry $2
-    else
-        sudo docker start food-detection-embedded $2
+    echo 'Removing old container...'
+    sudo docker rm food-detection-embedded
+
+    echo 'Creating container...'
+    if [[ "$1" -eq 1 ]]; then
+        echo 'Running in focus/dry mode...'
+        arg="--dry"
     fi
+    echo 'Running detections....'
+    sudo docker run --name food-detection-embedded --privileged -v "$dir_absolute/archive_detection_images:/app/archive_detection_images" -v "$dir_absolute/archive_check_focus_images:/app/archive_check_focus_images" -v "$dir_absolute/logs:/app/logs" food-detection-embedded $2 $arg
 }
 
 function install {
@@ -33,12 +35,6 @@ function install {
 
     echo 'Building Docker image...'
     sudo docker build -t food-detection-embedded .
-
-    echo 'Removing old container...'
-    sudo docker rm food-detection-embedded
-
-    echo 'Creating container...'
-    sudo docker create --name food-detection-embedded --privileged -v "$dir_absolute/archive_detection_images:/app/archive_detection_images" -v "$dir_absolute/archive_check_focus_images:/app/archive_check_focus_images" -v "$dir_absolute/logs:/app/logs" food-detection-embedded
 }
 
 if [ "${command_arg}" == "install" ]; then

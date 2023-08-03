@@ -42,7 +42,11 @@ argument_parser.add_argument('-v', '--verbose', action='store_true', help='Print
 args = argument_parser.parse_args()
 
 if args.verbose:
+  console.log("Debug mode enabled.")
   os.environ['DEBUG'] = 'true'
+
+if args.dry:
+  console.log("Dry run enabled.")
 
 httpx_client = httpx.AsyncClient()
 image_api = ImageApi(

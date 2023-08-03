@@ -5,6 +5,7 @@ dir_absolute="$(readlink -m "$dir")"
 cd "$dir"
 
 command_arg=$1
+additional_args=$2
 MAIN="./src/main.py"
 
 function pull_changes {
@@ -22,10 +23,12 @@ function run_detection {
     echo 'Creating container...'
     if [[ "$1" -eq 1 ]]; then
         echo 'Running in focus/dry mode...'
-        arg="--dry"
+        arg="--dry $additional_args"
+    else
+        arg="$additional_args"
     fi
     echo 'Running detections....'
-    sudo docker run -d --name food-detection-embedded --privileged -v "$dir_absolute/archive_detection_images:/app/archive_detection_images" -v "$dir_absolute/archive_check_focus_images:/app/archive_check_focus_images" -v "$dir_absolute/logs:/app/logs" food-detection-embedded $2 $arg
+    sudo docker run -d --name food-detection-embedded --privileged -v "$dir_absolute/archive_detection_images:/app/archive_detection_images" -v "$dir_absolute/archive_check_focus_images:/app/archive_check_focus_images" -v "$dir_absolute/logs:/app/logs" food-detection-embedded $arg
 }
 
 function install {

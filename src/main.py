@@ -97,6 +97,7 @@ async def main():
   weight_sensor.setup()
   light.setup()
   button.setup()
+  camera.setup()
 
   light.set_status(LightStatus.STANDBY)
 

@@ -19,6 +19,7 @@ class Light:
 
   def setup(self):
     GPIO.setup(self.pin, GPIO.OUT)
+    GPIO.output(self.pin, GPIO.LOW)
 
   def cleanup(self):
     GPIO.cleanup()

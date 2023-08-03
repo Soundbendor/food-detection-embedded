@@ -22,13 +22,21 @@ function run_detection {
 
     echo 'Creating container...'
     if [[ "$1" -eq 1 ]]; then
-        echo 'Running in focus/dry mode...'
-        arg="--dry $additional_args"
+        echo 'Using focus/dry mode...'
+        arg="-d food-detection-embedded --dry $additional_args"
+    elif [[ "$1" -eq 2 ]]; then
+        arg="-it --entrypoint /bin/bash food-detection-embedded"
     else
-        arg="$additional_args"
+        arg="-d food-detection-embedded $additional_args"
     fi
-    echo 'Running detections....'
-    sudo docker run -d --name food-detection-embedded --privileged -v "$dir_absolute/archive_detection_images:/app/archive_detection_images" -v "$dir_absolute/archive_check_focus_images:/app/archive_check_focus_images" -v "$dir_absolute/logs:/app/logs" food-detection-embedded $arg
+
+    volumes="-v \"$dir_absolute/archive_detection_images:/app/archive_detection_images\" -v \"$dir_absolute/archive_check_focus_images:/app/archive_check_focus_images\" -v /tmp/argus_socket:/tmp/argus_socket -v /tmp:/tmp -v /lib/modules:/lib/modules"
+    devices="--device=/dev/video0 --device=/dev/video1"
+    privileges="--network host --ipc=host --privileged --cap-add SYS_RAWIO --cap-add SYS_PTRACE --runtime nvidia"
+    final_cmd="sudo docker run --name food-detection-embedded $privileges $devices $volumes $arg"
+
+    echo "Preparing detections..."
+    eval "$final_cmd"
 }
 
 function install {
@@ -71,7 +79,7 @@ elif [ "${command_arg}" == "debug" ]; then
     sudo docker rm food-detection-embedded
 
     echo 'Running debug container...'
-    sudo docker run -it --name food-detection-embedded --privileged --entrypoint /bin/bash food-detection-embedded
+    run_detection 2
 
 elif [ "${command_arg}" == "clean" ]; then
     echo 'This will delete all files and code in the repo (but copy archive files). Are you sure you want to proceed? (y/n)'

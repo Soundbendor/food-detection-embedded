@@ -30,6 +30,7 @@ class WeightSensor(EventEmitter):
     console.debug("Weight Sensor: Setting up HX711.")
     self.hx.set_reading_format("MSB", "MSB")
     self.hx.set_reference_unit(94) # Copied from original code
+    self.hx.set_offset(0)
     self.hx.reset()
     self.hx.tare(times = 5)
 
@@ -69,15 +70,11 @@ class WeightSensor(EventEmitter):
     """
     Returns the weight measured by the sensor.
     """
-    weight = 0
-    try:
-      console.debug("Weight Sensor: Measuring weight.")
-      weight = self.hx.get_weight()
-      console.debug(f"Weight Sensor: Weight measured: {weight}g.")
-      self.hx.power_down()
-      self.hx.power_up()
-    except (KeyboardInterrupt, SystemExit):
-      GPIO.cleanup()
+    console.debug("Weight Sensor: Measuring weight.")
+    weight = self.hx.get_weight()
+    console.debug(f"Weight Sensor: Weight measured: {weight}g.")
+    self.hx.power_down()
+    self.hx.power_up()
     return weight
 
   def tare(self):

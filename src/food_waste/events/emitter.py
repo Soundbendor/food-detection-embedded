@@ -13,7 +13,8 @@ class EventEmitter:
     :param args: The arguments to pass to the callbacks.
     """
     if event in self._events:
-      for callback in self._events[event]:
+      event_list = list(self._events[event]) # Copy the set to prevent RuntimeError
+      for callback in event_list:
         threading.Thread(target=callback, args=args).start()
 
   def on(self, event, callback):

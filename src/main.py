@@ -127,7 +127,6 @@ async def main():
         button_press_duration = wait_for_press()
         if button_press_duration > 5:
           console.log("Shutoff request detected. Exiting.")
-          cleanup()
           break
         else:
           tare()

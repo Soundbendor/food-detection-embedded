@@ -140,6 +140,7 @@ async def main():
 
           console.log("Object detected. Gathering data.")
           light.set_status(LightStatus.OBJECT_DETECTED)
+          object_weight = weight_sensor.measure()
           image_name = get_image_name()
           image_path = generate_image_path(image_name)
           camera.save(image_path)
@@ -148,7 +149,7 @@ async def main():
           light.set_status(LightStatus.DIRTY)
           if not args.dry:
             # Uploads to the server in the background
-            asyncio.create_task(image_api.post_image(image_path, image_name))
+            asyncio.create_task(image_api.post_image(image_path, image_name, object_weight))
 
           await asyncio.sleep(1)
 

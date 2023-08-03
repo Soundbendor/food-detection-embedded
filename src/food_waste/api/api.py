@@ -40,7 +40,7 @@ class ImageApi:
       raise MissingSecretsError("Secrets could not be found in current directory. Please include them in a .env file.")
     return key
 
-  async def post_image(self, path, name):
+  async def post_image(self, path, name, weight):
     """
     Posts an image to the remote server for detection.
 
@@ -65,7 +65,11 @@ class ImageApi:
         console.debug(f"Posting image '{name}' to {self.remote_url}/api/model/detect")
         request = self.client.post(
           f"{self.remote_url}/api/model/detect",
-          data = {"img_name": name},
+          data = {
+            "img_name": name,
+            "weight": weight,
+            "timestamp_taken": int(time.time() * 1000)
+          },
           headers = {"token": api_key},
           files = files,
           timeout = self.timeout

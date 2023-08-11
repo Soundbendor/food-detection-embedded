@@ -20,7 +20,7 @@ RUN \
   libtiff-dev -y
 
 # Installing misc dependencies
-RUN DEBIAN_FRONTEND=noninteractive TZ=America/New_York apt-get install -y wget curl build-essential libncursesw5-dev libssl-dev libsqlite3-dev tk-dev libgdbm-dev tk-dev libc6-dev libbz2-dev libffi-dev zlib1g-dev 
+RUN DEBIAN_FRONTEND=noninteractive TZ=America/New_York apt-get install -y wget curl build-essential libncursesw5-dev libssl-dev libsqlite3-dev tk-dev libgdbm-dev tk-dev libc6-dev libbz2-dev libffi-dev zlib1g-dev
 RUN apt-get install -y lbzip2 libcairo2 libgdk-pixbuf2.0-0 libgtk2.0-0 libjpeg8 libpng16-16 libtbb2 libtiff5 unzip
 
 # Installing python 3.11
@@ -36,6 +36,20 @@ RUN python3.11 -m venv venv
 RUN ./venv/bin/pip install --upgrade pip
 RUN ./venv/bin/pip install --upgrade setuptools
 RUN ./venv/bin/pip install --upgrade wheel
+
+# Installing OpenCV2 with GSTREAMER support
+WORKDIR /
+RUN git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/opencv/opencv-python.git opencv-python
+WORKDIR /opencv-python
+ENV ENABLE_CONTRIB=0
+ENV ENABLE_HEADLESS=1
+ENV CMAKE_ARGS="-DWITH_GSTREAMER=ON"
+RUN ./venv/bin/pip wheel . --verbose
+RUN ./venv/bin/pip install opencv_python*.whl
+
+WORKDIR /app
+
+# Installing other reqirements
 COPY requirements.txt /app/
 RUN ./venv/bin/pip install -r requirements.txt
 

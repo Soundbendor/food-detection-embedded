@@ -1,6 +1,5 @@
 charset-normalizer ~= 3.2.0
 urllib3 ~= 2.0.4
-opencv-python-headless ~= 4.8.0.74
 numpy ~= 1.25.2
 
 httpx ~= 0.24.0

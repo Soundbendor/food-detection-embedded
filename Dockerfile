@@ -44,8 +44,8 @@ WORKDIR /opencv-python
 ENV ENABLE_CONTRIB=0
 ENV ENABLE_HEADLESS=1
 ENV CMAKE_ARGS="-DWITH_GSTREAMER=ON"
-RUN ./app/venv/bin/pip wheel . --verbose
-RUN ./app/venv/bin/pip install opencv_python*.whl
+RUN /app/venv/bin/pip wheel . --verbose
+RUN /app/venv/bin/pip install opencv_python*.whl
 
 WORKDIR /app
 

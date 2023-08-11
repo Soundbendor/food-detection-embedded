@@ -20,7 +20,7 @@ RUN \
   libtiff-dev -y
 
 # Installing misc dependencies
-RUN DEBIAN_FRONTEND=noninteractive TZ=America/New_York apt-get install -y wget curl build-essential libncursesw5-dev libssl-dev libsqlite3-dev tk-dev libgdbm-dev tk-dev libc6-dev libbz2-dev libffi-dev zlib1g-dev
+RUN DEBIAN_FRONTEND=noninteractive TZ=America/New_York apt-get install -y wget curl git build-essential libncursesw5-dev libssl-dev libsqlite3-dev tk-dev libgdbm-dev tk-dev libc6-dev libbz2-dev libffi-dev zlib1g-dev
 RUN apt-get install -y lbzip2 libcairo2 libgdk-pixbuf2.0-0 libgtk2.0-0 libjpeg8 libpng16-16 libtbb2 libtiff5 unzip
 
 # Installing python 3.11

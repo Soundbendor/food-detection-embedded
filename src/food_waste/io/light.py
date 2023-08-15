@@ -29,34 +29,33 @@ class Light:
     console.debug("Light: Loop thread stopped.")
 
   def activate_light(self):
-    match self.status:
-      case LightStatus.STANDBY: # Slow blink
-        console.debug(f"Light: Standby mode.")
-        self.blink(1, 1)
-      case LightStatus.ACTIVE: # Medium-speed blink
-        console.debug(f"Light: Active mode.")
-        self.blink(1, 0.5)
-      case LightStatus.OBJECT_DETECTED: # Always on
-        console.debug(f"Light: Object detected mode.")
-        power_on()
-        time.sleep(0.25)
-      case LightStatus.TARING: # Fast blink
-        console.debug(f"Light: Taring mode.")
-        self.blink(1, 0.25)
-      case LightStatus.DIRTY: # 1 Slow blink, 1 fast blink
-        console.debug(f"Light: Dirty mode.")
-        self.blink(1, 0.5)
-        self.blink(1, 0.25)
-      case LightStatus.SHUTDOWN: # Two fast blinks, one slow blink
-        console.debug(f"Light: Shut down mode.")
-        self.blink(2, 0.1)
-        power_on()
-        time.sleep(0.5)
-        power_off()
-        time.sleep(0.1)
-      case _: # Always off
-        console.debug(f"Light: Unknown status or off status - sleeping.")
-        time.sleep(0.25)
+    if self.status == LightStatus.STANDBY: # Slow blink
+      console.debug(f"Light: Standby mode.")
+      self.blink(1, 1)
+    elif self.status == LightStatus.ACTIVE: # Medium-speed blink
+      console.debug(f"Light: Active mode.")
+      self.blink(1, 0.5)
+    elif self.status == LightStatus.OBJECT_DETECTED: # Always on
+      console.debug(f"Light: Object detected mode.")
+      power_on()
+      time.sleep(0.25)
+    elif self.status == LightStatus.TARING: # Fast blink
+      console.debug(f"Light: Taring mode.")
+      self.blink(1, 0.25)
+    elif self.status == LightStatus.DIRTY: # 1 Slow blink, 1 fast blink
+      console.debug(f"Light: Dirty mode.")
+      self.blink(1, 0.5)
+      self.blink(1, 0.25)
+    elif self.status == LightStatus.SHUTDOWN: # Two fast blinks, one slow blink
+      console.debug(f"Light: Shut down mode.")
+      self.blink(2, 0.1)
+      power_on()
+      time.sleep(0.5)
+      power_off()
+      time.sleep(0.1)
+    else: # Always off
+      console.debug(f"Light: Unknown status or off status - sleeping.")
+      time.sleep(0.25)
 
   def blink(self, count, duration):
     """

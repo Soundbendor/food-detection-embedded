@@ -1,9 +1,9 @@
-charset-normalizer ~= 3.2.0
-urllib3 ~= 2.0.4
-numpy ~= 1.25.2
+charset-normalizer
+urllib3
+numpy
 
-httpx ~= 0.24.0
-Jetson.GPIO ~= 2.1.1
-nanocamera ~= 0.1.5
-python-dotenv ~= 1.0.0
-requests ~= 2.31.0
+httpx
+Jetson.GPIO
+nanocamera
+python-dotenv
+requests

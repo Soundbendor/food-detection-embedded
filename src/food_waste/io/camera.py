@@ -24,7 +24,7 @@ class Camera:
     code, has_err = self.camera.hasError()
     if has_err:
       console.error(f"Camera: Camera error: {code}")
-    raise CameraSetupError(f"Camera error: {code}")
+      raise CameraSetupError(f"Camera error: {code}")
 
   def capture(self):
     """

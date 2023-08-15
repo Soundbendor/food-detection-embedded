@@ -30,7 +30,18 @@ function run_detection {
         arg="-d food-detection-embedded $additional_args"
     fi
 
-    volumes="-v \"$dir_absolute/archive_detection_images:/app/archive_detection_images\" -v \"$dir_absolute/archive_check_focus_images:/app/archive_check_focus_images\" -v /tmp/argus_socket:/tmp/argus_socket -v /tmp:/tmp -v /lib/modules:/lib/modules"
+    cv2_py_loc=/usr/lib/python3.6/dist-packages/cv2
+    cv2_py_out=/app/venv/lib/python3.6/site-packages/cv2
+    cv2_lib_loc=/usr/lib/aarch64-linux-gnu/
+    cv2_lib_out=/usr/local/host/
+    
+    volumes="-v \"$dir_absolute/archive_detection_images:/app/archive_detection_images\" \
+        -v \"$dir_absolute/archive_check_focus_images:/app/archive_check_focus_images\" \
+        -v /tmp/argus_socket:/tmp/argus_socket \
+        -v /tmp:/tmp \
+        -v /lib/modules:/lib/modules \
+        -v $cv2_py_loc:$cv2_py_out \
+        -v $cv2_lib_loc:$cv2_lib_out"
     devices="--device=/dev/video0 --device=/dev/video1"
     privileges="--network host --ipc=host --privileged --cap-add SYS_RAWIO --cap-add SYS_PTRACE --runtime nvidia"
     final_cmd="sudo docker run --name food-detection-embedded $privileges $devices $volumes $arg"

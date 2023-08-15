@@ -1,12 +1,20 @@
-FROM nvcr.io/nvidia/l4t-base:35.4.1
+FROM python:3.6 as python
+
+FROM nvcr.io/nvidia/l4t-base:35.4.1 as build
 
 RUN apt-get update
 RUN apt-get upgrade -y
 
-# Installing gstreamer dependencies
-RUN apt-get install -y libgstreamer1.0-0 libgstreamer1.0-dev gstreamer1.0-tools gstreamer1.0-alsa gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly libopencv-dev libgstreamer-plugins-base1.0-dev libegl1-mesa-dev libx11-dev libxext-dev
+# Installing misc dependencies
+RUN DEBIAN_FRONTEND=noninteractive TZ=America/New_York apt-get install -y wget curl git build-essential libncursesw5-dev libssl-dev libsqlite3-dev tk-dev libgdbm-dev tk-dev libc6-dev libbz2-dev libffi-dev zlib1g-dev
 
-# Installing open cv deps
+# Installing GStreamer Deps
+RUN apt-get install -y \
+  libgstreamer1.0-0 libgstreamer1.0-dev gstreamer1.0-tools \
+  gstreamer1.0-alsa gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+  gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly \
+  libopencv-dev libgstreamer-plugins-base1.0-dev libegl1-mesa-dev \
+  libx11-dev libxext-dev libmnl-dev
 RUN \
   apt-get install \
   lbzip2 xorg-dev \
@@ -19,33 +27,22 @@ RUN \
   libpng-dev \
   libtiff-dev -y
 
-# Installing misc dependencies
-RUN DEBIAN_FRONTEND=noninteractive TZ=America/New_York apt-get install -y wget curl git build-essential libncursesw5-dev libssl-dev libsqlite3-dev tk-dev libgdbm-dev tk-dev libc6-dev libbz2-dev libffi-dev zlib1g-dev
-RUN apt-get install -y lbzip2 libcairo2 libgdk-pixbuf2.0-0 libgtk2.0-0 libjpeg8 libpng16-16 libtbb2 libtiff5 unzip
+# Required for CV2 to work properly
+ENV OPENBLAS_CORETYPE="ARMV8"
+ENV PATH="${PATH}:/usr/local/host:/usr/local/host/tegra:/usr/local/bin:/usr/local/lib"
+ENV LD_LIBRARY_PATH="${PATH}:${LD_LIBRARY_PATH}"
+ENV GST_PLUGIN_PATH="$PATH"
 
-# Installing python 3.11
-RUN apt-get install -y software-properties-common
-RUN add-apt-repository -y ppa:deadsnakes/ppa
-RUN apt-get install -y python3.11
-
-RUN apt-get install -y python3-venv python3-pip python3-setuptools python3-distutils python3.11-venv
+# Copying Python3.6
+COPY --from=python /usr/local/lib/ /usr/local/lib
+COPY --from=python /usr/local/bin/ /usr/local/bin
 
 # Installing environment and python deps
 WORKDIR /app
-RUN python3.11 -m venv venv
+RUN python3.6 -m venv venv
 RUN ./venv/bin/pip install --upgrade pip
 RUN ./venv/bin/pip install --upgrade setuptools
 RUN ./venv/bin/pip install --upgrade wheel
-
-# Installing OpenCV2 with GSTREAMER support
-WORKDIR /
-RUN git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/opencv/opencv-python.git opencv-python
-WORKDIR /opencv-python
-ENV ENABLE_CONTRIB=0
-ENV ENABLE_HEADLESS=1
-ENV CMAKE_ARGS="-DWITH_GSTREAMER=ON"
-RUN ./app/venv/bin/pip wheel . --verbose
-RUN ./app/venv/bin/pip install opencv_python*.whl
 
 WORKDIR /app
 

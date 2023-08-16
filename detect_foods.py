@@ -44,7 +44,7 @@ load_dotenv()
 GPIO_TRIGGER = 12
 GPIO_ECHO = 16
 
-SERVER_URL = 'http://ec2-54-244-119-45.us-west-2.compute.amazonaws.com'
+SERVER_URL = 'http://ec2-54-214-80-154.us-west-2.compute.amazonaws.com'
 httpx_client = httpx.AsyncClient()
 
 

@@ -12,7 +12,7 @@ def check_for_secrets():
 async def post_image_for_detection(remote_url, httpx_client, image_location, image_name):    
     files = {'img_file': (image_location, open(image_location, 'rb'), 'image/jpg')}
     
-    print(f'Posting image to {remote_url}/api/model/detect for detection')
+    print(f'Posting image, {image_name}, to {remote_url}/api/model/detect for detection')
 
     api_key = os.getenv("API_KEY")
 

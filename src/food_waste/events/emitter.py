@@ -36,7 +36,13 @@ class EventEmitter:
     :param callback: The callback to remove.
     """
     if event in self._events:
-      self._events[event].remove(callback)
+      try:
+        self._events[event].remove(callback)
+      except Exception:
+        for cb in self._events[event]:
+          if hasattr(cb, '_original_callback') and cb._original_callback == callback:
+            self._events[event].remove(cb)
+            break
 
   def once(self, event, callback):
     """
@@ -48,6 +54,7 @@ class EventEmitter:
     def once_callback(*args):
       self.off(event, once_callback)
       callback(*args)
+    once_callback._original_callback = callback
     self.on(event, once_callback)
 
   def wait(self, event, timeout=None):

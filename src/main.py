@@ -86,7 +86,9 @@ def generate_image_path(name):
   if not os.path.exists(base_dir):
     os.makedirs(base_dir)
   fname = f"pre_detection_{name}.jpg"
-  return os.path.join(dirname, "..", base_dir, name)
+  return os.path.normpath(
+    os.path.join(dirname, "..", base_dir, fname)
+  )
 
 async def main():
   console.log('Starting food waste detection.')

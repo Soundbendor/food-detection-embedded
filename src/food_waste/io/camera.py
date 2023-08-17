@@ -46,7 +46,9 @@ class Camera:
     """
     if frame is None:
       frame = self.capture()
+    console.debug(f"Camera: Saving frame to {path}.")
     cv2.imwrite(path, frame)
+    console.debug(f"Camera: Frame saved to {path}.")
 
   def cleanup(self):
     self.camera.release()

@@ -20,6 +20,21 @@ function run_detection {
     sudo "$dir_absolute/venv/bin/python" "$dir_absolute/src/main.py" $1 $2
 }
 
+function check_dependencies {
+    ldconfig -p | grep libgpiod
+    if [ $? -ne 0 ]; then
+        echo 'libgpiod not found. Installing...'
+        sudo apt-get install autoconf-archive
+        git clone git://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git /tmp/libgpiod
+        cd /tmp/libgpiod
+        git checkout v1.6.3 -b v1.6.3
+        ./autogen.sh --enable-tools=yes --prefix=/usr/local --enable-bindings-python
+        make
+        sudo make install
+        rm -rf /tmp/libgpiod
+    fi
+}
+
 function install {
     tmp_env_loc='/tmp/food-detection-embedded-env/'
     cv2_lib='/usr/lib/python3.6/dist-packages/cv2'

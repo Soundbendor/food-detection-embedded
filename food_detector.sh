@@ -20,17 +20,30 @@ function run_detection {
     sudo "$dir_absolute/venv/bin/python" "$dir_absolute/src/main.py" $1 $2
 }
 
+# Checks dependencies for HX711 library
 function check_dependencies {
+    echo 'Checking for dependencies'
     ldconfig -p | grep libgpiod
     if [ $? -ne 0 ]; then
-        echo 'libgpiod not found. Installing...'
-        sudo apt-get install autoconf-archive
+        echo 'libgpiod not found.'
+        echo 'Building and installing libgpiod from source'
+        sudo apt-get install -y autoconf-archive python3-dev
         git clone git://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git /tmp/libgpiod
         cd /tmp/libgpiod
         git checkout v1.6.3 -b v1.6.3
         ./autogen.sh --enable-tools=yes --prefix=/usr/local --enable-bindings-python
         make
         sudo make install
+
+        echo 'Updating ldconfig'
+        sudo sh -c "echo '/usr/local/lib' > /etc/ld.so.conf.d/libgpiod.conf"
+        sudo ldconfig
+
+        echo 'Updating udev rules'
+        sudo sh -c "\
+            echo 'SUBSYSTEM==\"gpio\", KERNEL==\"gpiochip*\", GROUP=\"gpio\", MODE=\"0660\"' \
+            > /etc/udev/rules.d/99-gpio.rules"
+        sudo udevadm control --reload-rules && sudo udevadm trigger
         rm -rf /tmp/libgpiod
     fi
 }
@@ -38,6 +51,9 @@ function check_dependencies {
 function install {
     tmp_env_loc='/tmp/food-detection-embedded-env/'
     cv2_lib='/usr/lib/python3.6/dist-packages/cv2'
+
+    check_dependencies
+    cd $dir_absolute
 
     echo 'Creating directories'
     mkdir -p archive_detection_images

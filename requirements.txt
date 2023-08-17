@@ -1,5 +1,6 @@
 charset-normalizer
 urllib3
+gpiod==1.4.0
 # Versions of numpy higher than this causes python to crash
 numpy==1.19.4
 

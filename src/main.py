@@ -56,7 +56,7 @@ image_api = ImageApi(
   httpx_client,
   "http://ec2-54-244-119-45.us-west-2.compute.amazonaws.com"
 )
-weight_sensor = WeightSensor(PIN.WEIGHT_CLK, PIN.WEIGHT_DAT)
+weight_sensor = WeightSensor(PIN.WEIGHT_CLK_PIN, PIN.WEIGHT_DAT_PIN)
 light = Light(PIN.LIGHT)
 button = Button(PIN.BUTTON)
 camera = Camera()

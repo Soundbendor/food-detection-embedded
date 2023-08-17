@@ -1,6 +1,7 @@
 charset-normalizer
 urllib3
-numpy
+# Versions of numpy higher than this causes python to crash
+numpy==1.19.4
 
 httpx
 Jetson.GPIO

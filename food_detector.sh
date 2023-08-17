@@ -12,51 +12,48 @@ function pull_changes {
     echo 'Pulling changes from GitHub...'
     git pull --ff-only
 
-    echo 'Building Docker image...'
+    echo 'Installing and setting up environment'
     install
 }
 
 function run_detection {
-    echo 'Removing old container...'
-    sudo docker rm food-detection-embedded
-
-    echo 'Creating container...'
-    if [[ "$1" -eq 1 ]]; then
-        echo 'Using focus/dry mode...'
-        arg="-d food-detection-embedded --dry $additional_args"
-    elif [[ "$1" -eq 2 ]]; then
-        arg="-it --entrypoint /bin/bash food-detection-embedded"
-    else
-        arg="-d food-detection-embedded $additional_args"
-    fi
-
-    cv2_py_loc=/usr/lib/python3.6/dist-packages/cv2
-    cv2_py_out=/app/venv/lib/python3.6/site-packages/cv2
-    cv2_lib_loc=/usr/lib/aarch64-linux-gnu/
-    cv2_lib_out=/usr/local/host/
-    
-    volumes="-v \"$dir_absolute/archive_detection_images:/app/archive_detection_images\" \
-        -v \"$dir_absolute/archive_check_focus_images:/app/archive_check_focus_images\" \
-        -v /tmp/argus_socket:/tmp/argus_socket \
-        -v /tmp:/tmp \
-        -v /lib/modules:/lib/modules \
-        -v $cv2_py_loc:$cv2_py_out \
-        -v $cv2_lib_loc:$cv2_lib_out"
-    devices="--device=/dev/video0 --device=/dev/video1"
-    privileges="--network host --ipc=host --privileged --cap-add SYS_RAWIO --cap-add SYS_PTRACE --runtime nvidia"
-    final_cmd="sudo docker run --name food-detection-embedded $privileges $devices $volumes $arg"
-
-    echo "Preparing detections..."
-    eval "$final_cmd"
+    sudo "$dir_absolute/venv/bin/python" "$dir_absolute/src/main.py" $1 $2
 }
 
 function install {
+    tmp_env_loc='/tmp/food-detection-embedded-env/'
+    cv2_lib='/usr/lib/python3.6/dist-packages/cv2'
+
+    echo 'Creating directories'
     mkdir -p archive_detection_images
     mkdir -p archive_check_focus_images
     mkdir -p logs
 
-    echo 'Building Docker image...'
-    sudo docker build -t food-detection-embedded .
+    echo 'Building Docker builder image...'
+    sudo docker build -t food-detection-builder .
+
+    mkdir -p $tmp_env_loc
+    echo 'Executing builder...'
+    sudo docker run --rm --name food-detection-builder \
+        -v $tmp_env_loc:/out/ \
+        food-detection-builder
+
+    echo 'Copying virtual environment'
+    echo 'Removing current environment'
+    rm -rf "$dir_absolute/venv"
+    sleep 1
+
+    echo 'Generating environment'
+    python3 -m venv "$dir_absolute/venv"
+
+    echo 'Copying files from built environment'
+    rsync -aq --progress "$tmp_env_loc/venv/" "$dir_absolute/venv" --exclude bin
+
+    echo 'Removing temporary files'
+    sudo rm -rf "$tmp_env_loc"
+
+    echo 'Copying native libraries'
+    cp -r $cv2_lib "$dir_absolute/venv/lib/python3.6/site-packages"
 }
 
 if [ "${command_arg}" == "install" ]; then
@@ -79,18 +76,11 @@ elif [ "${command_arg}" == "pull+detect" ]; then
     run_detection
 
 elif [ "${command_arg}" == "detect" ]; then
-    run_detection
+    run_detection $2
 
 elif [ "${command_arg}" == "focus" ]; then
     echo 'Checking camera focus...'
-    run_detection 1
-
-elif [ "${command_arg}" == "debug" ]; then
-    echo 'Removing old container...'
-    sudo docker rm food-detection-embedded
-
-    echo 'Running debug container...'
-    run_detection 2
+    run_detection --dry $2
 
 elif [ "${command_arg}" == "clean" ]; then
     echo 'This will delete all files and code in the repo (but copy archive files). Are you sure you want to proceed? (y/n)'

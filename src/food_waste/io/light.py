@@ -37,7 +37,7 @@ class Light:
       self.blink(1, 0.5)
     elif self.status == LightStatus.OBJECT_DETECTED: # Always on
       console.debug(f"Light: Object detected mode.")
-      power_on()
+      self.power_on()
       time.sleep(0.25)
     elif self.status == LightStatus.TARING: # Fast blink
       console.debug(f"Light: Taring mode.")
@@ -49,9 +49,9 @@ class Light:
     elif self.status == LightStatus.SHUTDOWN: # Two fast blinks, one slow blink
       console.debug(f"Light: Shut down mode.")
       self.blink(2, 0.1)
-      power_on()
+      self.power_on()
       time.sleep(0.5)
-      power_off()
+      self.power_off()
       time.sleep(0.1)
     else: # Always off
       console.debug(f"Light: Unknown status or off status - sleeping.")

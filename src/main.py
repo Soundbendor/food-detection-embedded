@@ -28,7 +28,6 @@ import httpx
 import signal
 import sys
 import argparse
-import datetime
 
 import food_waste.gpio as GPIO
 from food_waste.io import PIN, Light, LightStatus, Button, ButtonEvents, WeightSensor, WeightSensorEvents, Camera
@@ -70,13 +69,14 @@ def cleanup():
   console.log('Done.')
 
 def get_date_string():
+  now = datetime.now()
   return "{}-{}-{}__{}-{}-{}".format(
-    datetime.now().year,
-    datetime.now().month,
-    datetime.now().day,
-    datetime.now().hour,
-    datetime.now().minute,
-    datetime.now().second)
+    now.year,
+    now.month,
+    now.day,
+    now.hour,
+    now.minute,
+    now.second)
 
 def get_image_name():
   return f"waste_{get_date_string()}"

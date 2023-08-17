@@ -12,7 +12,7 @@ RUN ./venv/bin/pip install --upgrade wheel
 
 # Installing HX711 for Jetson Nano
 # github.com/kempei.hx711py-jetsonnano
-RUN git clone https://github.com/kempei/hx711py-jetsonnano.git hx711
+RUN git clone https://github.com/theusaf/hx711py3.6-jetsonnano.git hx711
 WORKDIR /app/hx711
 RUN /app/venv/bin/python setup.py install
 

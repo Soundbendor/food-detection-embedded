@@ -50,7 +50,7 @@ if args.verbose:
 if args.dry:
   console.log("Dry run enabled.")
 
-httpx_client = httpx.AsyncClient()
+httpx_client = httpx.AsyncClient(timeout=60.0)
 image_api = ImageApi(
   httpx_client,
   "http://ec2-54-244-119-45.us-west-2.compute.amazonaws.com"

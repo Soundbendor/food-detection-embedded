@@ -30,7 +30,7 @@ import sys
 import argparse
 
 import food_waste.gpio as GPIO
-from food_waste.io import PIN, Light, LightStatus, Button, ButtonEvents, WeightSensor, WeightSensorEvents, Camera
+from food_waste.io import Camera, StatusLight, TareButton, TareButtonStatus, WeightSensor
 import food_waste.log as console
 from food_waste.api import ImageApi, MissingSecretsError, RequestFailedError
 
@@ -55,9 +55,9 @@ image_api = ImageApi(
   httpx_client,
   "http://ec2-54-244-119-45.us-west-2.compute.amazonaws.com"
 )
-weight_sensor = WeightSensor(PIN.WEIGHT_CLK_PIN, PIN.WEIGHT_DAT_PIN)
-light = Light(PIN.LIGHT)
-button = Button(PIN.BUTTON)
+weight_sensor = WeightSensor()
+light = StatusLight()
+button = TareButton()
 camera = Camera()
 
 def cleanup():
@@ -101,66 +101,49 @@ async def main():
   button.setup()
   camera.setup()
 
-  light.set_status(LightStatus.STANDBY)
-
-  def tare():
-    console.log("Activation button pressed. Taring scale.")
-    light.set_status(LightStatus.TARING)
-    weight_sensor.tare()
-
-  def wait_for_press():
-    console.debug("Waiting for button press.")
-    button.wait(ButtonEvents.BUTTON_PRESSED)
-    now = time.time()
-    button.wait(ButtonEvents.BUTTON_RELEASED, timeout=6)
-    console.debug(f"Button pressed for {time.time() - now} seconds.")
-    return time.time() - now
-
-  def wait_for_object():
-    console.log("Waiting for object to be placed on scale.")
-    light.set_status(LightStatus.ACTIVE)
-    now = time.time()
-    weight_sensor.wait(WeightSensorEvents.OBJECT_DETECTED, timeout=60)
-    console.debug(f"Object detected after {time.time() - now} seconds.")
-    return time.time() - now
+  light.standby()
 
   try:
     while True:
       try:
-        button_press_duration = wait_for_press()
-        if button_press_duration > 5:
+        status = button.wait_and_get_status()
+        if status == TareButtonStatus.POWER_OFF:
           console.log("Shutoff request detected. Exiting.")
           break
         else:
-          tare()
+          console.log("Activation button pressed. Taring scale.")
+          light.taring()
+          weight_sensor.tare()
+
           await asyncio.sleep(2)
-          object_wait_duration = wait_for_object()
-          if object_wait_duration > 59:
+
+          console.log("Waiting for object to be placed on scale.")
+          light.active()
+          if (not weight_sensor.wait_object_detected()):
             console.log("No object detected. Returning to standby.")
-            light.set_status(LightStatus.STANDBY)
+            light.standby()
             continue
 
           console.log("Object detected. Gathering data.")
-          light.set_status(LightStatus.OBJECT_DETECTED)
+          light.object_detected()
           object_weight = weight_sensor.measure()
           image_name = get_image_name()
           image_path = generate_image_path(image_name)
           camera.save(image_path)
 
           console.log("Photo taken. Uploading to server.")
-          light.set_status(LightStatus.DIRTY)
+          light.dirty()
           if not args.dry:
             # Uploads to the server in the background
             asyncio.create_task(image_api.post_image(image_path, image_name, object_weight))
 
           await asyncio.sleep(2)
 
-          # Wait for object to be removed
           console.log("Waiting for object to be removed.")
-          weight_sensor.wait(WeightSensorEvents.OBJECT_REMOVED)
+          weight_sensor.wait_for_removal()
 
           console.log("Object removed. Returning to standby.")
-          light.set_status(LightStatus.STANDBY)
+          light.standby()
       except RuntimeError as e:
         if 'Keyboard' in str(e):
           console.warning("Keyboard interrupt detected. Exiting.")

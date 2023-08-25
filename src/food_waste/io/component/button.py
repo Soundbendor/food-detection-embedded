@@ -1,14 +1,14 @@
-from ..events import EventEmitter
-from .. import gpio as GPIO
-from .. import log as console
+from ...events import EventEmitter
+from ... import gpio as GPIO
+from ... import log as console
 import threading
 import time
 
-class ButtonEvents:
+class ButtonComponentEvents:
   BUTTON_PRESSED = 'button_pressed'
   BUTTON_RELEASED = 'button_released'
 
-class Button(EventEmitter):
+class ButtonComponent(EventEmitter):
 
   def __init__(self, pin):
     super().__init__()

@@ -1,93 +1,18 @@
-from ..events import EventEmitter
-from hx711 import HX711
+from .component import WeightSensorComponent, WeightSensorComponentEvents
+from . import PIN
 from .. import log as console
-import threading
 import time
 
-class WeightSensorEvents:
-  WEIGHT_MEASURE = 'weight_measure'
-  WEIGHT_CHANGE = 'weight_change'
-  OBJECT_DETECTED = 'object_detected'
-  OBJECT_REMOVED = 'object_removed'
+class WeightSensor(WeightSensorComponent):
 
-class WeightSensor(EventEmitter):
+  def __init__(self):
+    super().__init__(PIN.WEIGHT_CLK_PIN, PIN.WEIGHT_DAT_PIN, threshold=60)
 
-  def __init__(self, clk_pin, dat_pin, threshold=60):
-    super().__init__()
-    self.clk_pin = clk_pin
-    self.dat_pin = dat_pin
-    self.listener_count = 0
-    self.old_weight = 0
-    self.stopped = False
-    self.object_detected = False
-    self.threshold = threshold
-    self.loop_thread = None
-    self.hx = None
+  def wait_object_detected(self):
+    now = time.time()
+    self.wait(WeightSensorComponentEvents.OBJECT_DETECTED, timeout=60)
+    console.debug(f"WeightSensor: Object detected after {time.time() - now} seconds.")
+    return time.time() - now < 60
 
-  def setup(self):
-    self.hx = HX711(self.dat_pin, self.clk_pin)
-
-    console.debug("Weight Sensor: Setting up HX711.")
-    self.hx.set_reading_format("MSB", "MSB")
-    self.hx.set_reference_unit(94) # Copied from original code
-    self.hx.set_offset(0)
-    self.hx.reset()
-    self.hx.tare(times = 5)
-
-    self.loop_thread = threading.Thread(target=self.loop)
-    self.loop_thread.start()
-
-  def cleanup(self):
-    self.stopped = True
-    if self.loop_thread is not None:
-      console.debug("Weight Sensor: Waiting for loop thread to stop.")
-      self.loop_thread.join()
-
-  def loop(self):
-    while not self.stopped:
-      if self.listener_count > 0:
-        weight = self.measure()
-        self.emit(WeightSensorEvents.WEIGHT_MEASURE, weight)
-
-        if weight > self.threshold and self.old_weight > self.threshold:
-          console.debug("Weight Sensor: Object detected.")
-          self.object_detected = True
-          self.emit(WeightSensorEvents.OBJECT_DETECTED)
-        elif weight <= self.threshold and self.old_weight < self.threshold and self.object_detected:
-          console.debug("Weight Sensor: Object removed.")
-          self.object_detected = False
-          self.emit(WeightSensorEvents.OBJECT_REMOVED)
-
-        if self.old_weight != weight:
-          console.debug(f"Weight Sensor: Weight changed from {self.old_weight} to {weight}.")
-          self.emit(WeightSensorEvents.WEIGHT_CHANGE, weight)
-          self.old_weight = weight
-
-      time.sleep(0.5)
-    console.debug("Weight Sensor: Loop thread stopped.")
-
-  def measure(self):
-    """
-    Returns the weight measured by the sensor.
-    """
-    console.debug("Weight Sensor: Measuring weight.")
-    weight = self.hx.get_weight()
-    console.debug(f"Weight Sensor: Weight measured: {weight}g.")
-    self.hx.power_down()
-    self.hx.power_up()
-    return weight
-
-  def tare(self):
-    """
-    Tares the sensor.
-    """
-    console.debug("Weight Sensor: Taring.")
-    self.hx.tare()
-
-  def on(self, event, callback):
-    super().on(event, callback)
-    self.listener_count += 1
-
-  def off(self, event, callback):
-    super().off(event, callback)
-    self.listener_count -= 1
+  def wait_for_removal(self):
+    self.wait(WeightSensorComponentEvents.OBJECT_REMOVED)

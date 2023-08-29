@@ -1,5 +1,7 @@
 import os
 import time
+from base64 import b64encode
+from httpx import HTTPStatusError
 from .exception import MissingSecretsError, RequestFailedError
 from .. import log as console
 
@@ -50,12 +52,12 @@ class ImageApi:
     :raises RequestFailedError: If the request fails.
     :raises MissingSecretsError: See :func:`get_secret`.
     """
-    files = {
-      "img_file": (
-        path,
-        open(path, "rb"),
-        "image/jpg"
-      )
+    image_bytes = open(path, "rb").read()
+
+    body = {
+      "img_file": b64encode(image_bytes).decode("utf-8"),
+      "img_name": name,
+      "weight": weight,
     }
 
     api_key = self.get_secret()
@@ -65,15 +67,11 @@ class ImageApi:
         console.debug(f"Posting image '{name}' to {self.remote_url}/api/model/detect")
         request = self.client.post(
           f"{self.remote_url}/api/model/detect",
-          data = {
-            "img_name": name,
-            "weight": weight,
-            "timestamp_taken": int(time.time() * 1000)
-          },
+          data = body,
           headers = {"token": api_key},
-          files = files,
           timeout = self.timeout
         )
+        request.raise_for_status()
 
         console.debug(f"Archiving image '{name}' to {self.archive_loc_prefix}{name}")
         response_file_location = f"{self.archive_loc_prefix}{name}"
@@ -81,6 +79,8 @@ class ImageApi:
         response_file.write(request.content)
         response_file.close()
         return response_file_location
+      except HTTPStatusError as e:
+        console.error(f"HTTP error occurred while posting image '{name}' to {self.remote_url}/api/model/detect", f"{i} / {self.num_attempts}", e)
       except ConnectionError as e:
         console.error(f"Connection error occurred while posting image '{name}' to {self.remote_url}/api/model/detect", f"{i} / {self.num_attempts}", e)
       except BaseException as e:

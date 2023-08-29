@@ -53,7 +53,7 @@ if args.dry:
 httpx_client = httpx.AsyncClient(timeout=60.0)
 image_api = ImageApi(
   httpx_client,
-  "http://ec2-54-244-119-45.us-west-2.compute.amazonaws.com"
+  "http://ec2-54-214-80-154.us-west-2.compute.amazonaws.com"
 )
 weight_sensor = WeightSensor()
 light = StatusLight()

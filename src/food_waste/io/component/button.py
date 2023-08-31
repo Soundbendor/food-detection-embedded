@@ -35,10 +35,10 @@ class ButtonComponent(EventEmitter):
         button_status = self.measure()
         if button_status == GPIO.HIGH and self.old_status != GPIO.HIGH:
           console.debug("Button: Button pressed.")
-          self.emit(ButtonEvents.BUTTON_PRESSED)
+          self.emit(ButtonComponentEvents.BUTTON_PRESSED)
         elif button_status == GPIO.LOW and self.old_status != GPIO.LOW:
           console.debug("Button: Button released.")
-          self.emit(ButtonEvents.BUTTON_RELEASED)
+          self.emit(ButtonComponentEvents.BUTTON_RELEASED)
         self.old_status = button_status
       else:
         self.old_status = GPIO.LOW

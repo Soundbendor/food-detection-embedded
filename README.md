@@ -1,4 +1,4 @@
-# food-detection-embedded
+# food-detection-embedded/nano
 
 ## Production - Automatically run detections on bootup
 

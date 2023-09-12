@@ -95,7 +95,23 @@ if [ "${command_arg}" == "install" ]; then
 
 elif [ "${command_arg}" == "install_prod" ]; then
     install
-    # TODO: setup services
+    sudo touch /etc/systemd/system/food-detection.service
+    echo "[Unit]
+Description='Food Detection Service'
+
+[Service]
+ExecStart=${dir_absolute}/food_detector.sh detect > ${dir_absolute}/logs/food-detection.log 2>&1
+Type=idle
+User=root
+
+[Install]
+WantedBy=multi-user.target
+" > /etc/systemd/system/food-detection.service
+    sudo systemctl daemon-reload
+    sudo systemctl enable food-detection.service
+
+    echo ''
+    echo 'Done. Now the service will run on boot.'
 
 elif [ "${command_arg}" == "pull" ]; then
     pull_changes

@@ -1,4 +1,4 @@
-# This file maps named pins to GPIO numbers
+# This file maps named pins to GPIO numbers (Jetson Nano)
 
 # LED
 LIGHT = 26 # pin 37

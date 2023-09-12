@@ -11,6 +11,7 @@ MAIN="./src/main.py"
 function pull_changes {
     echo 'Pulling changes from GitHub...'
     git pull --ff-only
+    git submodule update --init --recursive
 
     echo 'Installing and setting up environment'
     install

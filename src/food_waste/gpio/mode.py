@@ -1,4 +1,0 @@
-import Jetson.GPIO as GPIO
-
-BOARD = GPIO.BOARD
-BCM = GPIO.BCM

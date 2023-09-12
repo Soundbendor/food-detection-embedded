@@ -1,4 +1,0 @@
-import Jetson.GPIO as GPIO
-
-HIGH = GPIO.HIGH
-LOW = GPIO.LOW

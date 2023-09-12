@@ -8,8 +8,8 @@ class TareButtonStatus():
   POWER_OFF = "POWER_OFF"
 
 class TareButton(ButtonComponent):
-  def __init__(self):
-    super().__init__(PIN.BUTTON)
+  def __init__(self, pin=PIN.BUTTON):
+    super().__init__(pin)
 
   def wait_and_get_status(self):
     console.debug("Tare Button: Waiting for button press.")

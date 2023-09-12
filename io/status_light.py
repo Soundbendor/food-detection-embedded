@@ -15,8 +15,8 @@ class StatusLightStatus:
 
 class StatusLight(LightComponent):
 
-  def __init__(self):
-    super().__init__(PIN.LIGHT)
+  def __init__(self, pin=PIN.LIGHT):
+    super().__init__(pin)
     self.loop_thread = None
     self.stopped = False
     self.status = StatusLightStatus.POWER_OFF

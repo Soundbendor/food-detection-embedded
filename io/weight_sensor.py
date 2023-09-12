@@ -5,8 +5,8 @@ import time
 
 class WeightSensor(WeightSensorComponent):
 
-  def __init__(self):
-    super().__init__(PIN.WEIGHT_CLK_PIN, PIN.WEIGHT_DAT_PIN, threshold=60)
+  def __init__(self, clk_pin=PIN.WEIGHT_CLK_PIN, dat_pin=PIN.WEIGHT_DAT_PIN):
+    super().__init__(clk_pin, dat_pin, threshold=60)
 
   def wait_object_detected(self):
     now = time.time()

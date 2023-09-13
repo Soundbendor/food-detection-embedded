@@ -24,7 +24,7 @@ function run_detection {
 # Checks dependencies for HX711 library
 function check_dependencies {
     echo 'Checking for dependencies'
-    ldconfig -p | grep libgpiod
+    ldconfig -p | grep libgpiod > /dev/null
     if [ $? -ne 0 ]; then
         echo 'libgpiod not found.'
         echo 'Building and installing libgpiod from source'
@@ -46,6 +46,12 @@ function check_dependencies {
             > /etc/udev/rules.d/99-gpio.rules"
         sudo udevadm control --reload-rules && sudo udevadm trigger
         rm -rf /tmp/libgpiod
+    fi
+    python3 -c "import pyaudio" | grep "ModuleNotFoundError" > /dev/null
+    if [ $? -eq 0 ]; then
+        echo 'pyaudio not found.'
+        echo 'Installing pyaudio'
+        sudo apt-get install -y python3-pyaudio
     fi
 }
 

@@ -1,4 +1,4 @@
-from food_waste.io import LightComponent
+from food_waste.io.light import LightComponent
 from food_waste import log as console
 from . import PIN
 import threading

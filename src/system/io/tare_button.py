@@ -1,4 +1,4 @@
-from food_waste.io import ButtonComponent, ButtonComponentEvents
+from food_waste.io.button import ButtonComponent, ButtonComponentEvents
 from food_waste import log as console
 from . import PIN
 import time

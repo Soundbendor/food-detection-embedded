@@ -1,4 +1,4 @@
-from food_waste.io import HX711WeightSensorComponent, HX711WeightSensorComponentEvents
+from food_waste.io.hx711_sensor import HX711WeightSensorComponent, HX711WeightSensorComponentEvents
 from food_waste import log as console
 from . import PIN
 import time

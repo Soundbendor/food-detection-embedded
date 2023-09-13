@@ -3,7 +3,7 @@ import cv2
 import time
 import os
 
-from .. import log as console
+from ... import log as console
 
 class CameraComponentSetupError(Exception):
   pass

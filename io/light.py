@@ -1,5 +1,5 @@
-from ... import gpio as GPIO
-from ... import log as console
+from .. import gpio as GPIO
+from .. import log as console
 import time
 
 class LightComponent:

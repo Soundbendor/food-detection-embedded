@@ -1,6 +1,6 @@
-from ...events import EventEmitter
-from ... import gpio as GPIO
-from ... import log as console
+from ..events import EventEmitter
+from .. import gpio as GPIO
+from .. import log as console
 import threading
 import time
 

@@ -12,7 +12,7 @@ This section describes various directories and files and what they mean/do.
   * This directory wraps GPIO libraries for use in other parts of the project to interact with the hardware.
 * `io`
   * This directory contains classes that interact with the hardware.
-  * `component`
-    * These classes are lower-level than the classes in the parent directory.
+  * `jetson_nano`
+    * This directory contains classes that specifically interact with the Jetson Nano.
 * `log`
   * This directory contains functions that are used to log information to the console.

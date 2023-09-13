@@ -4,13 +4,13 @@ from hx711 import HX711
 import threading
 import time
 
-class WeightSensorComponentEvents:
+class HX711WeightSensorComponentEvents:
   WEIGHT_MEASURE = 'weight_measure'
   WEIGHT_CHANGE = 'weight_change'
   OBJECT_DETECTED = 'object_detected'
   OBJECT_REMOVED = 'object_removed'
 
-class WeightSensorComponent(EventEmitter):
+class HX711WeightSensorComponent(EventEmitter):
 
   def __init__(self, clk_pin, dat_pin, threshold=60):
     super().__init__()

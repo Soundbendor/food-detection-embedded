@@ -29,5 +29,5 @@ def get_gpio():
   :returns: The GPIO being used.
   """
   if sysgpio is None:
-    raise Exception("GPIO has not been set.")
+    raise Exception("GPIO has not been set. Use use_gpio() to set the GPIO at the start of the program.")
   return sysgpio

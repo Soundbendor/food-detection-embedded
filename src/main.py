@@ -30,7 +30,7 @@ import sys
 import argparse
 
 import Jetson.GPIO
-from food_waste.gpio import use_gpio
+from food_waste.use_gpio import use_gpio
 use_gpio(Jetson.GPIO)
 
 import food_waste.gpio as GPIO

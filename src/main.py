@@ -30,7 +30,7 @@ import sys
 import argparse
 
 import food_waste.gpio as GPIO
-from food_waste.io import Camera, StatusLight, TareButton, TareButtonStatus, WeightSensor
+from system.io import Camera, StatusLight, TareButton, TareButtonStatus, WeightSensor
 import food_waste.log as console
 from food_waste.api import ImageApi, MissingSecretsError, RequestFailedError
 

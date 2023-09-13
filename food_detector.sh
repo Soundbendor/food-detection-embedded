@@ -112,7 +112,7 @@ User=root
 
 [Install]
 WantedBy=multi-user.target
-" > /etc/systemd/system/food-detection.service
+" | sudo tee /etc/systemd/system/food-detection.service > /dev/null
     sudo systemctl daemon-reload
     sudo systemctl enable food-detection.service
 

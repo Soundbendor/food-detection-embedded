@@ -78,7 +78,7 @@ function install {
 
     echo 'Copying virtual environment'
     echo 'Removing current environment'
-    rm -rf "$dir_absolute/venv"
+    sudo rm -rf "$dir_absolute/venv"
     sleep 1
 
     echo 'Generating environment'
@@ -106,9 +106,11 @@ elif [ "${command_arg}" == "install_prod" ]; then
 Description='Food Detection Service'
 
 [Service]
-ExecStart=${dir_absolute}/food_detector.sh detect > ${dir_absolute}/logs/food-detection.log 2>&1
-Type=idle
+ExecStart=${dir_absolute}/food_detector.sh detect
+Type=simple
 User=root
+StandardOutput=append:{dir_absolute}/logs/food-detection.log
+StandardError=append:{dir_absolute}/logs/food-detection.log
 
 [Install]
 WantedBy=multi-user.target

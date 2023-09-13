@@ -3,7 +3,8 @@ from . import direction as GPIO_DIRECTION
 from . import pull as GPIO_PULL
 from . import value as GPIO_VALUE
 from .. import log as console
-import Jetson.GPIO as GPIO
+from .use_gpio import get_gpio
+GPIO = get_gpio()
 
 def setup_io(mode = GPIO_MODE.BCM):
   """

@@ -3,3 +3,4 @@ from .direction import IN, OUT
 from .mode import BCM, BOARD
 from .value import HIGH, LOW
 from .pull import PULL_UP, PULL_DOWN, PULL_OFF
+from .use_gpio import use_gpio, get_gpio, sysgpio

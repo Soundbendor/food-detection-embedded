@@ -47,7 +47,7 @@ function check_dependencies {
         sudo udevadm control --reload-rules && sudo udevadm trigger
         rm -rf /tmp/libgpiod
     fi
-    python3 -c "import pyaudio" | grep "ModuleNotFoundError" > /dev/null
+    python3 -c "import pyaudio" 2>&1 | grep "ModuleNotFoundError" > /dev/null
     if [ $? -eq 0 ]; then
         echo 'pyaudio not found.'
         echo 'Installing pyaudio'

@@ -109,8 +109,8 @@ Description='Food Detection Service'
 ExecStart=${dir_absolute}/food_detector.sh detect
 Type=simple
 User=root
-StandardOutput=append:{dir_absolute}/logs/food-detection.log
-StandardError=append:{dir_absolute}/logs/food-detection.log
+StandardOutput=append:${dir_absolute}/logs/food-detection.log
+StandardError=append:${dir_absolute}/logs/food-detection.log
 
 [Install]
 WantedBy=multi-user.target

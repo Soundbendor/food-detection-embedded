@@ -19,6 +19,7 @@ class HTU21DSensorComponent:
     """
     console.debug("HTU21D Sensor: Measuring temperature.")
     self.sensor.measurement([TEMPERATURE])
+    conosle.debug(f"HTU21D Sensor: Temperature is {self.sensor.temperature}.")
     return self.sensor.temperature
 
   def measure_humidity(self):
@@ -27,4 +28,5 @@ class HTU21DSensorComponent:
     """
     console.debug("HTU21D Sensor: Measuring humidity.")
     self.sensor.measurement([HUMIDITY])
+    console.debug(f"HTU21D Sensor: Humidity is {self.sensor.relative_humidity}.")
     return self.sensor.relative_humidity

@@ -1,6 +1,6 @@
 from food_waste.io import LightComponent
+from food_waste import log as console
 from . import PIN
-from .. import log as console
 import threading
 import time
 

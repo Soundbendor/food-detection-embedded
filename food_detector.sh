@@ -6,7 +6,6 @@ cd "$dir"
 
 command_arg=$1
 additional_args=$2
-MAIN="./src/main.py"
 
 function pull_changes {
     echo 'Pulling changes from GitHub...'
@@ -18,80 +17,17 @@ function pull_changes {
 }
 
 function run_detection {
-    sudo "$dir_absolute/venv/bin/python" "$dir_absolute/src/main.py" $1 $2
+    # replace
 }
 
 # Checks dependencies for HX711 library
 function check_dependencies {
     echo 'Checking for dependencies'
-    ldconfig -p | grep libgpiod > /dev/null
-    if [ $? -ne 0 ]; then
-        echo 'libgpiod not found.'
-        echo 'Building and installing libgpiod from source'
-        sudo apt-get install -y autoconf-archive python3-dev
-        git clone git://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git /tmp/libgpiod
-        cd /tmp/libgpiod
-        git checkout v1.6.3 -b v1.6.3
-        ./autogen.sh --enable-tools=yes --prefix=/usr/local --enable-bindings-python
-        make
-        sudo make install
-
-        echo 'Updating ldconfig'
-        sudo sh -c "echo '/usr/local/lib' > /etc/ld.so.conf.d/libgpiod.conf"
-        sudo ldconfig
-
-        echo 'Updating udev rules'
-        sudo sh -c "\
-            echo 'SUBSYSTEM==\"gpio\", KERNEL==\"gpiochip*\", GROUP=\"gpio\", MODE=\"0660\"' \
-            > /etc/udev/rules.d/99-gpio.rules"
-        sudo udevadm control --reload-rules && sudo udevadm trigger
-        rm -rf /tmp/libgpiod
-    fi
-    python3 -c "import pyaudio" 2>&1 | grep "ModuleNotFoundError" > /dev/null
-    if [ $? -eq 0 ]; then
-        echo 'pyaudio not found.'
-        echo 'Installing pyaudio'
-        sudo apt-get install -y python3-pyaudio
-    fi
+    # replace
 }
 
 function install {
-    tmp_env_loc='/tmp/food-detection-embedded-env/'
-    cv2_lib='/usr/lib/python3.6/dist-packages/cv2'
-
-    check_dependencies
-    cd $dir_absolute
-
-    echo 'Creating directories'
-    mkdir -p archive_detection_images
-    mkdir -p archive_check_focus_images
-    mkdir -p logs
-
-    echo 'Building Docker builder image...'
-    sudo docker build -t food-detection-builder .
-
-    mkdir -p $tmp_env_loc
-    echo 'Executing builder...'
-    sudo docker run --rm --name food-detection-builder \
-        -v $tmp_env_loc:/out/ \
-        food-detection-builder
-
-    echo 'Copying virtual environment'
-    echo 'Removing current environment'
-    sudo rm -rf "$dir_absolute/venv"
-    sleep 1
-
-    echo 'Generating environment'
-    python3 -m venv "$dir_absolute/venv"
-
-    echo 'Copying files from built environment'
-    rsync -aq --progress "$tmp_env_loc/venv/" "$dir_absolute/venv" --exclude bin
-
-    echo 'Removing temporary files'
-    sudo rm -rf "$tmp_env_loc"
-
-    echo 'Copying native libraries'
-    cp -r $cv2_lib "$dir_absolute/venv/lib/python3.6/site-packages"
+    # replace
 }
 
 if [ "${command_arg}" == "install" ]; then
@@ -101,23 +37,7 @@ if [ "${command_arg}" == "install" ]; then
 
 elif [ "${command_arg}" == "install_prod" ]; then
     install
-    sudo touch /etc/systemd/system/food-detection.service
-    echo "[Unit]
-Description='Food Detection Service'
-
-[Service]
-ExecStart=${dir_absolute}/food_detector.sh detect
-Type=simple
-User=root
-StandardOutput=append:${dir_absolute}/logs/food-detection.log
-StandardError=append:${dir_absolute}/logs/food-detection.log
-
-[Install]
-WantedBy=multi-user.target
-" | sudo tee /etc/systemd/system/food-detection.service > /dev/null
-    sudo systemctl daemon-reload
-    sudo systemctl enable food-detection.service
-
+    # replace
     echo ''
     echo 'Done. Now the service will run on boot.'
 
@@ -136,6 +56,7 @@ elif [ "${command_arg}" == "detect" ]; then
 
 elif [ "${command_arg}" == "focus" ]; then
     echo 'Checking camera focus...'
+    # replace
     run_detection --dry $2
 
 elif [ "${command_arg}" == "clean" ]; then
@@ -143,10 +64,6 @@ elif [ "${command_arg}" == "clean" ]; then
     read decision
     echo ''
     if [ "${decision}" == "yes" ] || [ "${decision}" == "y" ]; then
-        cd ..
-        cp -r ./food-detection-embedded/archive_detection_images ./archive_detection_images
-        cp -r ./food-detection-embedded/archive_check_focus_images ./archive_check_focus_images
-        rm -rf ./food-detection-embedded
         echo 'All files removed.'
     else
         echo 'No files removed.'

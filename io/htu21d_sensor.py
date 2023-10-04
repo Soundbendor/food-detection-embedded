@@ -3,6 +3,9 @@ from adafruit_htu21d import HTU21D, HUMIDITY, TEMPERATURE
 import threading
 import time
 
+import adafruit_platformdetect.constants.chips as chips
+chips.JH71x0 = None
+
 class HTU21DSensorComponent:
 
   def __init__(self):

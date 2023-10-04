@@ -47,20 +47,20 @@ class HX711WeightSensorComponent(EventEmitter):
     while not self.stopped:
       if self.listener_count > 0:
         weight = self.measure()
-        self.emit(WeightSensorComponentEvents.WEIGHT_MEASURE, weight)
+        self.emit(HX711WeightSensorComponentEvents.WEIGHT_MEASURE, weight)
 
         if weight > self.threshold and self.old_weight > self.threshold:
           console.debug("Weight Sensor: Object detected.")
           self.object_detected = True
-          self.emit(WeightSensorComponentEvents.OBJECT_DETECTED)
+          self.emit(HX711WeightSensorComponentEvents.OBJECT_DETECTED)
         elif weight <= self.threshold and self.old_weight < self.threshold and self.object_detected:
           console.debug("Weight Sensor: Object removed.")
           self.object_detected = False
-          self.emit(WeightSensorComponentEvents.OBJECT_REMOVED)
+          self.emit(HX711WeightSensorComponentEvents.OBJECT_REMOVED)
 
         if self.old_weight != weight:
           console.debug(f"Weight Sensor: Weight changed from {self.old_weight} to {weight}.")
-          self.emit(WeightSensorComponentEvents.WEIGHT_CHANGE, weight)
+          self.emit(HX711WeightSensorComponentEvents.WEIGHT_CHANGE, weight)
           self.old_weight = weight
 
       time.sleep(0.5)

@@ -1,7 +1,9 @@
 __pycache__/
 Authentication_details.txt
+dev/
 venv/
 .env
+*.log
 
 archive_detection_images/
 archive_check_focus_images/

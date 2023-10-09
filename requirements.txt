@@ -22,3 +22,4 @@ sysv-ipc==1.1.0
 typing-extensions==4.4.0
 urllib3==1.26.14
 httpx==0.23.3
+pynau7802==0.2.2

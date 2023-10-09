@@ -9,6 +9,7 @@ import RPi.GPIO as GPIO
 import logging
 
 from time import sleep
+import os
 
 SHOULD_CALIBRATE = True
 
@@ -42,6 +43,6 @@ if __name__ == "__main__":
 
     # Configure Logger
     FORMAT = '%(asctime)s [%(filename)s:%(funcName)s:%(lineno)d] [%(levelname)s] %(message)s'
-    logging.basicConfig(format=FORMAT, level=logging.INFO, handlers=[logging])
+    logging.basicConfig(format=FORMAT, level=logging.INFO, handlers=[logging.FileHandler(str(os.path.dirname(os.path.abspath(__file__))) + "/HX711_Example.log"), logging.StreamHandler()])
 
     main()

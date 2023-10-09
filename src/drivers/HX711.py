@@ -477,7 +477,6 @@ class HX711(DriverBase):
             for i in range(3):
                 readings.append(self.hx711.get_weight_B())
         self.collectedData = sum(readings) / len(readings)
-        logging.info("Succsessfully collected data!")
         return self.collectedData
         
     
@@ -497,7 +496,7 @@ class HX711(DriverBase):
         # Start refrence unit off at one
         self.hx711.set_reference_unit(1)
         self.tareScale()
-        mass = input("What mass would you like to use to calibrate the scale? (grams): ")
+        mass = int(input("What mass would you like to use to calibrate the scale? (grams): "))
         logging.info(f"Put a {mass}g weight on the load cell... You have 20 seconds to do this")
         time.sleep(20)
         refrenceUnit = self.measure() / mass

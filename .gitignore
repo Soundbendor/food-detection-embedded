@@ -2,6 +2,7 @@ __pycache__/
 Authentication_details.txt
 venv/
 .env
+*.log
 
 logs
 archive_detection_images/

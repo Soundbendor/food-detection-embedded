@@ -53,27 +53,34 @@ def configureLogging() -> None:
     else:
         logging.basicConfig(format=FORMAT, level=logging.INFO, handlers=[logging.FileHandler(str(os.path.dirname(os.path.abspath(__file__))) + "/" + sys.argv[1]), logging.StreamHandler()])
 
-def testFunc(event: Event):
-    print("HOLY FUCK")
+"""
+Callback for when the weight of the bucket has changed
+
+:param event: The event that caused this callback
+"""
+def bucketWeightChanged(event):
+    print("WEIGHT CHANGED!!!!!")
     event.clear()
 
 def main():
     # Read calibration details as JSON into the file to allow device to be powered on and off without needing to recalibrate 
     calibrationDetails = loadCalibrationDetails("CalibrationDetails.json")
     
-    # Create a manager device
+    # Create a manager device passing the NAU7802 in 
     manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]))
 
-    # Register a test driver callback
-    manager.registerEventCallback("NAU7802.WEIGHT_CHANGE", testFunc)
+    # Register a callback for a weight change on the NAU7802
+    manager.registerEventCallback("NAU7802.WEIGHT_CHANGE", bucketWeightChanged)
 
     while(True):
         try:
             manager.loop()
-            sleep(0.01)  
+            manager.prettyPrint(manager.getData())
+            sleep(0.1)  
         
         # On keyboard interrupt we want to cleanly exit
         except KeyboardInterrupt:
+            manager.kill()
             break
     """
     # Create and start a new "threaded" instance of the NAU7802

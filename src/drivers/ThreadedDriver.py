@@ -41,6 +41,7 @@ class ThreadedDriver(Process):
     Kill the proccess, doesn't do anything special right now but might eventually
     """
     def kill(self) -> None:
+        self.driver.kill()
         return super().kill()
         
 

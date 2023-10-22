@@ -5,13 +5,12 @@ Abstraction layer for the NAU7802 to allow us to add stablitiy improvements if n
 """
 
 import PyNAU7802
-from h11 import Event
 import smbus2
 import logging
 import time
 
 from .DriverBase import DriverBase
-import multiprocessing
+from multiprocessing import Event
 
 class NAU7802(DriverBase):
 
@@ -29,6 +28,7 @@ class NAU7802(DriverBase):
 
         # How much additional weight will trigger a weight change event
         self.WEIGHT_THRESHOLD = 1.5
+        self.weightDetectedLastTime = 0
 
         # List of events that the sensor can raise
         self.events = {
@@ -59,6 +59,7 @@ class NAU7802(DriverBase):
     Measure and return the weight read from the load cell
     """
     def measure(self):
+        logging.debug("Measuring...")
         data = []
         for _ in range(10):
             data.append(self.nau.getWeight())
@@ -115,7 +116,7 @@ class NAU7802(DriverBase):
     def determineEventState(self) -> None:
          # If the absolute value of the current weight - the last is greater than the threshold trigger the event, we also don't want to trigger twice in a row
         if(abs(self.collectedData - self.lastWeight) > self.WEIGHT_THRESHOLD and not self.weightDetectedLastTime) :
-            self.weightChangeEvent.set()
+            self.getEvent("WEIGHT_CHANGE").set()
             self.weightDetectedLastTime = True
         # If our weight didn't change and our weight changed last time then we want to clear this flag so we can trigger another event on the next cycle
         elif(self.weightDetectedLastTime):

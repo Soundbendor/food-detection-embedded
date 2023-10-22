@@ -3,8 +3,6 @@ Will Richards, Oregon State University, 2023
 
 """
 
-
-from asyncio.windows_events import NULL
 from .DriverBase import DriverBase
 from .ThreadedDriver import ThreadedDriver
 
@@ -15,27 +13,28 @@ from multiprocessing.synchronize import Event
 
 class DriverManager():
     def __init__(self, *sensors: DriverBase):
+        # Store a list of sensors, spawned sensor proccesses and a data dictionary to store our data
         self.sensors = list(sensors)
-        self.driverThreads = []
+        self.proccessList = []
         self.data = {}
     
         # Loop over all sensors we are using and "threadify" them
         for sensor in self.sensors:
-            self.data[sensor.moduleName] = {}
-            self.data[sensor.moduleName]["data"] = Array('d', [NULL]*10)
-            self.data[sensor.moduleName]["events"] = sensor.getEvents()     
-            for key, value in self.data[sensor.moduleName]["events"].items():
-                self.data[sensor.moduleName]["events"][key] = [value, None]
+            # Format a new sensor objecti in the dectionary
+            self._formatNewSensor(sensor)
 
+            # Spawn the sensor into a proccess passing the data object along to be manipulated
+            proccess = ThreadedDriver(sensor, self.data[sensor.moduleName]["data"])
 
-            thread = ThreadedDriver(sensor, self.data[sensor.moduleName]["data"])
-            thread.start()
-            self.driverThreads.append(thread)
+            # Start the proccess
+            proccess.start()
+            self.proccessList.append(proccess)
 
     """
     Basic pretty print for dictionary with Events and Synchronized data types
     
     :param d: The Dictionary we want to print
+    :param indent: The number of indents we want before all of it
 
     """
     def prettyPrint(self, d, indent=0):
@@ -45,7 +44,7 @@ class DriverManager():
             if isinstance(value, dict):
                 self.prettyPrint(value, indent+1)
             
-            # If not we need to parse the values in a 
+            # If not we need to parse the values into a readable format based on their type
             else:
                 if(type(value) == list):
                     print('\t' * (indent+1) + str(value[0].is_set()) + ",\n" +  '\t' * (indent+1) + str(value[1]))
@@ -68,7 +67,7 @@ class DriverManager():
         self.data[splitName[0]]["events"][splitName[1]][1] = callback
     
     """
-    Check what callbacks need to be called per loop
+    Check what callbacks need to be called per loop, and execute them as needed
     """
     def handleCallbacks(self):
         # Go through each sensors events and see if there is a callback set and if the event has triggered
@@ -78,13 +77,38 @@ class DriverManager():
                     if(value[0].is_set()):
                         value[1](value[0])
 
-        
+    """
+    Get the data from the manager
+
+    :return: Dictionary of sensor data
+    """
+    def getData(self) -> dict:
+        return self.data
+    
+    """
+    Format the dictionary to add a new sensor
+
+    :param sensor: The sensor we are formatting for
+    """
+    def _formatNewSensor(self, sensor) -> None:
+        self.data[sensor.moduleName] = {}
+        self.data[sensor.moduleName]["data"] = Array('d', [0]*10)
+        self.data[sensor.moduleName]["events"] = sensor.getEvents()     
+        for key, value in self.data[sensor.moduleName]["events"].items():
+            self.data[sensor.moduleName]["events"][key] = [value, None]
     
     """
     Main driver control loop
     """
     def loop(self):
         self.handleCallbacks()
-        self.prettyPrint(self.data)
+
+    """
+    Shutdown the manager killing all running proccess
+    """
+    def kill(self):
+        for proc in self.proccessList:
+            proc.kill()
+
         
 

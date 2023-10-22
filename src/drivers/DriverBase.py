@@ -44,4 +44,10 @@ class DriverBase:
     """
     def getEvent(self, event) -> Event:
         pass
+
+    """
+    What to do when execution is ending
+    """
+    def kill(self):
+        pass
         

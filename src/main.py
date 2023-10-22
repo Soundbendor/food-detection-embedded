@@ -12,8 +12,10 @@ from logging import config
 from drivers.DriverManager import DriverManager
 
 from drivers.NAU7802 import NAU7802
+from drivers.TestDriver import TestDriver
 
 from multiprocessing import Event
+
 
 from time import sleep
 import logging
@@ -25,6 +27,8 @@ import json
 Load sensor calibration details from a given file 
 
 :param file: Path to the file we want to load the credentials from
+
+:return: Return a JSON dictionary of the sensor calibration details 
 """
 def loadCalibrationDetails(file: str) -> dict:
     logging.info(f"Retrieving calibration details from file: {file}")
@@ -49,15 +53,23 @@ def configureLogging() -> None:
     else:
         logging.basicConfig(format=FORMAT, level=logging.INFO, handlers=[logging.FileHandler(str(os.path.dirname(os.path.abspath(__file__))) + "/" + sys.argv[1]), logging.StreamHandler()])
 
+def testFunc(event: Event):
+    print("HOLY FUCK")
+    event.clear()
+
 def main():
     # Read calibration details as JSON into the file to allow device to be powered on and off without needing to recalibrate 
     calibrationDetails = loadCalibrationDetails("CalibrationDetails.json")
     
-    manager = DriverManager(NAU7802())
+    # Create a manager device
+    manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]))
+
+    # Register a test driver callback
+    manager.registerEventCallback("NAU7802.WEIGHT_CHANGE", testFunc)
 
     while(True):
         try:
-           
+            manager.loop()
             sleep(0.01)  
         
         # On keyboard interrupt we want to cleanly exit

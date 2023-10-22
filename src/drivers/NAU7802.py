@@ -5,6 +5,7 @@ Abstraction layer for the NAU7802 to allow us to add stablitiy improvements if n
 """
 
 import PyNAU7802
+from h11 import Event
 import smbus2
 import logging
 import time
@@ -18,18 +19,23 @@ class NAU7802(DriverBase):
     """
     Basic constructor for the NAU7802
     """
-    def __init__(self, weightChangeEvent = None, calibration_factor = 0):
+    def __init__(self, calibration_factor = 0):
         super().__init__("NAU7802")
         self.nau = PyNAU7802.NAU7802()
         self.collectedData = 0
         if(calibration_factor == 0):
-            print("No calibration factor entered, you may want to provide a calibration factor")
+            print("No calibration factor entered!")
         self.calFactor = calibration_factor
 
         # How much additional weight will trigger a weight change event
         self.WEIGHT_THRESHOLD = 1.5
-        self.weightChangeEvent = weightChangeEvent
-        self.weightDetectedLastTime = False
+
+        # List of events that the sensor can raise
+        self.events = {
+            "WEIGHT_CHANGE": Event()
+        }
+
+        
 
     """
     Initialize the NAU7802 to begin taking sensor readings
@@ -45,10 +51,9 @@ class NAU7802(DriverBase):
         logging.info("Taring scale...")
         self.tareScale()
 
-        if(self.calFactor != 0):
-            self.nau.setCalibrationFactor(self.calFactor)
-        else:
-            self.calibrate()
+        
+        self.nau.setCalibrationFactor(self.calFactor)
+       
 
     """
     Measure and return the weight read from the load cell
@@ -90,6 +95,19 @@ class NAU7802(DriverBase):
     """
     def tareScale(self):
         self.nau.calculateZeroOffset()
+
+    """
+    Return the dictionary of events
+    """
+    def getEvents(self) -> dict:
+        return self.events
+    
+    """
+    Get a an event from the driver
+    """
+    def getEvent(self, event) -> Event:
+        return self.events[event][0]
+        
 
     """
     Determine wether or not the events on this object should be triggered on this measure cycle

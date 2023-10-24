@@ -24,7 +24,7 @@ class DriverBase:
     """
     Should be overloaded on all sub drivers so initialize can be called on all drivers at once
     """
-    def measure(self):
+    def measure(self) -> list:
         pass
 
     """
@@ -49,5 +49,11 @@ class DriverBase:
     What to do when execution is ending
     """
     def kill(self):
+        pass
+
+    """
+    Get the number of measurements that this sensor will output
+    """
+    def getNumberOfOutputs(self) -> int:
         pass
         

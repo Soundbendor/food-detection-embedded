@@ -90,9 +90,9 @@ class DriverManager():
 
     :param sensor: The sensor we are formatting for
     """
-    def _formatNewSensor(self, sensor) -> None:
+    def _formatNewSensor(self, sensor: DriverBase) -> None:
         self.data[sensor.moduleName] = {}
-        self.data[sensor.moduleName]["data"] = Array('d', [0]*10)
+        self.data[sensor.moduleName]["data"] = Array('d', [0]*sensor.getNumberOfOutputs())
         self.data[sensor.moduleName]["events"] = sensor.getEvents()     
         for key, value in self.data[sensor.moduleName]["events"].items():
             self.data[sensor.moduleName]["events"][key] = [value, None]

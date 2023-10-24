@@ -33,7 +33,11 @@ class ThreadedDriver(Process):
         self.driver.initialize()
         
         while(True):
-            self.data[0] = self.driver.measure()
+
+            # Convert the measured values into the list of threaded 
+            measurement = self.driver.measure()
+            for i in range(len(measurement)):
+                self.data[i] = measurement[i]
             sleep(0.1)
         
 

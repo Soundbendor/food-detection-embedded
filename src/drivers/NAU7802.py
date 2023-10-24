@@ -69,8 +69,8 @@ class NAU7802(DriverBase):
 
         # This will determine wether or not the event has occured in this cycle or not
         self.determineEventState()
-
-        return self.collectedData
+        outputList = [self.collectedData]
+        return outputList
 
 
     """
@@ -91,6 +91,7 @@ class NAU7802(DriverBase):
         self.nau.calculateCalibrationFactor(mass)
 
         print(f"Calibration Factor: {self.nau.getCalibrationFactor()}")
+    
     """
     Tare the values of the load cell
     """
@@ -108,7 +109,12 @@ class NAU7802(DriverBase):
     """
     def getEvent(self, event) -> Event:
         return self.events[event][0]
-        
+    
+    """
+    The number of measuremnts that are returned by the sensor
+    """
+    def getNumberOfOutputs(self) -> int:
+        return 1
 
     """
     Determine wether or not the events on this object should be triggered on this measure cycle

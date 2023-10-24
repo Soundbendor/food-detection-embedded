@@ -6,7 +6,7 @@ Abstraction layer for the BME68 gas sensor
 
 from smbus2 import SMBus
 import logging
-import time
+from time import sleep
 
 from .DriverBase import DriverBase
 from multiprocessing import Event
@@ -30,6 +30,7 @@ class BME68(DriverBase):
 
         # Temperature calculation
         self.t_fine = 0
+        self.temp_comp = 0
 
     """
     Read 20 bits out of the register and format it into a full number, used for reading temp/humidty/etc.
@@ -52,8 +53,8 @@ class BME68(DriverBase):
         par_g3 = self.i2c_bus.read_byte_data(self.i2c_address, 0xEE)
         # Pull out the 4th and 5th bit of register 0x02 and clearing the rest of the data to just have the number
         res_heat_range = self.i2c_bus.read_byte_data(self.i2c_address, 0x02)
-        res_heat_range = res_heat_range << 2
-        res_heat_rnage = res_heat_range >> 6
+        res_heat_range = res_heat_range & 0b00110000
+        res_heat_rnage = res_heat_range >> 4
         res_heat_val = self.i2c_bus.read_byte_data(self.i2c_address, 0x00)
 
         # Average indoor temp
@@ -134,8 +135,8 @@ class BME68(DriverBase):
         var2 = (((float(temp_adc) / 131072.0) - (float(par_t1) / 8192.0)) * ((float(temp_adc) / 131072.0) - (float(par_t1) / 8192.0))) * (float(par_t3) * 16.0)
 
         self.t_fine = var1 + var2
-        temp_comp = self.t_fine / 5120.0
-        return temp_comp
+        self.temp_comp = self.t_fine / 5120.0
+        return self.temp_comp
 
     """
     Calculate the pressure reading coresponding to section 3.3.2 of the datasheet
@@ -169,8 +170,82 @@ class BME68(DriverBase):
         press_comp = press_comp + (var1 + var2 + var3 + (float(par_p7) * 128.0)) / 16.0
 
         return press_comp
-        
+    
+    """
+    Calculate the humidity value from the sensor following section 3.3.3 of the datasheet
+    """
+    def _calcHumidity(self) -> float:
+        # Create par_h1 out of the 8 bits of 0xE3 and the first 4 bits of 0xE2
+        par_h1 = self.i2c_bus.read_byte_data(self.i2c_address, 0xE3) << 4
+        par_h1_temp = self.i2c_bus.read_byte_data(self.i2c_address, 0xE2) & 0b00001111
+        par_h1 = par_h1 | par_h1_temp
 
+        # Create par_h2 out of the 8 bits of 0xE1 and the last 4 bits of 0xE2
+        par_h2 = self.i2c_bus.read_byte_data(self.i2c_address, 0xE1) << 4
+        par_h2_temp = self.i2c_bus.read_byte_data(self.i2c_address, 0xE2) >> 4 
+        par_h1 = par_h2 | par_h2_temp
+
+        par_h3 = self.i2c_bus.read_byte_data(self.i2c_address, 0xE4)
+        par_h4 = self.i2c_bus.read_byte_data(self.i2c_address, 0xE5)
+        par_h5 = self.i2c_bus.read_byte_data(self.i2c_address, 0xE6)
+        par_h6 = self.i2c_bus.read_byte_data(self.i2c_address, 0xE7)
+        par_h7 = self.i2c_bus.read_byte_data(self.i2c_address, 0xE8)
+
+        # Read MSB and shift 8 and then OR with the LSB to get the whole 16 bit number
+        hum_adc = self.i2c_bus.read_byte_data(self.i2c_address, 0x25) << 8
+        hum_adc_temp = self.i2c_bus.read_byte_data(self.i2c_address, 0x26)
+        hum_adc = hum_adc | hum_adc_temp
+
+        var1 = hum_adc - ((float(par_h1) * 16.0) + ((float(par_h3) / 2.0) * self.temp_comp))
+        var2 = var1 * ((float(par_h2) / 262144.0) * (1.0 + ((float(par_h4) / 16384.0) * self.temp_comp) + ((float(par_h5) / 1048576.0) * self.temp_comp * self.temp_comp)))
+        var3 = float(par_h6) / 16384.0
+        var4 = float(par_h7) / 2097152.0
+        hum_comp = var2 + ((var3 + (var4 * self.temp_comp)) * var2 * var2)
+        
+        return hum_comp
+    
+    """
+    Calculate the reading from the gas sensor according to section 3.4.1
+    """
+    def _calcGasResistance(self) -> float:
+        # Arrays from Table 16 of the datasheet
+        const_array1: list[float] = [1,1,1,1,1,0.99,1,0.992,1,1,0.998,0.995,1,0.99,1,1]
+        const_array2: list[float] = [8000000,4000000,2000000,1000000,499500.4995,248262.1648,125000,63004.03226,31281.28128,15625,7812.5,3906.25,1953.125,976.5625,488.28125,244.140625]
+
+        # Get 10 bit gas_adc value
+        gas_adc = self.i2c_bus.read_byte_data(self.i2c_address, 0x2A) << 2
+        gas_adc_temp = self.i2c_bus.read_byte_data(self.i2c_address, 0x2B) >> 6
+        gas_adc = gas_adc | gas_adc_temp
+
+        # Read first 4 bits of 0x2B to get the gas range value
+        gas_range = self.i2c_bus.read_byte_data(self.i2c_address, 0x2B) & 0b00001111
+        range_switching_error = self.i2c_bus.read_byte_data(self.i2c_address, 0x04)
+        
+        var1 = (1340.0 + 5.0 * range_switching_error) * const_array1[gas_range]
+        gas_res = var1 * const_array2[gas_range] / (gas_adc - 512.0 + var1)
+
+        return gas_res
+
+    """
+    Return Ture or False based on if we have recievied new data or not
+    """
+    def _dataReady(self) -> bool:
+        meas_status_0 = self.i2c_bus.read_byte_data(self.i2c_address, 0x1D)
+        meas_status_0 = meas_status_0 >> 7
+        return bool(meas_status_0)
+
+    def _gasReady(self) -> bool:
+        gas_r_lsb = self.i2c_bus.read_byte_data(self.i2c_address, 0x2B)
+        gas_valid_r = (gas_r_lsb & 0b00100000) >> 5
+        if(bool(gas_valid_r)):
+            logging.info("Ready to collect gas measurement!")
+        
+        heat_stab_r = (gas_r_lsb & 0b00010000) >> 4
+        if(bool(heat_stab_r) != True):
+            logging.error("Insufficient heating time / target temperature too high")
+
+        # If both the gas measurement valid is true and the heater made it to the correct 
+        return (bool(gas_valid_r) and bool(heat_stab_r))
 
     """
     Initialize the NAU7802 to begin taking sensor readings
@@ -184,8 +259,26 @@ class BME68(DriverBase):
     Measure and return the weight read from the load cell
     """
     def measure(self):
+
+        # Trigger a measurement from the device
         self._triggerMeasure()
-        self.collectedData[0] = self._calculateTemperature()
+        # Wait 1 second before reading measurements
+        sleep(1)
+
+        # Confirm that there is no new data to read
+        if(self._dataReady()):
+            self.collectedData[0] = self._calculateTemperature()
+            self.collectedData[1] = self._calculatePressure()
+            self.collectedData[2] = self._calcHumidity()
+
+            # Only measure the gas if the measurement is ready
+            if(self._gasReady()):
+                self.collectedData[3] = self._calcGasResistance()
+            else:
+                logging.warning("Gas data was not ready to collect at this time -1 will be returned in place of a value")
+                self.collectedData[3] = -1
+        else:
+            logging.warning("No new data ready to collect at this time")
         return self.collectedData
 
 
@@ -200,6 +293,12 @@ class BME68(DriverBase):
     """
     def getEvents(self) -> dict:
         return self.events
+    
+    """
+    The number of measuremnts that are returned by the sensor
+    """
+    def getNumberOfOutputs(self) -> int:
+        return 4
     
     """
     Get a an event from the driver

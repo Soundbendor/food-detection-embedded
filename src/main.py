@@ -75,10 +75,10 @@ def main():
     while(True):
         try:
             manager.loop()
-            if(i == 500):
-                print(json.dumps(manager.getJSON(), indent=4))
+            if(i == 100):
+                #print(json.dumps(manager.getJSON(), indent=4))
                 i = 0
-            sleep(0.01)
+            sleep(0.001)
             i += 1
         
         # On keyboard interrupt we want to cleanly exit

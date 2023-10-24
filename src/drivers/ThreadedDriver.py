@@ -38,7 +38,7 @@ class ThreadedDriver(Process):
             measurement = self.driver.measure()
             for i in range(len(measurement)):
                 self.data[i] = measurement[i]
-            sleep(0.1)
+            sleep(0.01)
         
 
     """

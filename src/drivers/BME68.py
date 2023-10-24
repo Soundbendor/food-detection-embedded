@@ -20,13 +20,11 @@ class BME68(DriverBase):
     def __init__(self, i2c_address = 0x76):
         super().__init__("BME68")
         self.i2c_address = i2c_address
-        self.collectedData = [0.0] * 4
+        self.collectedData = [1.0] * 4
         self.i2c_bus = SMBus(1)
         
         # List of events that the sensor can raise
-        self.events = {
-           "ExampleEvent": Event()
-        }
+        self.events = {}
 
         # Temperature calculation
         self.t_fine = 0
@@ -234,6 +232,9 @@ class BME68(DriverBase):
         meas_status_0 = meas_status_0 >> 7
         return bool(meas_status_0)
 
+    """
+    Return True or False based on wether or not the gas_valid bit was set and the heat_stab bit was set
+    """
     def _gasReady(self) -> bool:
         gas_r_lsb = self.i2c_bus.read_byte_data(self.i2c_address, 0x2B)
         gas_valid_r = (gas_r_lsb & 0b00100000) >> 5
@@ -276,17 +277,9 @@ class BME68(DriverBase):
                 self.collectedData[3] = self._calcGasResistance()
             else:
                 logging.warning("Gas data was not ready to collect at this time -1 will be returned in place of a value")
-                self.collectedData[3] = -1
         else:
-            logging.warning("No new data ready to collect at this time")
+            logging.warning("No new data ready to collect at this time, previous values will be returned for now")
         return self.collectedData
-
-
-    """
-    Calibrate the load cell with a known weight
-    """
-    def calibrate(self):
-       pass
   
     """
     Return the dictionary of events
@@ -306,6 +299,9 @@ class BME68(DriverBase):
     def getEvent(self, event) -> Event:
         return self.events[event][0]
     
+    """
+    Shutdown the proccess
+    """
     def kill(self):
         self.i2c_bus.close()
         

@@ -59,50 +59,32 @@ Callback for when the weight of the bucket has changed
 :param event: The event that caused this callback
 """
 def bucketWeightChanged(event):
-    print("WEIGHT CHANGED!!!!!")
+    logging.info("WEIGHT CHANGED!!!!!")
     event.clear()
 
 def main():
     # Read calibration details as JSON into the file to allow device to be powered on and off without needing to recalibrate 
     calibrationDetails = loadCalibrationDetails("CalibrationDetails.json")
     
-    # Create a manager device passing the NAU7802 in 
-    manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]))
+    # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers 
+    manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]), TestDriver("Test1"))
 
     # Register a callback for a weight change on the NAU7802
     manager.registerEventCallback("NAU7802.WEIGHT_CHANGE", bucketWeightChanged)
-
+    i = 0
     while(True):
         try:
             manager.loop()
-            manager.prettyPrint(manager.getData())
-            sleep(0.1)  
+            if(i == 500):
+                print(json.dumps(manager.getJSON(), indent=4))
+                i = 0
+            sleep(0.01)
+            i += 1
         
         # On keyboard interrupt we want to cleanly exit
         except KeyboardInterrupt:
             manager.kill()
             break
-    """
-    # Create and start a new "threaded" instance of the NAU7802
-    weightEvent = Event()
-    
-    driver = ThreadedDriver(NAU7802(weightChangeEvent=weightEvent, calibration_factor=calibrationDetails["NAU7802_Calibration_Factor"]))
-    driver.start()
-
-    while(True):
-        try:
-            # Check if the weight changed on this pass through
-            if(weightEvent.is_set()):
-                print("WEIGHT CHANGED!!!")
-                weightEvent.clear()
-            
-            sleep(0.01)  
-        
-        # On keyboard interrupt we want to cleanly exit
-        except KeyboardInterrupt:
-            driver.kill()
-            break
-    """
 
 if __name__ == "__main__":
     configureLogging()

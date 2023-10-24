@@ -1,7 +1,7 @@
 """
 Will Richards, Oregon State University, 2023
 
-Provides a unified parent class that all sensor drivers can inherit from
+Provides a test no-hardware driver for simulating a sesnor in use with the ThreadedDriver and DriverManager
 """
 
 from drivers.DriverBase import DriverBase
@@ -18,6 +18,7 @@ class TestDriver(DriverBase):
     def __init__(self, name):
         super().__init__(name)
         self.i = 0
+        self.c = 0
 
         # List of events that the sensor can raise
         self.events = {
@@ -29,22 +30,23 @@ class TestDriver(DriverBase):
     Should be overloaded on all sub drivers so initialize can be called on all drivers at once
     """
     def initialize(self):
-        logging.info("Initialize")
+        logging.debug("Initialize")
     
     """
     Should be overloaded on all sub drivers so initialize can be called on all drivers at once
     """
     def measure(self):
-        logging.info("Measure")
+        logging.debug("Measure")
         self.i+= 1
+        self.c += 1
 
         if(self.i == 10):
             self.getEvent("WEIGHT_CHANGE").set()
 
-        if(self.i > 20):
+        if(self.c > 20):
             self.getEvent("MORE_THAN_20").set()
 
-        return self.i
+        return [self.i, self.c]
 
     """
     Should have the builtin functionality to calibrate a sensor if needed 
@@ -54,6 +56,9 @@ class TestDriver(DriverBase):
 
     def getEvents(self) -> dict:
         return self.events
+    
+    def getNumberOfOutputs(self) -> int:
+        return 2
     
     """
     Get a an event from the driver

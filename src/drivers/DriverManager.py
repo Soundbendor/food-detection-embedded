@@ -5,8 +5,8 @@ Will Richards, Oregon State University, 2023
 
 from .DriverBase import DriverBase
 from .ThreadedDriver import ThreadedDriver
-
 from multiprocessing import Value, Array
+import json
 
 from multiprocessing.sharedctypes import SynchronizedArray
 from multiprocessing.synchronize import Event
@@ -29,7 +29,6 @@ class DriverManager():
             # Start the proccess
             proccess.start()
             self.proccessList.append(proccess)
-
     """
     Basic pretty print for dictionary with Events and Synchronized data types
     
@@ -85,6 +84,24 @@ class DriverManager():
     def getData(self) -> dict:
         return self.data
     
+    """
+    Parse our data into a JSON readable format
+    """
+    def getJSON(self):
+        jsonDict = {}
+        originalData = self.getData()
+        for key, value in originalData.items():
+            jsonDict[key] = {}
+            jsonDict[key]["data"] = list(originalData[key]["data"])
+            jsonDict[key]["events"] = {}
+            for eventKey, eventValue in originalData[key]["events"].items():
+                jsonDict[key]["events"][eventKey] = list(originalData[key]["events"][eventKey])
+                jsonDict[key]["events"][eventKey][0] = jsonDict[key]["events"][eventKey][0].is_set()
+
+                if(jsonDict[key]["events"][eventKey][1] != None):
+                    jsonDict[key]["events"][eventKey][1] = jsonDict[key]["events"][eventKey][1].__name__
+        return jsonDict
+
     """
     Format the dictionary to add a new sensor
 

@@ -1,24 +1,22 @@
 """"
 Will Richards, Oregon State University, 2023
 
-Abstraction layer for the BME68 gas sensor
+Abstraction layer for the BME688 gas sensor
 """
 
 from smbus2 import SMBus
 import logging
 from time import sleep
 
-from .DriverBase import DriverBase
+from drivers.DriverBase import DriverBase
 from multiprocessing import Event
 
-class BME68(DriverBase):
-
-
+class BME688(DriverBase):
     """
     Basic constructor for the BME68
     """
     def __init__(self, i2c_address = 0x76):
-        super().__init__("BME68")
+        super().__init__("BME68", 4)
         self.i2c_address = i2c_address
         self.collectedData = [1.0] * 4
         self.i2c_bus = SMBus(1)
@@ -42,7 +40,7 @@ class BME68(DriverBase):
         return adc
     """
     Calculate heat resistance coefficient based on section 3.3.5 of the BME680 datasheet
-    https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme680-ds001.pdf
+    https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme688-ds000.pdf
     """
     def _calcResHeat(self) -> int:
         par_g1 = self.i2c_bus.read_byte_data(self.i2c_address, 0xED)
@@ -72,7 +70,7 @@ class BME68(DriverBase):
 
     """
     Configure the startup registers of the BME280 to the spec of section 3.2.1 of the data sheet
-    https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme680-ds001.pdf
+    https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme688-ds000.pdf
     """
     def _configureRegisters(self) -> None:
         # Read the value out of the ctrl_hum register
@@ -117,7 +115,7 @@ class BME68(DriverBase):
 
     """
     Calculate the current temperature coresponding to section 3.3.1 of the datasheet
-    https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme680-ds001.pdf
+    https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme688-ds000.pdf
     """
     def _calculateTemperature(self) -> float:
         # Read in calibration details
@@ -206,21 +204,20 @@ class BME68(DriverBase):
     Calculate the reading from the gas sensor according to section 3.4.1
     """
     def _calcGasResistance(self) -> float:
-        # Arrays from Table 16 of the datasheet
-        const_array1: list[float] = [1,1,1,1,1,0.99,1,0.992,1,1,0.998,0.995,1,0.99,1,1]
-        const_array2: list[float] = [8000000,4000000,2000000,1000000,499500.4995,248262.1648,125000,63004.03226,31281.28128,15625,7812.5,3906.25,1953.125,976.5625,488.28125,244.140625]
-
         # Get 10 bit gas_adc value
-        gas_adc = self.i2c_bus.read_byte_data(self.i2c_address, 0x2A) << 2
-        gas_adc_temp = self.i2c_bus.read_byte_data(self.i2c_address, 0x2B) >> 6
+        gas_adc = self.i2c_bus.read_byte_data(self.i2c_address, 0x2C) << 2
+        gas_adc_temp = self.i2c_bus.read_byte_data(self.i2c_address, 0x2D) >> 6
         gas_adc = gas_adc | gas_adc_temp
 
         # Read first 4 bits of 0x2B to get the gas range value
-        gas_range = self.i2c_bus.read_byte_data(self.i2c_address, 0x2B) & 0b00001111
-        range_switching_error = self.i2c_bus.read_byte_data(self.i2c_address, 0x04)
+        gas_range = self.i2c_bus.read_byte_data(self.i2c_address, 0x2D) & 0b00001111
         
-        var1 = (1340.0 + 5.0 * range_switching_error) * const_array1[gas_range]
-        gas_res = var1 * const_array2[gas_range] / (gas_adc - 512.0 + var1)
+        # Preformed fucked calculation
+        var1 = 262144 >> gas_range
+        var2 = gas_adc - 512
+        var2 *= 3
+        var2 = 4096 + var2
+        gas_res = 1000000.0 * float(var1) / float(var2)
 
         return gas_res
 
@@ -280,24 +277,6 @@ class BME68(DriverBase):
         else:
             logging.warning("No new data ready to collect at this time, previous values will be returned for now")
         return self.collectedData
-  
-    """
-    Return the dictionary of events
-    """
-    def getEvents(self) -> dict:
-        return self.events
-    
-    """
-    The number of measuremnts that are returned by the sensor
-    """
-    def getNumberOfOutputs(self) -> int:
-        return 4
-    
-    """
-    Get a an event from the driver
-    """
-    def getEvent(self, event) -> Event:
-        return self.events[event][0]
     
     """
     Shutdown the proccess

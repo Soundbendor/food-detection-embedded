@@ -12,8 +12,10 @@ class DriverBase:
 
     :param modName: Name of the module we are creating
     """
-    def __init__(self, modName):
+    def __init__(self, modName, numOutputs):
         self.moduleName = modName
+        self.numOutputs = numOutputs
+        self.events = {}
     
     """
     Should be overloaded on all sub drivers so initialize can be called on all drivers at once
@@ -40,10 +42,16 @@ class DriverBase:
         pass
 
     """
+    Get the events that the driver has
+    """
+    def getEvents(self) -> dict:
+        return self.events
+    
+    """
     Get a specific event from the dictionary
     """
     def getEvent(self, event) -> Event:
-        pass
+         return self.events[event][0]
 
     """
     What to do when execution is ending
@@ -55,5 +63,8 @@ class DriverBase:
     Get the number of measurements that this sensor will output
     """
     def getNumberOfOutputs(self) -> int:
-        pass
+        return self.numOutputs
+
+    def shouldMeasure(self) -> bool:
+        return True
         

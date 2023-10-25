@@ -11,13 +11,13 @@ from logging import config
 #from drivers.ThreadedDriver import ThreadedDriver
 from drivers.DriverManager import DriverManager
 
-from drivers.NAU7802 import NAU7802
-from drivers.TestDriver import TestDriver
+from drivers.sensors.NAU7802 import NAU7802
+from drivers.sensors.TestDriver import TestDriver
 
 from multiprocessing import Event
 
 
-from time import sleep
+import time
 import logging
 import os
 import sys
@@ -74,12 +74,14 @@ def main():
     i = 0
     while(True):
         try:
+        
             manager.loop()
             if(i == 100):
-                #print(json.dumps(manager.getJSON(), indent=4))
+                print(json.dumps(manager.getJSON(), indent=4))
                 i = 0
-            sleep(0.001)
+            time.sleep(0.001)
             i += 1
+
         
         # On keyboard interrupt we want to cleanly exit
         except KeyboardInterrupt:

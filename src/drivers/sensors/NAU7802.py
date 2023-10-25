@@ -9,7 +9,7 @@ import smbus2
 import logging
 import time
 
-from .DriverBase import DriverBase
+from drivers.DriverBase import DriverBase
 from multiprocessing import Event
 
 class NAU7802(DriverBase):
@@ -19,7 +19,7 @@ class NAU7802(DriverBase):
     Basic constructor for the NAU7802
     """
     def __init__(self, calibration_factor = 0):
-        super().__init__("NAU7802")
+        super().__init__("NAU7802", 1)
         self.nau = PyNAU7802.NAU7802()
         self.collectedData = 0
         if(calibration_factor == 0):
@@ -93,25 +93,7 @@ class NAU7802(DriverBase):
     """
     def tareScale(self):
         self.nau.calculateZeroOffset()
-
-    """
-    Return the dictionary of events
-    """
-    def getEvents(self) -> dict:
-        return self.events
     
-    """
-    Get a an event from the driver
-    """
-    def getEvent(self, event) -> Event:
-        return self.events[event][0]
-    
-    """
-    The number of measuremnts that are returned by the sensor
-    """
-    def getNumberOfOutputs(self) -> int:
-        return 1
-
     """
     Determine wether or not the events on this object should be triggered on this measure cycle
     """
@@ -123,4 +105,3 @@ class NAU7802(DriverBase):
         # If our weight didn't change and our weight changed last time then we want to clear this flag so we can trigger another event on the next cycle
         elif(self.weightDetectedLastTime):
             self.weightDetectedLastTime = False
-        

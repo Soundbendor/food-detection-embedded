@@ -16,10 +16,10 @@ class TestDriver(DriverBase):
     :param modName: Name of the module we are creating
     """
     def __init__(self, name):
-        super().__init__(name)
+        super().__init__(name, 2)
         self.i = 0
         self.c = 0
-
+        
         # List of events that the sensor can raise
         self.events = {
             "WEIGHT_CHANGE": Event(),
@@ -47,22 +47,3 @@ class TestDriver(DriverBase):
             self.getEvent("MORE_THAN_20").set()
 
         return [self.i, self.c]
-
-    """
-    Should have the builtin functionality to calibrate a sensor if needed 
-    """
-    def calibrate(self):
-        pass
-
-    def getEvents(self) -> dict:
-        return self.events
-    
-    def getNumberOfOutputs(self) -> int:
-        return 2
-    
-    """
-    Get a an event from the driver
-    """
-    def getEvent(self, event) -> Event:
-        return self.events[event][0]
-        

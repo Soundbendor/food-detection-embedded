@@ -7,7 +7,9 @@ We wait to use multiproccessing instead of threads to avoid GIL in python
 
 from multiprocessing import Event, Manager, Process, Value
 
-from time import sleep
+from time import sleep, time
+import logging
+
 
 from .DriverBase import DriverBase
 
@@ -29,18 +31,21 @@ class ThreadedDriver(Process):
     Overridden process runner so that we can initialize and use all our drivers the same because we know exactly how they will be have
     """
     def run(self) -> None:
-        # Initialize and loop indefinitely until the process is killed
         self.driver.initialize()
-        
         while(True):
+            self._measureSensor()
+            sleep(0.001)
+        
 
+    """
+    Local method to handle measuring of the senosor
+    """
+    def _measureSensor(self):
+        if(self.driver.shouldMeasure()):
             # Convert the measured values into the list of threaded 
             measurement = self.driver.measure()
             for i in range(len(measurement)):
                 self.data[i] = measurement[i]
-            sleep(0.001)
-        
-
     """
     Kill the proccess, doesn't do anything special right now but might eventually
     """

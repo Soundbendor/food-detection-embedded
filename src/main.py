@@ -139,7 +139,8 @@ async def main():
           light.dirty()
           if not args.dry:
             # Uploads to the server in the background
-            asyncio.create_task(image_api.post_image(image_path, image_name, object_weight))
+            loop = asyncio.get_event_loop()
+            loop.create_task(image_api.post_image(image_path, image_name, object_weight))
 
           await asyncio.sleep(2)
 

@@ -42,25 +42,43 @@ class ImageApi:
       raise MissingSecretsError("Secrets could not be found in current directory. Please include them in a .env file.")
     return key
 
-  async def post_image(self, path, name, weight):
+  async def post_image(
+    self,
+    image_path,
+    image_name,
+    weight = None,
+    depth_image_path = None,
+    co2 = None,
+    humidity = None,
+    temperature = None,
+    ir_matrix = None,
+    audio_transcript = None):
     """
     Posts an image to the remote server for detection.
 
-    :param path: The path to the image to post.
-    :param name: The name of the image to post.
+    :param image_path: The path to the main image to post.
+    :param image_name: The name of the image to post.
+    :param weight: The weight of the food in the image.
+    :param depth_image_path: The path to the depth image to post.
+    :param co2: The CO2 level.
+    :param humidity: The humidity level in the room.
+    :param temperature: The temperature in the room.
+    :param ir_matrix: The IR matrix of the image.
+    :param audio_transcript: The audio transcript.
+
     :returns: The path to the image returned by the server.
     :raises RequestFailedError: If the request fails.
     :raises MissingSecretsError: See :func:`get_secret`.
     """
-    image_bytes = open(path, "rb").read()
-
     body = {
       "img_name": name,
       "weight": weight,
     }
     files = {
-      "img_file": (name, image_bytes, "image/jpeg")
+      "img_file": (name, open(image_path, "rb").read(), "image/jpeg")
     }
+    if depth_image_path is not None:
+      files["depth_map_file"] = (f"{name}_depth_map", open(depth_image_path, "rb").read(), "image/jpeg"),
 
     api_key = self.get_secret()
 

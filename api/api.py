@@ -30,7 +30,7 @@ class ImageApi:
     self.archive_loc_prefix = archive_loc_prefix
     self.timeout = timeout
 
-  def get_secret():
+  def get_secret(self):
     """
     Returns the API key from the environment.
 
@@ -55,9 +55,11 @@ class ImageApi:
     image_bytes = open(path, "rb").read()
 
     body = {
-      "img_file": b64encode(image_bytes).decode("utf-8"),
       "img_name": name,
       "weight": weight,
+    }
+    files = {
+      "img_file": (name, image_bytes, "image/jpeg")
     }
 
     api_key = self.get_secret()
@@ -65,9 +67,10 @@ class ImageApi:
     for i in range(self.num_attempts):
       try:
         console.debug(f"Posting image '{name}' to {self.remote_url}/api/model/detect")
-        request = self.client.post(
+        request = await self.client.post(
           f"{self.remote_url}/api/model/detect",
           data = body,
+          files = files,
           headers = {"token": api_key},
           timeout = self.timeout
         )

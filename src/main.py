@@ -6,22 +6,22 @@ Will Richards, Add Other Names, Oregon State University, 2023
 Main runner module for the entire system all code should 
 """
 
-from logging import config
-
-#from drivers.ThreadedDriver import ThreadedDriver
-from drivers.DriverManager import DriverManager
-
-#from drivers.sensors.NAU7802 import NAU7802
-from drivers.sensors.TestDriver import TestDriver
-
-from multiprocessing import Event
-
-
 import time
 import logging
 import os
 import sys
 import json
+
+from logging import config
+from multiprocessing import Event
+
+#from drivers.ThreadedDriver import ThreadedDriver
+from drivers.DriverManager import DriverManager
+
+# Sensor Drivers
+from drivers.sensors.NAU7802 import NAU7802
+from drivers.sensors.TestDriver import TestDriver
+from drivers.sensors.IMX219 import IMX219
 
 """
 Load sensor calibration details from a given file 
@@ -77,7 +77,7 @@ def main():
         try:
             manager.loop()
             if(i == 100):
-                print(json.dumps(manager.getJSON(), indent=4))
+                #print(json.dumps(manager.getJSON(), indent=4))
                 i = 0
             time.sleep(0.001)
             i += 1

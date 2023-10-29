@@ -12,3 +12,4 @@ nanocamera
 python-dotenv
 requests
 pynau7802==0.2.2
+opencv-python

@@ -64,6 +64,4 @@ class DriverBase:
     def getNumberOfOutputs(self) -> int:
         return self.numOutputs
 
-    def shouldMeasure(self) -> bool:
-        return True
         

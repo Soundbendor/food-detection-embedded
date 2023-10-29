@@ -36,3 +36,8 @@ Note: do not unplug the Jetson Nano while the detection script is running, this 
 ./food_detector.sh detect
 ./food_detector.sh focus
 ```
+
+### Pulling changes onto the device
+```bash
+./food_detector.sh pull
+```

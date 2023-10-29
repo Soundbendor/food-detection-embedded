@@ -34,7 +34,7 @@ from food_waste.use_gpio import use_gpio
 use_gpio(Jetson.GPIO)
 
 import food_waste.gpio as GPIO
-from system.io import Camera, StatusLight, TareButton, TareButtonStatus, WeightSensor
+from system.io import Camera, StatusLight, TareButton, TareButtonStatus, WeightSensor, DepthCamera
 import food_waste.log as console
 from food_waste.api import ImageApi, MissingSecretsError, RequestFailedError
 
@@ -63,6 +63,7 @@ weight_sensor = WeightSensor()
 light = StatusLight()
 button = TareButton()
 camera = Camera()
+depth_camera = DepthCamera()
 
 def cleanup():
   console.log('Cleaning up.')
@@ -70,6 +71,8 @@ def cleanup():
   light.cleanup()
   button.cleanup()
   GPIO.cleanup()
+  camera.cleanup()
+  depth_camera.cleanup()
   console.log('Done.')
 
 def get_date_string():
@@ -104,6 +107,7 @@ async def main():
   light.setup()
   button.setup()
   camera.setup()
+  depth_camera.setup()
 
   light.standby()
 
@@ -134,13 +138,20 @@ async def main():
           image_name = get_image_name()
           image_path = generate_image_path(image_name)
           camera.save(image_path)
+          depth_path = generate_image_path(f"{image_name}_depth")
+          depth_camera.save(depth_path, depth_camera.capture_map())
 
           console.log("Photo taken. Uploading to server.")
           light.dirty()
           if not args.dry:
             # Uploads to the server in the background
             loop = asyncio.get_event_loop()
-            loop.create_task(image_api.post_image(image_path, image_name, object_weight))
+            loop.create_task(image_api.post_image(
+              image_path=image_path,
+              image_name=image_name,
+              depth_image_path=depth_path,
+              weight=object_weight
+            ))
 
           await asyncio.sleep(2)
 

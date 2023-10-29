@@ -20,6 +20,7 @@ class DriverManager():
     
         # Loop over all sensors we are using and "threadify" them
         for sensor in self.sensors:
+            
             # Format a new sensor objecti in the dectionary
             self._formatNewSensor(sensor)
 
@@ -29,6 +30,8 @@ class DriverManager():
             # Start the proccess
             proccess.start()
             self.proccessList.append(proccess)
+        
+        self.createJSONFormattedDict()
     """
     Basic pretty print for dictionary with Events and Synchronized data types
     
@@ -85,22 +88,46 @@ class DriverManager():
         return self.data
     
     """
+    Create the initial JSON dictionary so that we can just update values later
+    """
+    def createJSONFormattedDict(self):
+        self.jsonDict = {}
+        originalData = self.getData()
+        for key, value in originalData.items():
+            self.jsonDict[key] = {}
+            #self.jsonDict[key]["data"] = originalData[key]["data"]
+            self.jsonDict[key]["data"] = {}
+            for dataKey, value in originalData[key]["data"].items():
+                self.jsonDict[key]["data"][dataKey] = value.value
+            self.jsonDict[key]["events"] = {}
+            for eventKey, eventValue in originalData[key]["events"].items():
+                self.jsonDict[key]["events"][eventKey] = list(originalData[key]["events"][eventKey])
+                self.jsonDict[key]["events"][eventKey][0] = self.jsonDict[key]["events"][eventKey][0].is_set()
+
+                if(self.jsonDict[key]["events"][eventKey][1] != None):
+                    self.jsonDict[key]["events"][eventKey][1] = self.jsonDict[key]["events"][eventKey][1].__name__
+        return self.jsonDict
+    
+    """
     Parse our data into a JSON readable format
     """
     def getJSON(self):
-        jsonDict = {}
         originalData = self.getData()
-        for key, value in originalData.items():
-            jsonDict[key] = {}
-            jsonDict[key]["data"] = list(originalData[key]["data"])
-            jsonDict[key]["events"] = {}
-            for eventKey, eventValue in originalData[key]["events"].items():
-                jsonDict[key]["events"][eventKey] = list(originalData[key]["events"][eventKey])
-                jsonDict[key]["events"][eventKey][0] = jsonDict[key]["events"][eventKey][0].is_set()
 
-                if(jsonDict[key]["events"][eventKey][1] != None):
-                    jsonDict[key]["events"][eventKey][1] = jsonDict[key]["events"][eventKey][1].__name__
-        return jsonDict
+        # Update the data values for each sensor
+        for key, value in originalData.items():
+            for dataKey, value in self.jsonDict[key]["data"].items():
+                    self.jsonDict[key]["data"][dataKey] = originalData[key]["data"][dataKey].value
+        
+        
+        # Update teh events for each sensor
+        for key, value in originalData.items():
+            for eventKey, value in self.jsonDict[key]["events"].items():
+                    self.jsonDict[key]["events"][eventKey][0] = originalData[key]["events"][eventKey][0].is_set()
+
+                    if(originalData[key]["events"][eventKey][1] != None):
+                        self.jsonDict[key]["events"][eventKey][1] = originalData[key]["events"][eventKey][1].__name__
+        return self.jsonDict
 
     """
     Format the dictionary to add a new sensor
@@ -109,7 +136,7 @@ class DriverManager():
     """
     def _formatNewSensor(self, sensor: DriverBase) -> None:
         self.data[sensor.moduleName] = {}
-        self.data[sensor.moduleName]["data"] = Array('d', [0]*sensor.getNumberOfOutputs())
+        self.data[sensor.moduleName]["data"] = sensor.createDataDict()
         self.data[sensor.moduleName]["events"] = sensor.getEvents()     
         for key, value in self.data[sensor.moduleName]["events"].items():
             self.data[sensor.moduleName]["events"][key] = [value, None]

@@ -10,7 +10,7 @@ import logging
 import time
 
 from drivers.DriverBase import DriverBase
-from multiprocessing import Event
+from multiprocessing import Event, Value
 
 class NAU7802(DriverBase):
 
@@ -65,8 +65,7 @@ class NAU7802(DriverBase):
 
         # This will determine wether or not the event has occured in this cycle or not
         self.determineEventState()
-        outputList = [self.collectedData]
-        return outputList
+        self.data = self.collectedData
 
 
     """
@@ -105,3 +104,9 @@ class NAU7802(DriverBase):
         # If our weight didn't change and our weight changed last time then we want to clear this flag so we can trigger another event on the next cycle
         elif(self.weightDetectedLastTime):
             self.weightDetectedLastTime = False
+        
+    def createDataDict(self):
+        self.data = {
+            "weight": Value('d', 0.0)
+        }
+        return self.data

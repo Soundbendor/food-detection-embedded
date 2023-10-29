@@ -5,7 +5,7 @@ Provides a test no-hardware driver for simulating a sesnor in use with the Threa
 """
 
 from drivers.DriverBase import DriverBase
-from multiprocessing import Event
+from multiprocessing import Event, Value
 
 import logging
 
@@ -23,7 +23,7 @@ class TestDriver(DriverBase):
         # List of events that the sensor can raise
         self.events = {
             "WEIGHT_CHANGE": Event(),
-            "MORE_THAN_20": Event()
+            "MORE_THAN_2000": Event()
         }
     
     """
@@ -43,7 +43,19 @@ class TestDriver(DriverBase):
         if(self.i == 10):
             self.getEvent("WEIGHT_CHANGE").set()
 
-        if(self.c > 20):
-            self.getEvent("MORE_THAN_20").set()
+        if(self.c > 2000):
+            self.getEvent("MORE_THAN_2000").set()
 
-        return [self.i, self.c]
+        # Update the 
+        self.data["i"].value = self.i
+        self.data["c"].value = self.c
+
+    """
+    Create a specified dictionary of values to create keys for the values we will update
+    """
+    def createDataDict(self):
+        self.data = {
+            "i": Value('i', 0),
+            "c": Value("i", 0)
+        }
+        return self.data

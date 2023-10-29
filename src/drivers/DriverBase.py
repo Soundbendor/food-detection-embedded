@@ -26,19 +26,13 @@ class DriverBase:
     """
     Should be overloaded on all sub drivers so initialize can be called on all drivers at once
     """
-    def measure(self) -> list:
+    def measure(self) -> None:
         pass
 
     """
     Should have the builtin functionality to calibrate a sensor if needed 
     """
     def calibrate(self):
-        pass
-
-    """
-    Get a dictionary of the events on the Driver
-    """
-    def getEvents(self) -> dict:
         pass
 
     """
@@ -59,6 +53,11 @@ class DriverBase:
     def kill(self):
         pass
 
+    """
+    Create and return a dictionary of the data that the specific sensor will be supplying
+    """
+    def createDataDict(self):
+        pass
     """
     Get the number of measurements that this sensor will output
     """

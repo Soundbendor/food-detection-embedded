@@ -33,19 +33,9 @@ class ThreadedDriver(Process):
     def run(self) -> None:
         self.driver.initialize()
         while(True):
-            self._measureSensor()
+            self.driver.measure()
             sleep(0.001)
         
-
-    """
-    Local method to handle measuring of the senosor
-    """
-    def _measureSensor(self):
-        if(self.driver.shouldMeasure()):
-            # Convert the measured values into the list of threaded 
-            measurement = self.driver.measure()
-            for i in range(len(measurement)):
-                self.data[i] = measurement[i]
     """
     Kill the proccess, doesn't do anything special right now but might eventually
     """

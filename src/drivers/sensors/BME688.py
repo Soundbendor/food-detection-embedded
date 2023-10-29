@@ -9,7 +9,7 @@ import logging
 from time import sleep
 
 from drivers.DriverBase import DriverBase
-from multiprocessing import Event
+from multiprocessing import Event, Value
 
 class BME688(DriverBase):
     """
@@ -265,18 +265,29 @@ class BME688(DriverBase):
 
         # Confirm that there is no new data to read
         if(self._dataReady()):
-            self.collectedData[0] = self._calculateTemperature()
-            self.collectedData[1] = self._calculatePressure()
-            self.collectedData[2] = self._calcHumidity()
+            self.data["temperature"].value = self._calculateTemperature()
+            self.data["pressure"].value = self._calculatePressure()
+            self.data["humidity"].value = self._calcHumidity()
 
             # Only measure the gas if the measurement is ready
             if(self._gasReady()):
-                self.collectedData[3] = self._calcGasResistance()
+                 self.data["gas_resistance"].value = self._calcGasResistance()
             else:
                 logging.warning("Gas data was not ready to collect at this time -1 will be returned in place of a value")
         else:
             logging.warning("No new data ready to collect at this time, previous values will be returned for now")
-        return self.collectedData
+    
+    """
+    Create a dictionary of the data that this sensor will output
+    """
+    def createDataDict(self):
+        self.data = {
+            "temperature": Value('d', 0.0),
+            "pressure": Value('d', 0.0),
+            "humidity": Value('d', 0.0),
+            "gas_resistance": Value('d', 0.0)
+        }
+        return self.data
     
     """
     Shutdown the proccess

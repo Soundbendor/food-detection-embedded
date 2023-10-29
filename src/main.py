@@ -11,7 +11,7 @@ from logging import config
 #from drivers.ThreadedDriver import ThreadedDriver
 from drivers.DriverManager import DriverManager
 
-from drivers.sensors.NAU7802 import NAU7802
+#from drivers.sensors.NAU7802 import NAU7802
 from drivers.sensors.TestDriver import TestDriver
 
 from multiprocessing import Event
@@ -43,7 +43,7 @@ def loadCalibrationDetails(file: str) -> dict:
 """
 Configure logging format and output type based on arguments passed to the program
 """
-def configureLogging() -> None:
+def configureLogging():
     FORMAT = '%(asctime)s [%(filename)s:%(funcName)s:%(lineno)d] [%(levelname)s] %(message)s'
 
     # Check if we want to specifiy an output file for the loging
@@ -58,7 +58,7 @@ Callback for when the weight of the bucket has changed
 
 :param event: The event that caused this callback
 """
-def bucketWeightChanged(event):
+def bucketWeightChanged(event: Event):
     logging.info("WEIGHT CHANGED!!!!!")
     event.clear()
 
@@ -67,14 +67,14 @@ def main():
     calibrationDetails = loadCalibrationDetails("CalibrationDetails.json")
     
     # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers 
-    manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]), TestDriver("Test1"))
+    #manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]), TestDriver("Test1"))
+    manager = DriverManager(TestDriver("Test1"))
 
     # Register a callback for a weight change on the NAU7802
-    manager.registerEventCallback("NAU7802.WEIGHT_CHANGE", bucketWeightChanged)
+    #manager.registerEventCallback("NAU7802.WEIGHT_CHANGE", bucketWeightChanged)
     i = 0
     while(True):
         try:
-        
             manager.loop()
             if(i == 100):
                 print(json.dumps(manager.getJSON(), indent=4))

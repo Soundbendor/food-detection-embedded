@@ -5,23 +5,22 @@ Will Richards, Add Other Names, Oregon State University, 2023
 
 Main runner module for the entire system all code should 
 """
-
-from logging import config
-
-#from drivers.ThreadedDriver import ThreadedDriver
-from drivers.DriverManager import DriverManager
-
-from drivers.sensors.NAU7802 import NAU7802
-from drivers.sensors.TestDriver import TestDriver
-
-from multiprocessing import Event
-
-
 import time
 import logging
 import os
 import sys
 import json
+
+from logging import config
+from multiprocessing import Event
+
+#from drivers.ThreadedDriver import ThreadedDriver
+from drivers.DriverManager import DriverManager
+
+# Sensor Drivers
+from drivers.sensors.NAU7802 import NAU7802
+from drivers.sensors.TestDriver import TestDriver
+from drivers.sensors.IMX219 import IMX219
 
 """
 Load sensor calibration details from a given file 
@@ -67,17 +66,18 @@ def main():
     calibrationDetails = loadCalibrationDetails("CalibrationDetails.json")
     
     # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers 
-    manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]), TestDriver("Test1"))
+    #manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]), TestDriver("Test1"))
+    manager = DriverManager(IMX219(True))
 
     # Register a callback for a weight change on the NAU7802
-    manager.registerEventCallback("NAU7802.WEIGHT_CHANGE", bucketWeightChanged)
+    #manager.registerEventCallback("NAU7802.WEIGHT_CHANGE", bucketWeightChanged)
     i = 0
     while(True):
         try:
         
             manager.loop()
             if(i == 100):
-                print(json.dumps(manager.getJSON(), indent=4))
+                #print(json.dumps(manager.getJSON(), indent=4))
                 i = 0
             time.sleep(0.001)
             i += 1

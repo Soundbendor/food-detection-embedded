@@ -6,6 +6,7 @@ Abstraction layer for the IMX219 steroscopic imaging camera
 
 from nanocamera import Camera
 import cv2
+import numpy
 import logging
 from multiprocessing import Event
 from time import sleep
@@ -44,11 +45,15 @@ class IMX219(DriverBase):
     def initialize(self):
         # Add both camears into the list of cameras
 
-        gstream_str = "nvarguscamerasrc sensor-id=0 ! 'video/x-raw(memory:NVMM), width=1920, height=1080, format=(string)NV12, framerate=(fraction)30/1' ! nvvidconv flip-method=0 ! 'video/x-raw, width=(int)1920, height=(int)1080, format=(string)BGRx' ! videoconvert ! video/x-raw, format=(string)BGR ! appsink"
-        cap = cv2.VideoCapture(gstream_str, cv2.CAP_GSTREAMER)
+
+        self.cam = Camera(device_id=0, flip = 1, width=3264, height=2464,fps=21,debug=True)
         
-        ret, frame = cap.read()
-        print(ret)
+
+        # gstream_str = "nvarguscamerasrc sensor-id=0 ! 'video/x-raw(memory:NVMM), width=1920, height=1080, format=(string)NV12, framerate=(fraction)30/1' ! nvvidconv flip-method=0 ! 'video/x-raw, width=(int)1920, height=(int)1080, format=(string)BGRx' ! videoconvert ! video/x-raw, format=(string)BGR ! appsink"
+        # cap = cv2.VideoCapture(gstream_str, cv2.CAP_GSTREAMER)
+        
+        # ret, frame = cap.read()
+        # print(ret)
             
         #cv2.imwrite("test.jpg", frame)
         #cap.release()
@@ -71,5 +76,7 @@ class IMX219(DriverBase):
     def measure(self) -> list:
         return []
     
+    def capture(self):
+        return self.cam.read()
 
         

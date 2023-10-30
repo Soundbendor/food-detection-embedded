@@ -65,7 +65,7 @@ class NAU7802(DriverBase):
 
         # This will determine wether or not the event has occured in this cycle or not
         self.determineEventState()
-        self.data = self.collectedData
+        self.data["weight"].value = self.collectedData
 
 
     """

@@ -1,15 +1,11 @@
 charset-normalizer
 urllib3
 gpiod==1.4.0
-# Versions of numpy higher than this causes python to crash
-# numpy==1.19.4
-
-Adafruit-Blinka
-adafruit-circuitpython-htu21d
+opencv-python==4.8.1.78
+numpy==1.19.3
 httpx
 Jetson.GPIO
 nanocamera
 python-dotenv
 requests
-pynau7802==0.2.2
-opencv-python
+pynau7802==0.2.1

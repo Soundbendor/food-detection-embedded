@@ -11,7 +11,7 @@ import logging
 import os
 import sys
 import json
-
+import cv2
 from logging import config
 from multiprocessing import Event
 
@@ -19,8 +19,8 @@ from multiprocessing import Event
 from drivers.DriverManager import DriverManager
 
 # Sensor Drivers
-from drivers.sensors.NAU7802 import NAU7802
-from drivers.sensors.TestDriver import TestDriver
+#from drivers.sensors.NAU7802 import NAU7802
+#from drivers.sensors.TestDriver import TestDriver
 from drivers.sensors.IMX219 import IMX219
 
 """
@@ -67,17 +67,22 @@ def main():
     calibrationDetails = loadCalibrationDetails("CalibrationDetails.json")
     
     # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers 
-    #manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]), TestDriver("Test1"))
-    manager = DriverManager(TestDriver("Test1"))
+    #manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]))
+    #manager = DriverManager(IMX219())
+    cam = IMX219()
+    cam.initialize()
+    cv2.imwrite("test.jpg", cam.capture())
+    
+    
 
     # Register a callback for a weight change on the NAU7802
     #manager.registerEventCallback("NAU7802.WEIGHT_CHANGE", bucketWeightChanged)
     i = 0
     while(True):
         try:
-            manager.loop()
+            #manager.loop()
             if(i == 100):
-                #print(json.dumps(manager.getJSON(), indent=4))
+               # print(json.dumps(manager.getJSON(), indent=4))
                 i = 0
             time.sleep(0.001)
             i += 1
@@ -85,7 +90,7 @@ def main():
         
         # On keyboard interrupt we want to cleanly exit
         except KeyboardInterrupt:
-            manager.kill()
+           # manager.kill()
             break
 
 if __name__ == "__main__":

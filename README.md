@@ -27,7 +27,9 @@ Note: do not unplug the Jetson Nano while the detection script is running, this 
 
 ### Setup:
 ```bash
-./food_detector.sh install
+sudo apt-get install python3-venv
+python3.6 -m venv venv
+source food-detection-embedded/venv/bin/activate
 ```
 
 ### How to run the detector:

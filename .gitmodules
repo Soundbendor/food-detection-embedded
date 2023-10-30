@@ -1,4 +1,0 @@
-[submodule "src/food_waste"]
-	path = src/food_waste
-	url = https://github.com/Soundbendor/food-detection-embedded.git
-	branch = food-waste-lib

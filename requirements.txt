@@ -1,11 +1,9 @@
 charset-normalizer
 urllib3
 gpiod==1.4.0
-opencv-python==4.8.1.78
 numpy==1.19.3
 httpx
 Jetson.GPIO
-nanocamera
 python-dotenv
 requests
 pynau7802==0.2.1

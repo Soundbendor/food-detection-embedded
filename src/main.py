@@ -68,11 +68,7 @@ def main():
     
     # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers 
     #manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]))
-    #manager = DriverManager(IMX219())
-    cam = IMX219()
-    cam.initialize()
-    cv2.imwrite("test.jpg", cam.capture())
-    
+    manager = DriverManager(IMX219())
     
 
     # Register a callback for a weight change on the NAU7802

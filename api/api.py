@@ -78,7 +78,7 @@ class ImageApi:
       "img_file": (name, open(image_path, "rb").read(), "image/jpeg")
     }
     if depth_image_path is not None:
-      files["depth_map_file"] = (f"{name}_depth_map", open(depth_image_path, "rb").read(), "image/jpeg"),
+      files["depth_map_file"] = (f"{name}_depth_map", open(depth_image_path, "rb").read(), "image/jpeg")
 
     api_key = self.get_secret()
 

@@ -45,12 +45,13 @@ class ImageApi:
   async def post_image(
     self,
     image_path,
-    image_name,
+    name,
     weight = None,
     depth_image_path = None,
     co2 = None,
     humidity = None,
     temperature = None,
+    vo2 = None,
     ir_matrix = None,
     audio_transcript = None):
     """
@@ -73,12 +74,16 @@ class ImageApi:
     body = {
       "img_name": name,
       "weight": weight,
+      "c02": co2,
+      "humidity": humidity,
+      "temperature": temperature,
     }
+
     files = {
       "img_file": (name, open(image_path, "rb").read(), "image/jpeg")
     }
     if depth_image_path is not None:
-      files["depth_map_file"] = (f"{name}_depth_map", open(depth_image_path, "rb").read(), "image/jpeg"),
+      files["depth_map_file"] = (f"{name}_depth_map", open(depth_image_path, "rb").read(), "image/jpeg")
 
     api_key = self.get_secret()
 

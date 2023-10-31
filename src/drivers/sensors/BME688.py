@@ -15,7 +15,7 @@ class BME688(DriverBase):
     """
     Basic constructor for the BME68
     """
-    def __init__(self, i2c_address = 0x76):
+    def __init__(self, i2c_address = 0x77):
         super().__init__("BME68", 4)
         self.i2c_address = i2c_address
         self.collectedData = [1.0] * 4

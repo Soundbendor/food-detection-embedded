@@ -21,7 +21,8 @@ from drivers.DriverManager import DriverManager
 # Sensor Drivers
 #from drivers.sensors.NAU7802 import NAU7802
 #from drivers.sensors.TestDriver import TestDriver
-from drivers.sensors.IMX219 import IMX219
+#from drivers.sensors.IMX219 import IMX219
+from drivers.sensors.BME688 import BME688
 
 """
 Load sensor calibration details from a given file 
@@ -68,17 +69,17 @@ def main():
     
     # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers 
     #manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]))
-    manager = DriverManager(IMX219())
-    
+    #manager = DriverManager(IMX219())
+    manager = DriverManager(BME688())
 
     # Register a callback for a weight change on the NAU7802
     #manager.registerEventCallback("NAU7802.WEIGHT_CHANGE", bucketWeightChanged)
     i = 0
     while(True):
         try:
-            #manager.loop()
+            manager.loop()
             if(i == 100):
-               # print(json.dumps(manager.getJSON(), indent=4))
+                print(json.dumps(manager.getJSON(), indent=4))
                 i = 0
             time.sleep(0.001)
             i += 1

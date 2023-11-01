@@ -15,7 +15,7 @@ class BME688(DriverBase):
     """
     Basic constructor for the BME68
     """
-    def __init__(self, i2c_address = 0x76):
+    def __init__(self, i2c_address = 0x77):
         super().__init__("BME68", 4)
         self.i2c_address = i2c_address
         self.collectedData = [1.0] * 4
@@ -159,11 +159,16 @@ class BME688(DriverBase):
         var1 = (((float(par_p3) * var1 * var1) / 16384.0) + (float(par_p2) * var1)) / 524288.0
         var1 = (1.0 + (var1 / 32768.0)) * float(par_p1)
         press_comp = 1048576.0 - float(press_adc)
-        press_comp =  ((press_comp - (var2 / 4096.0)) * 6250.0) / var1
-        var1 = (float(par_p9) * press_comp * press_comp) / 2147483648.0
-        var2 = press_comp * (float(par_p8) / 32768.0)
-        var3 = (press_comp / 256.0) * (press_comp / 256.0) * (press_comp / 256.0) * (float(par_p10) / 131072.0)
-        press_comp = press_comp + (var1 + var2 + var3 + (float(par_p7) * 128.0)) / 16.0
+
+        # Avoid possible divide by 0
+        if(var2 != 0):
+            press_comp =  ((press_comp - (var2 / 4096.0)) * 6250.0) / var1
+            var1 = (float(par_p9) * press_comp * press_comp) / 2147483648.0
+            var2 = press_comp * (float(par_p8) / 32768.0)
+            var3 = (press_comp / 256.0) * (press_comp / 256.0) * (press_comp / 256.0) * (float(par_p10) / 131072.0)
+            press_comp = press_comp + (var1 + var2 + var3 + (float(par_p7) * 128.0)) / 16.0
+        else:
+            press_comp = 0
 
         return press_comp
     

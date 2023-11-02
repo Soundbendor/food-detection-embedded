@@ -77,6 +77,7 @@ class ImageApi:
       "c02": co2,
       "humidity": humidity,
       "temperature": temperature,
+      "v02": vo2
     }
 
     files = {
@@ -84,6 +85,8 @@ class ImageApi:
     }
     if depth_image_path is not None:
       files["depth_map_file"] = (f"{name}_depth_map", open(depth_image_path, "rb").read(), "image/jpeg")
+    if audio_transcript is not None:
+      files["audio_file"] = (f"{name}_audio", open(audio_transcript, "rb").read(), "audio/mpeg")
 
     api_key = self.get_secret()
 

@@ -69,6 +69,12 @@ class DriverManager():
         self.data[splitName[0]]["events"][splitName[1]][1] = callback
     
     """
+    Set an event on a given sub-module
+    """
+    def setEvent(self, event):
+        splitName = event.split(".")
+        self.data[splitName[0]]["events"][splitName[1]][0].set()
+    """
     Check what callbacks need to be called per loop, and execute them as needed
     """
     def handleCallbacks(self):

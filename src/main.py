@@ -19,10 +19,11 @@ from multiprocessing import Event
 from drivers.DriverManager import DriverManager
 
 # Sensor Drivers
-#from drivers.sensors.NAU7802 import NAU7802
-#from drivers.sensors.TestDriver import TestDriver
+from drivers.sensors.NAU7802 import NAU7802
+from drivers.sensors.TestDriver import TestDriver
 #from drivers.sensors.IMX219 import IMX219
 from drivers.sensors.BME688 import BME688
+from drivers.sensors.MLX90640 import MLX90640
 
 """
 Load sensor calibration details from a given file 
@@ -68,26 +69,31 @@ def main():
     calibrationDetails = loadCalibrationDetails("CalibrationDetails.json")
     
     # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers 
-    #manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]))
+    #manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]), TestDriver("ExampleDriver"), BME688())
     #manager = DriverManager(IMX219())
-    manager = DriverManager(BME688())
+    #manager = DriverManager(BME688())
+    manager = DriverManager(MLX90640())
 
     # Register a callback for a weight change on the NAU7802
     #manager.registerEventCallback("NAU7802.WEIGHT_CHANGE", bucketWeightChanged)
     i = 0
+    manager.setEvent("MLX90640.Capture")
     while(True):
         try:
             manager.loop()
-            if(i == 100):
-                print(json.dumps(manager.getJSON(), indent=4))
+            if(i == 10000):
+                #print(json.dumps(manager.getJSON(), indent=4))
+                manager.setEvent("MLX90640.Capture")
+
                 i = 0
+            
             time.sleep(0.001)
             i += 1
 
         
         # On keyboard interrupt we want to cleanly exit
         except KeyboardInterrupt:
-           # manager.kill()
+            manager.kill()
             break
 
 if __name__ == "__main__":

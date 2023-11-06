@@ -31,16 +31,19 @@ class ThreadedDriver(Process):
     Overridden process runner so that we can initialize and use all our drivers the same because we know exactly how they will be have
     """
     def run(self) -> None:
-        self.driver.initialize()
-        while(True):
-            self.driver.measure()
-            sleep(0.001)
+        try:
+            self.driver.initialize()
+            while(self.isRunning):
+                self.driver.measure()
+                sleep(0.001)
+        except KeyboardInterrupt:
+            pass
         
     """
     Kill the proccess, doesn't do anything special right now but might eventually
     """
     def kill(self) -> None:
+        self.isRunning = False
         self.driver.kill()
-        return super().kill()
         
 

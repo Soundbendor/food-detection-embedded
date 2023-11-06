@@ -65,6 +65,14 @@ def bucketWeightChanged(event: Event):
     logging.info("WEIGHT CHANGED!!!!!")
     event.clear()
 
+def lidOpened(event: Event):
+    logging.info("Lid opened!")
+    event.clear()
+
+def lidClosed(event: Event):
+    logging.info("Lid closed!")
+    event.clear()
+
 def main():
     # Read calibration details as JSON into the file to allow device to be powered on and off without needing to recalibrate 
     calibrationDetails = loadCalibrationDetails("CalibrationDetails.json")
@@ -78,13 +86,17 @@ def main():
 
     # Register a callback for a weight change on the NAU7802
     #manager.registerEventCallback("NAU7802.WEIGHT_CHANGE", bucketWeightChanged)
+    manager.registerEventCallback("LidSwitch.LID_OPENED", lidOpened)
+    manager.registerEventCallback("LidSwitch.LID_CLOSED", lidClosed)
+
     i = 0
     #manager.setEvent("MLX90640.Capture")
+    
     while(True):
         try:
             manager.loop()
             if(i == 1000):
-                print(json.dumps(manager.getJSON(), indent=4))
+                #print(json.dumps(manager.getJSON(), indent=4))
                 #manager.setEvent("MLX90640.Capture")
 
                 i = 0

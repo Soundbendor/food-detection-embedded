@@ -4,6 +4,7 @@ Will Richards, Oregon State University, 2023
 Provides a basic wrapper for reading values and triggering events upon the changes of a hall-effect sensor
 """
 
+from operator import truediv
 from drivers.DriverBase import DriverBase
 from multiprocessing import Event, Value
 import logging
@@ -40,8 +41,10 @@ class LidSwitch(DriverBase):
     """
     def initialize(self):
         # Set the GPIO numbering to that of the board itself and then set the specified GPIO pin as an input
+        GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.selectedPin, GPIO.IN)
+        logging.info("Succsessfully configured hall effect sensor!")
     
     """
     Should be overloaded on all sub drivers so initialize can be called on all drivers at once
@@ -73,9 +76,6 @@ class LidSwitch(DriverBase):
         # Update the last state
         self.lastState = currentReading
         
-    def kill(self):
-        GPIO.cleanup()
-
     """
     Create a specified dictionary of values to create keys for the values we will update
     """

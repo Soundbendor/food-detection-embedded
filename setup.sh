@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Setup script for installing required drivers and setting user permissions to run the detection loop
+# Author: Will Richards, 2023
+
 echo "Creating virtual python environment..."
 
 # Create a venv using python 3.6
@@ -18,7 +21,7 @@ echo "Extracting precompiled OpenCV"
 
 # Unzip opencv and move into correct directory
 unzip ./dependencies/opencv-gstream-enabled.zip -d ./dependencies/opencv
-mv -r ./dependencies/opencv/cv2 ./venv/lib/python3.6/site-packages/cv2
+mv ./dependencies/opencv/cv2 ./venv/lib/python3.6/site-packages/cv2
 rm -rf ./dependencies/opencv
 
 echo "Updating GPIO user permisions..."
@@ -33,5 +36,6 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 
 # Manually set group of gpiochip1 becaues for some reason the rules file doesn't update it
 sudo /bin/sh -c 'chown root:gpio /dev/gpiochip1; chmod 660 /dev/gpiochip1'
+sudo /bin/sh -c 'chown root:gpio /dev/gpiochip0; chmod 660 /dev/gpiochip0'
 
 echo "Setup complete!"

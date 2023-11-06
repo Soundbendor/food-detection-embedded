@@ -13,10 +13,10 @@ from multiprocessing import Event, Value
 
 class BME688(DriverBase):
     """
-    Basic constructor for the BME68
+    Basic constructor for the BME688
     """
     def __init__(self, i2c_address = 0x77):
-        super().__init__("BME68")
+        super().__init__("BME688")
         self.i2c_address = i2c_address
         self.collectedData = [1.0] * 4
         self.i2c_bus = SMBus(1)

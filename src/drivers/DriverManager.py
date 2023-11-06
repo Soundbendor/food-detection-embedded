@@ -6,7 +6,7 @@ Will Richards, Oregon State University, 2023
 from .DriverBase import DriverBase
 from .ThreadedDriver import ThreadedDriver
 from multiprocessing import Value, Array
-import json
+import logging
 
 from multiprocessing.sharedctypes import SynchronizedArray
 from multiprocessing.synchronize import Event
@@ -63,10 +63,13 @@ class DriverManager():
     :param callback: Function call back to supply for a given events
     """
     def registerEventCallback(self, event: str, callback):
-        splitName = event.split(".")
+        try:
+            splitName = event.split(".")
 
-        # Set the call back for the specific event
-        self.data[splitName[0]]["events"][splitName[1]][1] = callback
+            # Set the call back for the specific event
+            self.data[splitName[0]]["events"][splitName[1]][1] = callback
+        except KeyError:
+            logging.error("Specified event/sensor doesn't exist!")
     
     """
     Set an event on a given sub-module

@@ -4,10 +4,10 @@ gpiod==1.4.0
 numpy==1.19.3
 httpx
 Jetson.GPIO
-python-dotenv
 requests
 pynau7802==0.2.1
 mlx90640-driver==1.1.2
 mlx90640-driver-devicetree==1.1.0
 scipy==1.5.4
 cmapy==0.6.6
+bme680==1.1.1

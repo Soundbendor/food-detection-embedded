@@ -11,7 +11,8 @@ import logging
 import os
 import sys
 import json
-import logging
+import cv2
+from logging import config
 from multiprocessing import Event
 
 #from drivers.ThreadedDriver import ThreadedDriver
@@ -19,7 +20,8 @@ from drivers.DriverManager import DriverManager
 
 # Sensor Drivers
 from drivers.sensors.NAU7802 import NAU7802
-from drivers.sensors.IMX219 import IMX219
+from drivers.sensors.TestDriver import TestDriver
+#from drivers.sensors.IMX219 import IMX219
 from drivers.sensors.BME688 import BME688
 from drivers.sensors.MLX90640 import MLX90640
 from drivers.sensors.LidSwitch import LidSwitch
@@ -76,10 +78,10 @@ def main():
     calibrationDetails = loadCalibrationDetails("CalibrationDetails.json")
     
     # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers 
-    manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]), BME688(), MLX90640(), LidSwitch())
+    #manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]), TestDriver("ExampleDriver"), BME688())
     #manager = DriverManager(IMX219())
     #manager = DriverManager(BME688())
-    #manager = DriverManager(MLX90640())
+    manager = DriverManager(MLX90640())
     #manager = DriverManager(LidSwitch())
 
     # Register a callback for a weight change on the NAU7802

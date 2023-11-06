@@ -61,7 +61,14 @@ class NAU7802(DriverBase):
     def measure(self):
         logging.debug("Measuring...")
         self.lastWeight = self.collectedData
-        self.collectedData = self.nau.getWeight(True, 18)
+
+        # Average 100 samples to get a fairly accurate reading
+        data = []
+        for i in range(4):
+            data.append(self.nau.getWeight(True, 25))
+        
+        self.collectedData = sum(data)/len(data)
+        data.clear()
 
         # This will determine wether or not the event has occured in this cycle or not
         self.determineEventState()

@@ -20,6 +20,7 @@ class BME688(DriverBase):
         super().__init__("BME688")
         self.sensor = bme680.BME680(i2c_address)
         
+        
         # List of events that the sensor can raise
         self.events = {}
 
@@ -77,5 +78,5 @@ class BME688(DriverBase):
     Shutdown the proccess
     """
     def kill(self):
-        self.i2c_bus.close()
+        self.sensor._i2c.close()
         

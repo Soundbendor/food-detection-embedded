@@ -85,6 +85,10 @@ class ImageApi:
     }
     if depth_image_path is not None:
       files["depth_map_file"] = (f"{name}_depth_map", open(depth_image_path, "rb").read(), "image/jpeg")
+
+    if ir_matrix is not None:
+      files["ir_matrix_file"] = (f"{name}_ir_matrix", open(ir_matrix, "rb").read(), "image/jpeg")
+
     if audio_transcript is not None:
       files["audio_file"] = (f"{name}_audio", open(audio_transcript, "rb").read(), "audio/mpeg")
 

@@ -76,8 +76,9 @@ def main():
     calibrationDetails = loadCalibrationDetails("CalibrationDetails.json")
     
     # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers 
-    manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]), BME688(), MLX90640(), LidSwitch())
-    #manager = DriverManager(IMX219())
+    #manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]), BME688(), MLX90640(), LidSwitch())
+    manager = DriverManager(IMX219())
+    #steroCam = IMX219()
     #manager = DriverManager(BME688())
     #manager = DriverManager(MLX90640())
     #manager = DriverManager(LidSwitch())
@@ -88,18 +89,23 @@ def main():
     #manager.registerEventCallback("LidSwitch.LID_CLOSED", lidClosed)
 
     i = 0
+    c = 0
     #manager.setEvent("MLX90640.Capture")
     
     while(True):
         try:
             manager.loop()
-            if(i == 1000):
+            if(c == 1000):
                 print(json.dumps(manager.getJSON(), indent=4))
-                #manager.setEvent("MLX90640.Capture")
+                c = 0
+
+            if (i == 5000):
+                manager.setEvent("IMX219.CAPTURE")
                 i = 0
             
             time.sleep(0.001)
             i += 1
+            c +=1
 
         
         # On keyboard interrupt we want to cleanly exit

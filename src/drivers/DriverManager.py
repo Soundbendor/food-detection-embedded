@@ -19,17 +19,17 @@ class DriverManager():
         self.data = {}
     
         # Loop over all sensors we are using and "threadify" them
-        for sensor in self.sensors:
-            
+        for sensor in self.sensors:            
             # Format a new sensor objecti in the dectionary
             self._formatNewSensor(sensor)
-
+            
             # Spawn the sensor into a proccess passing the data object along to be manipulated
             proccess = ThreadedDriver(sensor, self.data[sensor.moduleName]["data"])
 
             # Start the proccess
             proccess.start()
             self.proccessList.append(proccess)
+           
         
         self.createJSONFormattedDict()
     """

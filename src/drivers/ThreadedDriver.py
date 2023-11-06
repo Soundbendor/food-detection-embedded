@@ -37,7 +37,7 @@ class ThreadedDriver(Process):
                 self.driver.measure()
                 sleep(0.001)
         except KeyboardInterrupt:
-            pass
+            self.kill()
         
     """
     Kill the proccess, doesn't do anything special right now but might eventually

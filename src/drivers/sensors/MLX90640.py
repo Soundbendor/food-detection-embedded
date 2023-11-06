@@ -152,7 +152,7 @@ class MLX90640(DriverBase):
         super().__init__("MLX90640")
         self.mlx = ThermalCam()
         self.events = {
-            "Capture": Event()
+            "CAPTURE": Event()
         }
 
     def initialize(self):
@@ -162,9 +162,10 @@ class MLX90640(DriverBase):
             self.mlx._captureRaw()
     
     def measure(self) -> None:
-        if(self.getEvent("Capture").is_set()):
+        if(self.getEvent("CAPTURE").is_set()):
             self.mlx.capture()
-            self.getEvent("Capture").clear()
+            self.getEvent("CAPTURE").clear()
+            logging.info("Succsessfully captured image!")
 
     def kill(self):
         self.mlx.close()

@@ -19,7 +19,7 @@ class NAU7802(DriverBase):
     Basic constructor for the NAU7802
     """
     def __init__(self, calibration_factor = 0):
-        super().__init__("NAU7802", 1)
+        super().__init__("NAU7802")
         self.nau = PyNAU7802.NAU7802()
         self.collectedData = 0
         if(calibration_factor == 0):

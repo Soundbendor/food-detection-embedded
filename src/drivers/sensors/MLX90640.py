@@ -118,7 +118,7 @@ class MLX90640(DriverBase):
     Construct a new instance of the camera
     """
     def __init__(self):
-        super().__init__("MLX90640", 1)
+        super().__init__("MLX90640")
         self.mlx = ThermalCam()
         self.events = {
             "Capture": Event()

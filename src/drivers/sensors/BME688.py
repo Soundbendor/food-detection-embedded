@@ -16,7 +16,7 @@ class BME688(DriverBase):
     Basic constructor for the BME68
     """
     def __init__(self, i2c_address = 0x77):
-        super().__init__("BME68", 4)
+        super().__init__("BME68")
         self.i2c_address = i2c_address
         self.collectedData = [1.0] * 4
         self.i2c_bus = SMBus(1)
@@ -42,31 +42,40 @@ class BME688(DriverBase):
     Calculate heat resistance coefficient based on section 3.3.5 of the BME680 datasheet
     https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme688-ds000.pdf
     """
-    def _calcResHeat(self) -> int:
+    def _calcResHeat(self, target_temp) -> int:
+        # Read calibration paramter g1
         par_g1 = self.i2c_bus.read_byte_data(self.i2c_address, 0xED)
-        # Read the word (2-bytes) from the address
-        par_g2 = self.i2c_bus.read_word_data(self.i2c_address, 0xEB)
+        par_g1 = float(par_g1)
+
+        # Read 16-bit par_g2 
+        par_g2 = self.i2c_bus.read_byte_data(self.i2c_address, 0xEC)
+        par_g2 = par_g2 << 8
+        par_g2 |= self.i2c_bus.read_byte_data(self.i2c_address, 0xEB)
+        par_g2 = float(par_g2)
+
         par_g3 = self.i2c_bus.read_byte_data(self.i2c_address, 0xEE)
+        par_g3 = float(par_g3)
+
         # Pull out the 4th and 5th bit of register 0x02 and clearing the rest of the data to just have the number
         res_heat_range = self.i2c_bus.read_byte_data(self.i2c_address, 0x02)
         res_heat_range = res_heat_range & 0b00110000
-        res_heat_rnage = res_heat_range >> 4
+        res_heat_range = res_heat_range >> 4
+        res_heat_range = float(res_heat_range)
         res_heat_val = self.i2c_bus.read_byte_data(self.i2c_address, 0x00)
+        res_heat_val = float(res_heat_val)
 
         # Average indoor temp
-        amb_temp = int(21)
-        target_temp = int(300)
+        amb_temp = float(21)
+        target_temp = float(target_temp)
 
-        # Integers calculations per section 3.3.5 of the data sheet
-        var1 =  int((amb_temp * par_g3) / 10) << 8
-        var2 = int((par_g1 + 784) * (((((par_g2 + 154009) * target_temp * 5) / 100 ) + 3276800) / 10))
-        var3 = var1 + (var2 >> 1)
-        var4 = int((var3 / (res_heat_range + 4)))
-        var5 = (131 * res_heat_val) + 65536
-        res_heat_x100 = int((((var4 / var5) - 250) * 34))
-        res_heat_x = int(((res_heat_x100 + 50) / 100))
+        var_1 = (par_g1 / 16.0) + 49.0
+        var_2 = ((par_g2 / 32768.0) * 0.0005) + 0.00235
+        var_3 = par_g3 / 1024.0
+        var_4 = var_1 * (1.0 + (var_2 * target_temp))
+        var_5 = var_4 + (var_3 * (amb_temp))
+        res_heat = int((3.4 * ((var_5 * (4.0 / (4.0 + res_heat_range)) * (1.0/(1.0 + (res_heat_val * 0.002)))) -25)))
 
-        return res_heat_x
+        return res_heat
 
     """
     Configure the startup registers of the BME280 to the spec of section 3.2.1 of the data sheet
@@ -85,18 +94,19 @@ class BME688(DriverBase):
         self.i2c_bus.write_byte_data(self.i2c_address, 0x74, data)
 
         # Set gas_wait_0 to 0x59 for a 100ms warmup
-        data = 0b01011001
+        data = 0b10011001
         self.i2c_bus.write_byte_data(self.i2c_address, 0x64, data)
 
         # Calculate the res_heat_0 value and store it in the matching register
-        data = self._calcResHeat()
+        data = self._calcResHeat(300)
         self.i2c_bus.write_byte_data(self.i2c_address, 0x5A, data)
 
         # Select the heater settings and enable gas collection
         reg_value = self.i2c_bus.read_byte_data(self.i2c_address, 0x71)
-        # Change Bit 4 to a 1 and bits 3-0 into 0's
+
+        # Change Bit  to a 1 and bits 3-0 into 0's
         data = reg_value & 0b11110000
-        data = reg_value | 0b00010000
+        data = reg_value | 0b00100000
 
         # Enable gas collection
         self.i2c_bus.write_byte_data(self.i2c_address, 0x71, data)

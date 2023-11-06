@@ -20,7 +20,7 @@ class IMX219(DriverBase):
     Construct a new instance of the camera
     """
     def __init__(self):
-        super().__init__("IMX219", 1)
+        super().__init__("IMX219")
         
         """
         Create a list of both cameras we are using

@@ -16,7 +16,7 @@ class TestDriver(DriverBase):
     :param modName: Name of the module we are creating
     """
     def __init__(self, name):
-        super().__init__(name, 2)
+        super().__init__(name)
         self.i = 0
         self.c = 0
         

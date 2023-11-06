@@ -2,6 +2,7 @@
     "python.analysis.autoImportCompletions": true,
     "files.associations": {
         "mlx90640_i2c_driver.h": "c",
-        "smbus.h": "c"
+        "smbus.h": "c",
+        "internal_functions.h": "c"
     }
 }

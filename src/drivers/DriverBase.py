@@ -12,9 +12,8 @@ class DriverBase:
 
     :param modName: Name of the module we are creating
     """
-    def __init__(self, modName, numOutputs):
+    def __init__(self, modName):
         self.moduleName = modName
-        self.numOutputs = numOutputs
         self.events = {}
     
     """
@@ -58,10 +57,4 @@ class DriverBase:
     """
     def createDataDict(self):
         pass
-    """
-    Get the number of measurements that this sensor will output
-    """
-    def getNumberOfOutputs(self) -> int:
-        return self.numOutputs
-
         

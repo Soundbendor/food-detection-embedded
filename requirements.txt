@@ -11,3 +11,5 @@ Jetson.GPIO
 nanocamera
 python-dotenv
 requests
+
+flask

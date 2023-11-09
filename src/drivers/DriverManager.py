@@ -7,6 +7,7 @@ from .DriverBase import DriverBase
 from .ThreadedDriver import ThreadedDriver
 from multiprocessing import Value, Array
 import logging
+import json
 
 from multiprocessing.sharedctypes import SynchronizedArray
 from multiprocessing.synchronize import Event
@@ -17,6 +18,7 @@ class DriverManager():
         self.sensors = list(sensors)
         self.proccessList = []
         self.data = {}
+        self.timeTriggers = {}
     
         # Loop over all sensors we are using and "threadify" them
         for sensor in self.sensors:            
@@ -28,33 +30,16 @@ class DriverManager():
 
             # Start the proccess
             proccess.start()
+            logging.info(f"{sensor.moduleName} proccess started with pid: {proccess.pid}")
             self.proccessList.append(proccess)
            
         
         self.createJSONFormattedDict()
-    """
-    Basic pretty print for dictionary with Events and Synchronized data types
     
-    :param d: The Dictionary we want to print
-    :param indent: The number of indents we want before all of it
-
-    """
-    def prettyPrint(self, d, indent=0):
-        for key, value in d.items():
-            print('\t' * indent + str(key) + "{")
-            # Check if the value is another dict and go a layer deeper
-            if isinstance(value, dict):
-                self.prettyPrint(value, indent+1)
-            
-            # If not we need to parse the values into a readable format based on their type
-            else:
-                if(type(value) == list):
-                    print('\t' * (indent+1) + str(value[0].is_set()) + ",\n" +  '\t' * (indent+1) + str(value[1]))
-                elif(type(value) == SynchronizedArray):
-                    print('\t' * (indent+1) + str(list(value)))
-                else:
-                    print('\t' * (indent+1) + str(value))
-            print('\t' * indent + "}")
+    """Log the most recent packet"""
+    def displayData(self):
+        logging.info(json.dumps(self.getJSON(), indent=4))
+       
 
     """
     Register a function to run on a given call back
@@ -75,8 +60,11 @@ class DriverManager():
     Set an event on a given sub-module
     """
     def setEvent(self, event):
-        splitName = event.split(".")
-        self.data[splitName[0]]["events"][splitName[1]][0].set()
+        try:
+            splitName = event.split(".")
+            self.data[splitName[0]]["events"][splitName[1]][0].set()
+        except KeyError:
+            logging.error("Specified event/sensor doesn't exist!")
     """
     Check what callbacks need to be called per loop, and execute them as needed
     """
@@ -95,6 +83,27 @@ class DriverManager():
     """
     def getData(self) -> dict:
         return self.data
+    
+    """
+    Have the manager trigger events every set amount of time in the loop
+
+    :param seconds: At what second intervals you want certain functions to be called at
+    :param callback: The function to call when the interval is met
+    :param timeStep: At what interval these functions are called
+    """
+    def triggerEvery(self, seconds: float, callback, timeStep = 0.001):
+        # If the event hasn't already been registerd register it
+        if(callback.__name__ not in self.timeTriggers):
+            self.timeTriggers[callback.__name__] = {"CurrentValue": 0, "TargetValue": seconds/timeStep}
+
+        # If we have already registered the event then update the current value and then check if we are at the target value then call the function if so
+        else:
+            self.timeTriggers[callback.__name__]["CurrentValue"] += 1
+            if(self.timeTriggers[callback.__name__]["CurrentValue"] == self.timeTriggers[callback.__name__]["TargetValue"]):
+                self.timeTriggers[callback.__name__]["CurrentValue"] = 0
+                callback()
+
+
     
     """
     Create the initial JSON dictionary so that we can just update values later

@@ -35,7 +35,8 @@ class ThreadedDriver(Process):
             self.driver.initialize()
             while(self.isRunning):
                 self.driver.measure()
-                sleep(0.001)
+                sleep(self.driver.loopTime)
+                
         except KeyboardInterrupt:
             self.kill()
         

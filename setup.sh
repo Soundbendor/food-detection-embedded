@@ -34,8 +34,5 @@ sudo usermod -a -G gpio $(whoami)
 sudo cp venv/lib/python3.6/site-packages/Jetson/GPIO/99-gpio.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && sudo udevadm trigger
 
-# Manually set group of gpiochip1 becaues for some reason the rules file doesn't update it
-sudo /bin/sh -c 'chown root:gpio /dev/gpiochip1; chmod 660 /dev/gpiochip1'
-sudo /bin/sh -c 'chown root:gpio /dev/gpiochip0; chmod 660 /dev/gpiochip0'
 
 echo "Setup complete!"

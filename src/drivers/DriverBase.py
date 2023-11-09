@@ -15,6 +15,9 @@ class DriverBase:
     def __init__(self, modName):
         self.moduleName = modName
         self.events = {}
+
+        # The rate at which the thread this driver is running in will loop
+        self.loopTime = 0.001
     
     """
     Should be overloaded on all sub drivers so initialize can be called on all drivers at once
@@ -57,4 +60,3 @@ class DriverBase:
     """
     def createDataDict(self):
         pass
-        

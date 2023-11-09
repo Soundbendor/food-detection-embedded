@@ -7,7 +7,8 @@ Abstraction layer for the BME688 gas sensor
 import bme680
 
 import logging
-from time import sleep
+from time import sleep, time
+
 
 from drivers.DriverBase import DriverBase
 from multiprocessing import Event, Value
@@ -50,6 +51,7 @@ class BME688(DriverBase):
     """
     def measure(self):
         # Confirm that there is no new data to read
+        
         if(self.sensor.get_sensor_data()):
             self.data["temperature(c)"].value = self.sensor.data.temperature
             self.data["pressure(kpa)"].value = self.sensor.data.pressure
@@ -61,6 +63,8 @@ class BME688(DriverBase):
             else:
                 self.data["gas_resistance(ohms)"].value = -1
                 logging.warning("Gas data was not ready to collect at this time -1 will be returned in place of a value")
+        
+        
     
     """
     Create a dictionary of the data that this sensor will output

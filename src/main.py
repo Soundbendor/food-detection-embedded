@@ -70,14 +70,15 @@ def lidOpened(event: Event):
 def lidClosed(event: Event):
     logging.info("Lid closed!")
     event.clear()
+    
 
 def main():
     # Read calibration details as JSON into the file to allow device to be powered on and off without needing to recalibrate 
     calibrationDetails = loadCalibrationDetails("CalibrationDetails.json")
     
     # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers 
-    #manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]), BME688(), MLX90640(), LidSwitch())
-    manager = DriverManager(IMX219())
+    manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]), BME688(), MLX90640(), LidSwitch(), IMX219())
+    #manager = DriverManager(IMX219())
     #steroCam = IMX219()
     #manager = DriverManager(BME688())
     #manager = DriverManager(MLX90640())
@@ -87,25 +88,18 @@ def main():
     #manager.registerEventCallback("NAU7802.WEIGHT_CHANGE", bucketWeightChanged)
     #manager.registerEventCallback("LidSwitch.LID_OPENED", lidOpened)
     #manager.registerEventCallback("LidSwitch.LID_CLOSED", lidClosed)
-
-    i = 0
-    c = 0
     #manager.setEvent("MLX90640.Capture")
     
     while(True):
         try:
             manager.loop()
-            if(c == 1000):
-                print(json.dumps(manager.getJSON(), indent=4))
-                c = 0
-
-            if (i == 5000):
-                manager.setEvent("IMX219.CAPTURE")
-                i = 0
+            #manager.triggerEvery(1, manager.displayData)
+            #manager.triggerEvery(10, lambda: manager.setEvent("IMX219.CAPTURE"))
+            input()
+            manager.setEvent("IMX219.CAPTURE")
             
             time.sleep(0.001)
-            i += 1
-            c +=1
+           
 
         
         # On keyboard interrupt we want to cleanly exit

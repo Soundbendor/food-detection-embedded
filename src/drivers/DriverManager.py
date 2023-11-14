@@ -8,6 +8,7 @@ from .ThreadedDriver import ThreadedDriver
 from multiprocessing import Value, Array
 import logging
 import json
+from time import time
 
 from multiprocessing.sharedctypes import SynchronizedArray
 from multiprocessing.synchronize import Event
@@ -91,16 +92,18 @@ class DriverManager():
     :param callback: The function to call when the interval is met
     :param timeStep: At what interval these functions are called
     """
-    def triggerEvery(self, seconds: float, callback, timeStep = 0.001):
+    def triggerEvery(self, seconds: float, name, callback):
+        currentTime = time()
         # If the event hasn't already been registerd register it
-        if(callback.__name__ not in self.timeTriggers):
-            self.timeTriggers[callback.__name__] = {"CurrentValue": 0, "TargetValue": seconds/timeStep}
+        if(name not in self.timeTriggers):
+            self.timeTriggers[name] = {"CurrentValue": currentTime, "TargetValue": currentTime+seconds}
 
         # If we have already registered the event then update the current value and then check if we are at the target value then call the function if so
         else:
-            self.timeTriggers[callback.__name__]["CurrentValue"] += 1
-            if(self.timeTriggers[callback.__name__]["CurrentValue"] == self.timeTriggers[callback.__name__]["TargetValue"]):
-                self.timeTriggers[callback.__name__]["CurrentValue"] = 0
+            self.timeTriggers[name]["CurrentValue"] = currentTime
+            if(self.timeTriggers[name]["CurrentValue"] >= self.timeTriggers[name]["TargetValue"]):
+                self.timeTriggers[name]["CurrentValue"] = currentTime
+                self.timeTriggers[name]["TargetValue"] = currentTime + seconds
                 callback()
 
 

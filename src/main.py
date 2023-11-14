@@ -89,14 +89,17 @@ def main():
     #manager.registerEventCallback("LidSwitch.LID_OPENED", lidOpened)
     #manager.registerEventCallback("LidSwitch.LID_CLOSED", lidClosed)
     #manager.setEvent("MLX90640.Capture")
+
+    bmeCap = lambda: manager.setEvent("BME688.CAPTURE")
+    imxCap = lambda: manager.setEvent("IMX219.CAPTURE")
     
     while(True):
         try:
             manager.loop()
-            #manager.triggerEvery(1, manager.displayData)
-            #manager.triggerEvery(10, lambda: manager.setEvent("IMX219.CAPTURE"))
-            input()
-            manager.setEvent("IMX219.CAPTURE")
+            #manager.triggerEvery(1, "displayData", manager.displayData)
+            manager.triggerEvery(1, "bmeCapture", lambda: manager.setEvent("BME688.CAPTURE"))
+            manager.triggerEvery(10, "imxCapture", lambda: manager.setEvent("IMX219.CAPTURE"))
+            manager.triggerEvery(5, "mlxCapture", lambda: manager.setEvent("MLX90640.CAPTURE"))
             
             time.sleep(0.001)
            

@@ -23,7 +23,9 @@ class BME688(DriverBase):
         
         
         # List of events that the sensor can raise
-        self.events = {}
+        self.events = {
+            "CAPTURE": Event()
+        }
 
 
     """
@@ -51,18 +53,23 @@ class BME688(DriverBase):
     """
     def measure(self):
         # Confirm that there is no new data to read
-        
-        if(self.sensor.get_sensor_data()):
-            self.data["temperature(c)"].value = self.sensor.data.temperature
-            self.data["pressure(kpa)"].value = self.sensor.data.pressure
-            self.data["humidity(%rh)"].value = self.sensor.data.humidity
+        if(self.getEvent("CAPTURE").is_set()):
+            try:
+                if(self.sensor.get_sensor_data()):
+                    self.data["temperature(c)"].value = self.sensor.data.temperature
+                    # Convert hectopascals to kilopascals
+                    self.data["pressure(kpa)"].value = self.sensor.data.pressure * 0.1
+                    self.data["humidity(%rh)"].value = self.sensor.data.humidity
 
-            # Only measure the gas if the measurement is ready
-            if(self.sensor.data.heat_stable):
-                 self.data["gas_resistance(ohms)"].value = self.sensor.data.gas_resistance
-            else:
-                self.data["gas_resistance(ohms)"].value = -1
-                logging.warning("Gas data was not ready to collect at this time -1 will be returned in place of a value")
+                    # Only measure the gas if the measurement is ready
+                    if(self.sensor.data.heat_stable):
+                        self.data["gas_resistance(ohms)"].value = self.sensor.data.gas_resistance
+                    else:
+                        self.data["gas_resistance(ohms)"].value = -1
+                        logging.warning("Gas data was not ready to collect at this time -1 will be returned in place of a value")
+            except Exception as e:
+                logging.error(f"The following error occured while attempting to read data: {e}")
+            self.getEvent("CAPTURE").clear()
         
         
     

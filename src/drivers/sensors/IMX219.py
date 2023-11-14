@@ -23,7 +23,7 @@ class IMX219(DriverBase):
         super().__init__("IMX219")
 
         # Set loop time to be equivelent to 30 fps
-        self.loopTime = 1/60
+        self.loopTime = 1/30
         self.cameras: list[cv2.VideoCapture] = []
 
         # List of events to hold, the SHOULD_CAPTURE event 
@@ -70,7 +70,7 @@ class IMX219(DriverBase):
     Measure the camera, effectively update the current frame to the latest and then check if a capture event was set to see if we should save the current frame
     """
     def measure(self) -> None:
-
+        
         # Keep the camera updated
         self._poll()
 
@@ -114,7 +114,7 @@ class IMX219(DriverBase):
     Create a new camera with a specified device ID
     """
     def __createCamera(self, device_id):
-        width = 1280
-        height = 720
-        fps = 60
-        return cv2.VideoCapture(f"nvarguscamerasrc sensor-id={device_id} ! video/x-raw(memory:NVMM), width=(int){width}, height=(int){height}, format=(string)NV12, framerate=(fraction){fps}/1 ! nvvidconv flip-method=0 ! video/x-raw, width=(int){width}, height=(int){height}, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! appsink")
+        width = 1920
+        height = 1080
+        fps = 29.999999
+        return cv2.VideoCapture(f"nvarguscamerasrc sensor-id={device_id} ! video/x-raw(memory:NVMM), width=(int){width}, height=(int){height}, format=(string)NV12, framerate=(fraction){fps}/1 ! nvvidconv flip-method=0 ! video/x-raw, width=(int){width}, height=(int){height}, format=(string)RGBA ! appsink")

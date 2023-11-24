@@ -115,11 +115,26 @@ StandardError=append:${dir_absolute}/logs/food-detection.log
 [Install]
 WantedBy=multi-user.target
 " | sudo tee /etc/systemd/system/food-detection.service > /dev/null
+
+    sudo touch /etc/systemd/system/wifi-server-config.service
+    echo "[Unit]
+Description='Wifi Server Config Service'
+
+[Service]
+ExecStart=${dir_absolute}/food_detector.sh run_wifi_server
+Type=simple
+User=root
+
+[Install]
+WantedBy=multi-user.target
+" | sudo tee /etc/systemd/system/wifi-server-config.service > /dev/null
+
     sudo systemctl daemon-reload
     sudo systemctl enable food-detection.service
+    sudo systemctl enable wifi-server-config.service
 
     echo ''
-    echo 'Done. Now the service will run on boot.'
+    echo 'Done. Now the service(s) will run on boot.'
 
 elif [ "${command_arg}" == "pull" ]; then
     pull_changes
@@ -151,6 +166,9 @@ elif [ "${command_arg}" == "clean" ]; then
     else
         echo 'No files removed.'
     fi
+elif [ "${command_arg}" == "run_wifi_server" ]; then
+    echo 'Running wifi server...'
+    sudo sudo "$dir_absolute/venv/bin/python" "$dir_absolute/src/system/server-for-wifi/wifi-config.py"
 else
     echo "$command_arg not recognized as a command."
     echo 'Please use: `detect`, `focus`, `pull`, `pull+detect`, `clean`, `install_prod`, or `install`.'

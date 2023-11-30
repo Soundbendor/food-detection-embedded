@@ -101,7 +101,7 @@ if [ "${command_arg}" == "install" ]; then
 
 elif [ "${command_arg}" == "install_prod" ]; then
     install
-    sudo "$dir_absolute/src/system/server-for-wifi/setup.sh"
+    sudo "$dir_absolute/src/system/server-for-bluetooth/setup.sh"
 
     sudo touch /etc/systemd/system/food-detection.service
     echo "[Unit]

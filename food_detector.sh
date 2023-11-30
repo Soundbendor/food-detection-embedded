@@ -101,6 +101,8 @@ if [ "${command_arg}" == "install" ]; then
 
 elif [ "${command_arg}" == "install_prod" ]; then
     install
+    sudo "$dir_absolute/src/system/server-for-wifi/setup.sh"
+
     sudo touch /etc/systemd/system/food-detection.service
     echo "[Unit]
 Description='Food Detection Service'
@@ -121,7 +123,7 @@ WantedBy=multi-user.target
 Description='Wifi Server Config Service'
 
 [Service]
-ExecStart=${dir_absolute}/food_detector.sh run_wifi_server
+ExecStart=${dir_absolute}/food_detector.sh run_bluetooth_server
 Type=simple
 User=root
 
@@ -166,9 +168,12 @@ elif [ "${command_arg}" == "clean" ]; then
     else
         echo 'No files removed.'
     fi
+elif [ "${command_arg}" == "run_bluetooth_server" ]; then
+    echo 'Running bluetooth server...'
+    sudo "$dir_abolute/src/system/server-for-bluetooth/run.sh"
 elif [ "${command_arg}" == "run_wifi_server" ]; then
     echo 'Running wifi server...'
-    sudo sudo "$dir_absolute/venv/bin/python" "$dir_absolute/src/system/server-for-wifi/wifi-config.py"
+    sudo "$dir_absolute/venv/bin/python" "$dir_absolute/src/system/server-for-wifi/wifi-config.py"
 else
     echo "$command_arg not recognized as a command."
     echo 'Please use: `detect`, `focus`, `pull`, `pull+detect`, `clean`, `install_prod`, or `install`.'

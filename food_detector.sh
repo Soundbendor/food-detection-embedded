@@ -170,7 +170,7 @@ elif [ "${command_arg}" == "clean" ]; then
     fi
 elif [ "${command_arg}" == "run_bluetooth_server" ]; then
     echo 'Running bluetooth server...'
-    sudo "$dir_abolute/src/system/server-for-bluetooth/run.sh"
+    sudo "$dir_absolute/src/system/server-for-bluetooth/run.sh"
 elif [ "${command_arg}" == "run_wifi_server" ]; then
     echo 'Running wifi server...'
     sudo "$dir_absolute/venv/bin/python" "$dir_absolute/src/system/server-for-wifi/wifi-config.py"

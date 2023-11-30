@@ -1,8 +1,8 @@
 import bluetooth
 import subprocess
 import json
-import time
 import select
+import requests
 
 server = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
 
@@ -15,22 +15,23 @@ server.listen(5)
 uuid = "92f3fd29-7d60-167d-973b-fba35e49d4ea"
 bluetooth.advertise_service(
   server,
-  "B.AI.CB#12345678901",
+  "B.AI.CB#12345678901", # TODO: Dynamically generate this id
   service_id=uuid,
   service_classes=[uuid, bluetooth.SERIAL_PORT_CLASS],
   profiles=[bluetooth.SERIAL_PORT_PROFILE]
 )
 
-def connect_to_wifi(ssid, password):
-    cmd = ["nmcli", "device", "wifi", "connect", ssid, "password", password]
+def run_cmd(cmd):
     process = subprocess.run(
         cmd,
-        shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE
     )
+    return process.returncode, process
 
-    if process.returncode == 0:
+def connect_to_wifi(ssid, password):
+    code, _ = run_cmd(["nmcli", "device", "wifi", "connect", ssid, "password", password])
+    if code == 0:
         response = {
             "message": "Wi-Fi configuration successful",
             "success": True
@@ -43,17 +44,18 @@ def connect_to_wifi(ssid, password):
     return response
 
 def check_wifi_status():
-    cmd = ["nmcli", "device", "wifi"]
-    process = subprocess.run(
-        cmd,
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-    )
-    if process.returncode == 0:
+    code, process = run_cmd(["iwgetid", "-r"])
+    if code == 0:
+        # Try making a request
+        try:
+            requests.get("https://soundbendor.org", timeout=5, verify=False)
+            internet_connection = True
+        except Exception:
+            internet_connection = False
         response = {
-            "message": "Connected to Wi-Fi",
-            "success": True
+            "message": f"Connected to {process.stdout.decode('utf-8').strip()}",
+            "success": True,
+            "internet_access": internet_connection
         }
     else:
         response = {
@@ -61,6 +63,15 @@ def check_wifi_status():
             "success": False
         }
     return response
+
+def disconnect_from_wifi():
+    _, process = run_cmd(["iwgetid", "-r"])
+    wifi = process.stdout.decode('utf-8').strip()
+    code, _ = run_cmd(["nmcli", "con", "down", "id", wifi])
+    return {
+        "message": "Disconnected",
+        "success": code == 0
+    }
 
 def handle_data(data, sock):
     if isinstance(data, dict):
@@ -73,10 +84,22 @@ def handle_data(data, sock):
         elif msg_type == "wifi_status":
             response = check_wifi_status()
             sock.send(json.dumps(response).encode("utf-8"))
+        elif msg_type == "wifi_disconnect":
+            response = disconnect_from_wifi()
+            sock.send(json.dumps(response).encode("utf-8"))
+        else:
+            sock.send(
+                json.dumps({
+                    "message": "Unknown command",
+                    "success": False
+                })
+            )
 
 socks = set()
 socks.add(server)
 bufffers = {}
+
+MAX_BUF_SIZE = 1048576
 
 while True:
     ready_to_read, _, _ = select.select(socks, [], [])
@@ -103,8 +126,7 @@ while True:
                         handle_data(data, sock)
                         bufffers[sock] = b""
                     except:
-                        pass
+                        if len(bufffers[sock]) >= MAX_BUF_SIZE:
+                            bufffers[sock] = b""
         except:
             pass
-
-server.close()

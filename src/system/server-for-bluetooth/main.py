@@ -80,18 +80,19 @@ class WifiSetupService(Service):
         self.wifi_connection_measurement.changed(data)
         return data
 
-    @characteristic("2AF9", CharFlags.BROADCAST | CharFlags.NOTIFY | CharFlags.READ)
+    @characteristic("2AF9", CharFlags.NOTIFY | CharFlags.ENCRYPT_READ)
     def wifi_connection_measurement(self, _):
-        print("Wifi Connection Read")
+        print("WiFi Connection Read")
         return self.update_wifi_status()
 
-    @characteristic("2AB5", CharFlags.BROADCAST | CharFlags.ENCRYPT_WRITE | CharFlags.NOTIFY | CharFlags.READ)
+    @characteristic("2AB5", CharFlags.ENCRYPT_WRITE | CharFlags.NOTIFY | CharFlags.ENCRYPT_READ)
     def set_wifi_args(self, _):
-        print("READ!")
+        print("WiFi Set Return Read")
         return json.dumps(self.update_wifi_last_result).encode("utf-8")
 
     @set_wifi_args.setter
     def set_wifi_args(self, value, _):
+        print("WiFi Set Write")
         ssid = None
         password = None
         try:

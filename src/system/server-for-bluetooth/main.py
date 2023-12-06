@@ -118,10 +118,13 @@ async def main():
         "B.AI.CB#12345678901",
         [uuid],
         0x0,
-        10
+        30
     )
-    await advert.register(bus, adapter)
-    print("Advertised!")
+    try:
+        await advert.register(bus, adapter)
+        print("Advertised!")
+    except:
+        pass
 
     def cleanup(signum, frame):
         print("exiting")
@@ -141,7 +144,7 @@ async def main():
 
     try:
         while True:
-            await asyncio.sleep(10)
+            await asyncio.sleep(30)
             try:
                 print("Un-registering")
                 try:

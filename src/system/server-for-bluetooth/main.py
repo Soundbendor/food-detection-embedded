@@ -113,6 +113,7 @@ async def main():
     print("Registered agent")
 
     adapter = await Adapter.get_first(bus)
+    await adapter.set_alias("Jetson Compost Bin")
     advert = Advertisement(
         "B.AI.CB#12345678901",
         [uuid],
@@ -153,8 +154,8 @@ async def main():
                 await advert.register(bus, adapter)
                 print("Advertisement registered")
             except:
-                print("Re-advertising failed")
-                traceback.print_exc()
+                print("Re-advertising failed (likely previously connected to device)")
+                print("Restart bin to restart advertising")
                 try:
                     await unregister(advert, bus, adapter)
                 except:

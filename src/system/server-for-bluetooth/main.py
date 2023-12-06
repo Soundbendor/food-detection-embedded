@@ -1,25 +1,19 @@
-import bluetooth
+from bluez_peripheral.gatt.service import Service
+from bluez_peripheral.gatt.characteristic import characteristic, CharacteristicFlags as CharFlags
+from bluez_peripheral.util import *
+from bluez_peripheral.advert import Advertisement
+from bluez_peripheral.agent import NoIoAgent
+
+import asyncio
 import subprocess
 import json
-import select
 import requests
-
-server = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-
-server.bind(("", bluetooth.PORT_ANY))
-
-print("Listening for connections on Bluetooth!")
-
-server.listen(5)
+import signal
+import sys
+import traceback
 
 uuid = "92f3fd29-7d60-167d-973b-fba35e49d4ea"
-bluetooth.advertise_service(
-  server,
-  "B.AI.CB#12345678901", # TODO: Dynamically generate this id
-  service_id=uuid,
-  service_classes=[uuid, bluetooth.SERIAL_PORT_CLASS],
-  profiles=[bluetooth.SERIAL_PORT_PROFILE]
-)
+loop = asyncio.get_event_loop()
 
 def run_cmd(cmd):
     process = subprocess.run(
@@ -73,60 +67,102 @@ def disconnect_from_wifi():
         "success": code == 0
     }
 
-def handle_data(data, sock):
-    if isinstance(data, dict):
-        msg_type = data.get("type")
-        if msg_type == "wifi_connect":
+class WifiSetupService(Service):
+    def __init__(self):
+        # Base 16 service UUID, This should be a primary service.
+        super().__init__("1849", True)
+        self.update_wifi_last_result = {"success": False, "message": ""}
+
+    def update_wifi_status(self):
+        results = check_wifi_status()
+        print("Updated WiFi Status")
+        data = json.dumps(results).encode("utf-8")
+        self.wifi_connection_measurement.changed(data)
+        return data
+
+    @characteristic("2AF9", CharFlags.BROADCAST | CharFlags.NOTIFY | CharFlags.READ)
+    def wifi_connection_measurement(self, _):
+        print("Wifi Connection Read")
+        return self.update_wifi_status()
+
+    @characteristic("2AB5", CharFlags.BROADCAST | CharFlags.ENCRYPT_WRITE | CharFlags.NOTIFY | CharFlags.READ)
+    def set_wifi_args(self, _):
+        print("READ!")
+        return json.dumps(self.update_wifi_last_result).encode("utf-8")
+
+    @set_wifi_args.setter
+    def set_wifi_args(self, value, _):
+        ssid = None
+        password = None
+        try:
+            data = json.loads(value.decode("utf-8"))
             ssid = data.get("ssid")
             password = data.get("password")
-            response = connect_to_wifi(ssid, password)
-            sock.send(json.dumps(response).encode("utf-8"))
-        elif msg_type == "wifi_status":
-            response = check_wifi_status()
-            sock.send(json.dumps(response).encode("utf-8"))
-        elif msg_type == "wifi_disconnect":
-            response = disconnect_from_wifi()
-            sock.send(json.dumps(response).encode("utf-8"))
-        else:
-            sock.send(
-                json.dumps({
-                    "message": "Unknown command",
-                    "success": False
-                })
-            )
-
-socks = set()
-socks.add(server)
-bufffers = {}
-
-MAX_BUF_SIZE = 1048576
-
-while True:
-    ready_to_read, _, _ = select.select(socks, [], [])
-    for sock in ready_to_read:
-        try:
-            if sock is server:
-                client, addr = server.accept()
-                socks.add(client)
-                print(f"Received connection from {addr}")
-            else:
-                data = sock.recv(1024)
-                if not data:
-                    socks.remove(sock)
-                    sock.close()
-                    if sock in bufffers:
-                        del bufffers[sock]
-                else:
-                    if sock not in bufffers:
-                        bufffers[sock] = b""
-                    bufffers[sock] += data
-                    # Try to parse the data
-                    try:
-                        data = json.loads(bufffers[sock])
-                        handle_data(data, sock)
-                        bufffers[sock] = b""
-                    except:
-                        if len(bufffers[sock]) >= MAX_BUF_SIZE:
-                            bufffers[sock] = b""
         except:
             pass
+        self.update_wifi_last_result = connect_to_wifi(ssid, password)
+
+async def main():
+    bus = await get_message_bus()
+    service = WifiSetupService()
+    await service.register(bus)
+    print("Registered service")
+
+    agent = NoIoAgent()
+    await agent.register(bus)
+    print("Registered agent")
+
+    adapter = await Adapter.get_first(bus)
+    advert = Advertisement(
+        "B.AI.CB#12345678901",
+        [uuid],
+        0x0,
+        10
+    )
+    await advert.register(bus, adapter)
+    print("Advertised!")
+
+    def cleanup(signum, frame):
+        print("exiting")
+        loop.create_task(service.unregister())
+        sys.exit(0)
+    signal.signal(signal.SIGINT, cleanup)
+
+    async def unregister(advert, bus: MessageBus, adapter = None, path: str = "/com/spacecheese/bluez_peripheral/advert0"):
+        if not adapter:
+            adapter = await Adapter.get_first(bus)
+        interface = adapter._proxy.get_interface(advert._MANAGER_INTERFACE)
+        try:
+            await interface.call_unregister_advertisement(path)
+        except:
+            pass
+        bus.unexport(path, advert._INTERFACE)
+
+    try:
+        while True:
+            await asyncio.sleep(10)
+            try:
+                print("Un-registering")
+                try:
+                    await unregister(advert, bus, adapter)
+                except:
+                    print("Unregistration failed")
+                    traceback.print_exc()
+                await asyncio.sleep(1)
+                print("Re-advertising")
+                await advert.register(bus, adapter)
+                print("Advertisement registered")
+            except:
+                print("Re-advertising failed")
+                traceback.print_exc()
+                try:
+                    await unregister(advert, bus, adapter)
+                except:
+                    pass
+    except:
+        pass
+
+    await bus.wait_for_disconnect()
+
+if __name__ == "__main__":
+    loop.run_until_complete(main())

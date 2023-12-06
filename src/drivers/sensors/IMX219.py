@@ -14,6 +14,10 @@ from drivers.DriverBase import DriverBase
 
 from enum import Enum
 
+CAMERA_WIDTH = 1920
+CAMERA_HEIGHT = 1080
+
+
 class IMX219(DriverBase):
 
     """
@@ -48,12 +52,29 @@ class IMX219(DriverBase):
         
         if self.initialized:
             logging.info("Cameras successfully initialized!")
+    
+    """
+    Collect Calibration Data
+    """
+    def calibrate(self):
+        croppedWidth = 1440
+        leftFrame, rightFrame, _ = self.capture()
+        # Crop the left and right frame to 4:3
+        leftFrame = leftFrame[:,int((CAMERA_WIDTH-croppedWidth)/2):int(croppedWidth+(CAMERA_WIDTH-croppedWidth)/2)]
+        rightFrame = rightFrame[:,int((CAMERA_WIDTH-croppedWidth)/2):int(croppedWidth+(CAMERA_WIDTH-croppedWidth)/2)]
+        cv2.imwrite("calibrationCap_Left.jpg", leftFrame)
+        cv2.imwrite("calibrationCap_Right.jpg", rightFrame)
 
-    def writeFrames(self, leftFrame, rightFrame, steroFrame):
+    def writeFrames(self, leftFrame, rightFrame, stereoFrame):
+        # Convert the colors from RGBA to BGR so the image comes out normal
+        leftFrame = cv2.cvtColor(leftFrame, cv2.COLOR_RGBA2BGR)
+        rightFrame = cv2.cvtColor(rightFrame, cv2.COLOR_RGBA2BGR)
+    
         try:
             cv2.imwrite("left.jpg", leftFrame)
             cv2.imwrite("right.jpg", rightFrame)
-            cv2.imwrite("stereo.jpg", steroFrame)
+            if stereoFrame != None:
+                cv2.imwrite("stereo.jpg", stereoFrame)
             logging.info("Images saved succsessfully!")
         except:
             logging.error("Failed to save image(s)!")
@@ -91,8 +112,9 @@ class IMX219(DriverBase):
             _, rightFrame = self.cameras[1].retrieve()
 
             # Create stero image from the two frames
-            stereo = cv2.StereoSGBM.create(numDisparities=64, blockSize=15)
-            completeFrame = stereo.compute(leftFrame, rightFrame)
+            #stereo = cv2.StereoSGBM.create(numDisparities=64, blockSize=15)
+            #completeFrame = stereo.compute(leftFrame, rightFrame)
+            completeFrame = None
 
             return (leftFrame, rightFrame, completeFrame)
 
@@ -117,4 +139,10 @@ class IMX219(DriverBase):
         width = 1920
         height = 1080
         fps = 29.999999
-        return cv2.VideoCapture(f"nvarguscamerasrc sensor-id={device_id} ! video/x-raw(memory:NVMM), width=(int){width}, height=(int){height}, format=(string)NV12, framerate=(fraction){fps}/1 ! nvvidconv flip-method=0 ! video/x-raw, width=(int){width}, height=(int){height}, format=(string)RGBA ! appsink")
+        gpuEncoding = True
+        if gpuEncoding:
+            cap = cv2.VideoCapture(f"nvarguscamerasrc sensor-id={device_id} ! video/x-raw(memory:NVMM), width=(int){width}, height=(int){height}, format=(string)NV12, framerate=(fraction){fps}/1 ! nvvidconv flip-method=0 ! video/x-raw, width=(int){width}, height=(int){height}, format=(string)RGBA ! appsink")
+            cap.set(cv2.CAP_PROP_CONVERT_RGB, 0)
+            return cap
+        else:
+            return cv2.VideoCapture(f"nvarguscamerasrc sensor-id={device_id} ! video/x-raw(memory:NVMM), width=(int){width}, height=(int){height}, format=(string)NV12, framerate=(fraction){fps}/1 ! nvvidconv flip-method=0 ! video/x-raw, width=(int){width}, height=(int){height}, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! appsink")

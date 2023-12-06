@@ -93,7 +93,7 @@ class DriverManager():
     :param timeStep: At what interval these functions are called
     """
     def triggerEvery(self, seconds: float, name, callback):
-        currentTime = time()
+        currentTime = time() 
         # If the event hasn't already been registerd register it
         if(name not in self.timeTriggers):
             self.timeTriggers[name] = {"CurrentValue": currentTime, "TargetValue": currentTime+seconds}

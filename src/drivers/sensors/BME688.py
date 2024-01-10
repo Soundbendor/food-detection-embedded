@@ -8,6 +8,8 @@ import bme680
 
 import logging
 from time import sleep, time
+import os
+from ctypes import *
 
 
 from drivers.DriverBase import DriverBase
@@ -20,7 +22,10 @@ class BME688(DriverBase):
     def __init__(self, i2c_address = 0x77):
         super().__init__("BME688")
         self.sensor = bme680.BME680(i2c_address)
-        
+
+        script_dir = os.path.abspath(os.path.dirname(__file__))
+        lib_path = os.path.join(script_dir, "bsec_python.so")
+        self.functions = cdll.LoadLibrary(lib_path)
         
         # List of events that the sensor can raise
         self.events = {
@@ -65,8 +70,16 @@ class BME688(DriverBase):
                     if(self.sensor.data.heat_stable):
                         self.data["gas_resistance(ohms)"].value = self.sensor.data.gas_resistance
                     else:
-                        self.data["gas_resistance(ohms)"].value = -1
-                        logging.warning("Gas data was not ready to collect at this time -1 will be returned in place of a value")
+                        logging.warning("Gas data was not ready to collect at this time the last value will be returned in place")
+
+                    # Call our BSEC library to give us additional data
+                    arr = [0, 0, 0, 0, 0, 0, 0]
+                    arr_c = (c_float * 7)(*arr)
+                    self.functions.proccess_bme_data(c_float(self.sensor.data.temperature), c_float(self.sensor.data.pressure), c_float(self.sensor.data.humidity), c_float(self.sensor.data.gas_resistance), arr_c) 
+                    self.data["iaq"].value = arr_c[0]
+                    self.data["sIAQ"].value = arr_c[4]
+                    self.data["CO2-eq"].value = arr_c[5]
+                    self.data["bVOC-eq"].value = arr_c[6]
             except Exception as e:
                 logging.error(f"The following error occured while attempting to read data: {e}")
             self.getEvent("CAPTURE").clear()
@@ -81,7 +94,11 @@ class BME688(DriverBase):
             "temperature(c)": Value('d', 0.0),
             "pressure(kpa)": Value('d', 0.0),
             "humidity(%rh)": Value('d', 0.0),
-            "gas_resistance(ohms)": Value('d', 0.0)
+            "gas_resistance(ohms)": Value('d', 0.0),
+            "iaq": Value('d', 0.0),
+            "sIAQ": Value('d', 0.0),
+            "CO2-eq": Value('d', 0.0),
+            "bVOC-eq": Value('d', 0.0)
         }
         return self.data
     

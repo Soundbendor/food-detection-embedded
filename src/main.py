@@ -78,8 +78,8 @@ def main():
     
     # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers 
     #manager = DriverManager(NAU7802(calibrationDetails["NAU7802_CALIBRATION_FACTOR"]), BME688(), MLX90640(), LidSwitch(), IMX219())
-    manager = DriverManager(IMX219())
-    #manager = DriverManager(BME688())
+    #manager = DriverManager(IMX219())
+    manager = DriverManager(BME688())
     #manager = DriverManager(MLX90640())
     #manager = DriverManager(LidSwitch())
 
@@ -95,9 +95,9 @@ def main():
     while(True):
         try:
             manager.loop()
-            #manager.triggerEvery(1, "displayData", manager.displayData)
-            #manager.triggerEvery(1, "bmeCapture", lambda: manager.setEvent("BME688.CAPTURE"))
-            manager.triggerEvery(10, "imxCapture", lambda: manager.setEvent("IMX219.CAPTURE"))
+            manager.triggerEvery(1, "bmeCapture", lambda: manager.setEvent("BME688.CAPTURE"))
+            manager.triggerEvery(1, "displayData", manager.displayData)
+            #manager.triggerEvery(10, "imxCapture", lambda: manager.setEvent("IMX219.CAPTURE"))
             #manager.triggerEvery(2, "mlxCapture", lambda: manager.setEvent("MLX90640.CAPTURE"))
             
             time.sleep(0.001)

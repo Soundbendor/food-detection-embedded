@@ -52,18 +52,6 @@ class IMX219(DriverBase):
         
         if self.initialized:
             logging.info("Cameras successfully initialized!")
-    
-    """
-    Collect Calibration Data
-    """
-    def calibrate(self):
-        croppedWidth = 1440
-        leftFrame, rightFrame, _ = self.capture()
-        # Crop the left and right frame to 4:3
-        leftFrame = leftFrame[:,int((CAMERA_WIDTH-croppedWidth)/2):int(croppedWidth+(CAMERA_WIDTH-croppedWidth)/2)]
-        rightFrame = rightFrame[:,int((CAMERA_WIDTH-croppedWidth)/2):int(croppedWidth+(CAMERA_WIDTH-croppedWidth)/2)]
-        cv2.imwrite("calibrationCap_Left.jpg", leftFrame)
-        cv2.imwrite("calibrationCap_Right.jpg", rightFrame)
 
     def writeFrames(self, leftFrame, rightFrame, stereoFrame):
         # Convert the colors from RGBA to BGR so the image comes out normal

@@ -4,6 +4,7 @@ venv/
 .env
 *.log
 *.jpg
+*.png
 logs
 archive_detection_images/
 archive_check_focus_images/

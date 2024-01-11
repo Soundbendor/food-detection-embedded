@@ -95,7 +95,6 @@ def main():
     while(True):
         try:
             manager.loop()
-            manager.triggerEvery(1, "bmeCapture", lambda: manager.setEvent("BME688.CAPTURE"))
             manager.triggerEvery(1, "displayData", manager.displayData)
             #manager.triggerEvery(10, "imxCapture", lambda: manager.setEvent("IMX219.CAPTURE"))
             #manager.triggerEvery(2, "mlxCapture", lambda: manager.setEvent("MLX90640.CAPTURE"))

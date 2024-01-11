@@ -26,11 +26,16 @@ class BME688(DriverBase):
         script_dir = os.path.abspath(os.path.dirname(__file__))
         lib_path = os.path.join(script_dir, "bsec_python.so")
         self.functions = cdll.LoadLibrary(lib_path)
-        
-        # List of events that the sensor can raise
-        self.events = {
-            "CAPTURE": Event()
-        }
+
+        # Starting timestamp value, must be incramented in units of 3000 for whatever reason
+        self.ts = 563
+
+        # Set this proccess to loop once a second
+        self.setLoopTime(1)
+
+        # When the device is restarted we want to clear the last savedState
+        if(os.path.exists("savedState.dat")):
+            os.remove("savedState.dat")
 
 
     """
@@ -57,32 +62,30 @@ class BME688(DriverBase):
     Measure and return the weight read from the load cell
     """
     def measure(self):
-        # Confirm that there is no new data to read
-        if(self.getEvent("CAPTURE").is_set()):
-            try:
-                if(self.sensor.get_sensor_data()):
-                    self.data["temperature(c)"].value = self.sensor.data.temperature
-                    # Convert hectopascals to kilopascals
-                    self.data["pressure(kpa)"].value = self.sensor.data.pressure * 0.1
-                    self.data["humidity(%rh)"].value = self.sensor.data.humidity
+        try:
+            if(self.sensor.get_sensor_data()):
+                self.data["temperature(c)"].value = self.sensor.data.temperature
+                # Convert hectopascals to kilopascals
+                self.data["pressure(kpa)"].value = self.sensor.data.pressure * 0.1
+                self.data["humidity(%rh)"].value = self.sensor.data.humidity
 
-                    # Only measure the gas if the measurement is ready
-                    if(self.sensor.data.heat_stable):
-                        self.data["gas_resistance(ohms)"].value = self.sensor.data.gas_resistance
-                    else:
-                        logging.warning("Gas data was not ready to collect at this time the last value will be returned in place")
+                # Only measure the gas if the measurement is ready
+                if(self.sensor.data.heat_stable):
+                    self.data["gas_resistance(ohms)"].value = self.sensor.data.gas_resistance
+                else:
+                    logging.warning("Gas data was not ready to collect at this time the last value will be returned in place")
 
-                    # Call our BSEC library to give us additional data
-                    arr = [0, 0, 0, 0, 0, 0, 0]
-                    arr_c = (c_float * 7)(*arr)
-                    self.functions.proccess_bme_data(c_float(self.sensor.data.temperature), c_float(self.sensor.data.pressure), c_float(self.sensor.data.humidity), c_float(self.sensor.data.gas_resistance), arr_c) 
-                    self.data["iaq"].value = arr_c[0]
-                    self.data["sIAQ"].value = arr_c[4]
-                    self.data["CO2-eq"].value = arr_c[5]
-                    self.data["bVOC-eq"].value = arr_c[6]
-            except Exception as e:
-                logging.error(f"The following error occured while attempting to read data: {e}")
-            self.getEvent("CAPTURE").clear()
+                # Call our BSEC library to give us additional data
+                arr = [0, 0, 0, 0, 0, 0, 0]
+                arr_c = (c_float * 7)(*arr)
+                self.functions.proccess_bme_data(c_int(int(self.ts)),c_float(self.sensor.data.temperature), c_float(self.sensor.data.pressure), c_float(self.sensor.data.humidity), c_float(self.sensor.data.gas_resistance), arr_c) 
+                self.data["iaq"].value = arr_c[0]
+                self.data["sIAQ"].value = arr_c[4]
+                self.data["CO2-eq"].value = arr_c[5]
+                self.data["bVOC-eq"].value = arr_c[6]
+                self.ts += 3000
+        except Exception as e:
+            logging.error(f"The following error occured while attempting to read data: {e}")
         
         
     

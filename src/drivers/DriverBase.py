@@ -60,3 +60,9 @@ class DriverBase:
     """
     def createDataDict(self):
         pass
+
+    """
+    Sets the length of each loop of the driver
+    """
+    def setLoopTime(self, time):
+        self.loopTime = time

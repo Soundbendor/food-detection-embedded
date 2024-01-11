@@ -2,6 +2,7 @@ default: all
 
 all: python_wrapper.o bsec_integration.o
 	gcc -fPIC -shared python_wrapper.o bsec_integration.o -L./algo -lalgobsec -o bsec_python.so -lm 
+	cp bsec_python.so ../src/drivers/sensors/bsec_python.so
 
 python_wrapper.o: ./src/python_wrapper.c bsec_integration.o
 	gcc -fPIC -c ./src/python_wrapper.c -o python_wrapper.o -lm

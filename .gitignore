@@ -1,12 +1,17 @@
+# Folders
 __pycache__/
-Authentication_details.txt
 venv/
 .env
+logs
+.vscode/
+myBSEC/algo/
+images/
+
+# Various temp. file types
+Authentication_details.txt
 *.log
 *.jpg
 *.png
-logs
-archive_detection_images/
-archive_check_focus_images/
-.vscode/
-myBSEC/algo/
+*.dat
+*.so
+*.o

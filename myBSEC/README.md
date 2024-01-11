@@ -4,4 +4,4 @@ This is custom rolled version of BSEC that works on the Jetson Nano and allows f
 
 ### Building
 
-To build this shared library you simply need to run `make` in this directory
+To build this shared library you simply need to run `make` in this directory, this will also copy the .so object to the correct location

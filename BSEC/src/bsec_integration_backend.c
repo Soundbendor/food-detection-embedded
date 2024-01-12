@@ -360,7 +360,7 @@ void bsec_iot_loop_backend(int ts, float temperature, float pressure, float humi
     data.gas_resistance = gas_resistance;
 		
     /* convert the timestamp in nanoseconds before calling bsec_sensor_control() */
-    time_stamp = time_stamp * 1000000;
+    time_stamp = time_stamp * 1000000000;
     
     /* Retrieve sensor settings to be used in this time instant by calling bsec_sensor_control */
     bsec_sensor_control(time_stamp, &sensor_settings);

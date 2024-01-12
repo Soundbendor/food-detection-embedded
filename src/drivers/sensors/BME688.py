@@ -27,15 +27,14 @@ class BME688(DriverBase):
         lib_path = os.path.join(script_dir, "bsec_python.so")
         self.functions = cdll.LoadLibrary(lib_path)
 
-        # Starting timestamp value, must be incramented in units of 3000 for whatever reason
-        self.ts = 563
-
         # Set this proccess to loop once a second
         self.setLoopTime(1)
 
         # When the device is restarted we want to clear the last savedState
         if(os.path.exists("savedState.dat")):
             os.remove("savedState.dat")
+
+        self.startTime = time()
 
 
     """
@@ -64,6 +63,8 @@ class BME688(DriverBase):
     def measure(self):
         try:
             if(self.sensor.get_sensor_data()):
+                ts = int(time()-self.startTime)
+                print(f"Current TS: {ts}")
                 self.data["temperature(c)"].value = self.sensor.data.temperature
                 # Convert hectopascals to kilopascals
                 self.data["pressure(kpa)"].value = self.sensor.data.pressure * 0.1
@@ -78,12 +79,12 @@ class BME688(DriverBase):
                 # Call our BSEC library to give us additional data
                 arr = [0, 0, 0, 0, 0, 0, 0]
                 arr_c = (c_float * 7)(*arr)
-                self.functions.proccess_bme_data(c_int(int(self.ts)),c_float(self.sensor.data.temperature), c_float(self.sensor.data.pressure), c_float(self.sensor.data.humidity), c_float(self.sensor.data.gas_resistance), arr_c) 
+                self.functions.proccess_bme_data(c_int(ts),c_float(self.sensor.data.temperature), c_float(self.sensor.data.pressure), c_float(self.sensor.data.humidity), c_float(self.sensor.data.gas_resistance), arr_c) 
                 self.data["iaq"].value = arr_c[0]
                 self.data["sIAQ"].value = arr_c[4]
                 self.data["CO2-eq"].value = arr_c[5]
                 self.data["bVOC-eq"].value = arr_c[6]
-                self.ts += 3000
+                
         except Exception as e:
             logging.error(f"The following error occured while attempting to read data: {e}")
         

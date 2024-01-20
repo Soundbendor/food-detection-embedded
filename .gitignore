@@ -15,3 +15,4 @@ Authentication_details.txt
 *.dat
 *.so
 *.o
+*.npy

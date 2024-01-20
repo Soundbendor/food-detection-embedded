@@ -11,3 +11,4 @@ mlx90640-driver-devicetree==1.1.0
 scipy==1.5.4
 cmapy==0.6.6
 bme680==1.1.1
+StereoVision==1.0.4

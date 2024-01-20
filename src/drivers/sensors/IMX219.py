@@ -59,10 +59,10 @@ class IMX219(DriverBase):
         rightFrame = cv2.cvtColor(rightFrame, cv2.COLOR_RGBA2BGR)
     
         try:
-            cv2.imwrite("left.jpg", leftFrame)
-            cv2.imwrite("right.jpg", rightFrame)
+            cv2.imwrite("images/left.jpg", leftFrame)
+            cv2.imwrite("images/right.jpg", rightFrame)
             if stereoFrame != None:
-                cv2.imwrite("stereo.jpg", stereoFrame)
+                cv2.imwrite("images/stereo.jpg", stereoFrame)
             logging.info("Images saved succsessfully!")
         except:
             logging.error("Failed to save image(s)!")

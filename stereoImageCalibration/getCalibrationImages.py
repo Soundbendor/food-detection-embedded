@@ -1,29 +1,80 @@
 #!../venv/bin/python
-"""
-Take in a video stream and convert it to stereo images on the output
 
-Per this video: https://www.youtube.com/watch?v=yKypaVl6qQo
-Author(s): Will Richards, Oregon State 2023
 """
+Tool to capture and store images for stereo imaging calibration
+
+Will Richards, Oregon State 2024
+"""
+
 
 import cv2
-import numpy as np
+import os
+import shutil
 from time import sleep
 
-leftCap = cv2.VideoCapture("nvarguscamerasrc sensor-id=0 ! video/x-raw(memory:NVMM), width=1920, height=1080, format=(string)NV12, framerate=(fraction)20/1 ! nvvidconv flip-method=0 ! video/x-raw, width=640, height=480, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! appsink", cv2.CAP_GSTREAMER)
-rightCap = cv2.VideoCapture("nvarguscamerasrc sensor-id=1 ! video/x-raw(memory:NVMM), width=1920, height=1080, format=(string)NV12, framerate=(fraction)20/1 ! nvvidconv flip-method=0 ! video/x-raw, width=640, height=480, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! appsink", cv2.CAP_GSTREAMER)
+# If we only want to take one test image
+ONLY_ONE = False
 
-num = 0
-while leftCap.isOpened() and rightCap.isOpened():
-    try:
-        if leftCap.grab() and rightCap.grab():
-            _, leftFrame = leftCap.retrieve()
-            _, rightFrame = rightCap.retrieve()
-        
-            cv2.imwrite(f"images/leftCalibrationImages/leftImage{num}.jpg", leftFrame)
-            cv2.imwrite(f"images/rightCalibrationImages/rightImage{num}.jpg", rightFrame)
+# Given an ID create a new pipeline for that VideoCapture object
+def createPipeline(id):
+    return f"nvarguscamerasrc sensor-id={id} sensor-mode=3 ! video/x-raw(memory:NVMM), width=(int)1640, height=(int)1232, format=(string)NV12, framerate=(fraction)20/1 ! nvvidconv flip-method=2 ! video/x-raw, width=(int)640, height=(int)480, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! appsink"
 
-            num += 1
-        sleep(1/30)
-    except KeyboardInterrupt:
-        break
+# Create or clear data in prexisting calibration image folders
+def createDataFolders():
+    # If we dont have an images directory in our current folder make one
+    if not os.path.isdir("images"):
+        os.mkdir("images")
+        os.mkdir("images/leftCalibrationImages")
+        os.mkdir("images/rightCalibrationImages")
+    else:
+        # Remove and remake them
+        shutil.rmtree("images/leftCalibrationImages")
+        shutil.rmtree("images/rightCalibrationImages")
+        os.mkdir("images/leftCalibrationImages")
+        os.mkdir("images/rightCalibrationImages")
+
+def warmUpCaptures(leftCap: cv2.VideoCapture, rightCap: cv2.VideoCapture):
+    for i in range(30):
+        leftCap.grab()
+        rightCap.grab()
+
+def main():
+    leftCap = cv2.VideoCapture(createPipeline(0), cv2.CAP_GSTREAMER)
+    rightCap = cv2.VideoCapture(createPipeline(1), cv2.CAP_GSTREAMER)
+
+    input("Procceeding will remove any previously collected calibration images. Would you like to continue? (press enter)")
+    warmUpCaptures(leftCap, rightCap)
+
+    createDataFolders()
+
+    # Once both captures are opened 
+    captureNumber = 0
+    if leftCap.isOpened() and rightCap.isOpened():
+        for i in range(30):
+            try:
+                leftCaptureSuccsess = leftCap.grab()
+                rightCaptureSuccsess = rightCap.grab()
+
+                if leftCaptureSuccsess and rightCaptureSuccsess:
+                    _, leftFrame = leftCap.retrieve()
+                    _, rightFrame = rightCap.retrieve()
+
+                    cv2.imwrite(f"images/leftCalibrationImages/leftImage{captureNumber}.jpg", leftFrame)
+                    cv2.imwrite(f"images/rightCalibrationImages/rightImage{captureNumber}.jpg", rightFrame)
+                    print(f"Captured image {i+1}...")
+                    captureNumber += 1
+                    if ONLY_ONE:
+                        break
+                sleep(1/30) 
+            except KeyboardInterrupt:
+                leftCap.release()
+                rightCap.release()
+                print("Ctrl + C detected! Exiting...")
+                break
+    else:
+        print("Failed to open one or both video capture devices! Exiting...")
+    leftCap.release()
+    rightCap.release()
+
+if __name__ == "__main__":
+    main()

@@ -24,6 +24,8 @@ unzip ./dependencies/opencv-gstream-enabled.zip -d ./dependencies/opencv
 mv ./dependencies/opencv/cv2 ./venv/lib/python3.6/site-packages/cv2
 rm -rf ./dependencies/opencv
 
+sudo apt-get -y install python3-pyaudio
+
 echo "Updating GPIO user permisions..."
 
 # Add our user to the gpio group

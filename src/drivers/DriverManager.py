@@ -66,6 +66,26 @@ class DriverManager():
             self.data[splitName[0]]["events"][splitName[1]][0].set()
         except KeyError:
             logging.error("Specified event/sensor doesn't exist!")
+
+    """
+    Get an event on a given sub-module
+    """
+    def getEvent(self, event):
+        try:
+            splitName = event.split(".")
+            return self.data[splitName[0]]["events"][splitName[1]][0].is_set()
+        except KeyError:
+            logging.error("Specified event/sensor doesn't exist!")
+
+    """
+    Clear an event on a given sub-module
+    """
+    def clearEvent(self, event):
+        try:
+            splitName = event.split(".")
+            return self.data[splitName[0]]["events"][splitName[1]][0].clear()
+        except KeyError:
+            logging.error("Specified event/sensor doesn't exist!")
     """
     Check what callbacks need to be called per loop, and execute them as needed
     """

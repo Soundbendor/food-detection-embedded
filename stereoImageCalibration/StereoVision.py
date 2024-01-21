@@ -17,24 +17,24 @@ def main():
     rightCap = cv2.VideoCapture(createPipeline(1), cv2.CAP_GSTREAMER)
 
     activeCalibration = StereoCalibration(input_folder="./stereo_calibration_parameter")
-
-   
+    
 
     downsample = 2
     resize = (int(640 / downsample), int(480 / downsample))
 
-    #matcher = cv2.StereoSGBM.create(-9,256,11,0,0,1,63,10,100,32, cv2.StereoSGBM_MODE_SGBM)
-    matcher = cv2.StereoSGBM.create(
-        visionConfig.min_disparity,
-        visionConfig.num_disparities,
-        visionConfig.block_size,
-        visionConfig.disp_12_max_diff,
-        visionConfig.pre_filter_cap,
-        visionConfig.uniqueness_ratio,
-        visionConfig.speckle_window,
-        visionConfig.speckle_range,
-        mode=cv2.STEREO_SGBM_MODE_SGBM
-    )
+    #matcher = cv2.StereoBM.create(16, 15)
+    matcher = cv2.StereoSGBM.create(-9,128,11,0,0,1,63,10,100,32, cv2.StereoSGBM_MODE_SGBM)
+    # matcher = cv2.StereoSGBM.create(
+    #     visionConfig.min_disparity,
+    #     visionConfig.num_disparities,
+    #     visionConfig.block_size,
+    #     visionConfig.disp_12_max_diff,
+    #     visionConfig.pre_filter_cap,
+    #     visionConfig.uniqueness_ratio,
+    #     visionConfig.speckle_window,
+    #     visionConfig.speckle_range,
+    #     mode=cv2.STEREO_SGBM_MODE_SGBM
+    # )
     while True:
         try:
 
@@ -58,16 +58,16 @@ def main():
                     leftFrame = cv2.cvtColor(rectified_pair[0], cv2.COLOR_BGR2GRAY)
                     rightFrame = cv2.cvtColor(rectified_pair[1], cv2.COLOR_BGR2GRAY)
                     importlib.reload(visionConfig)
-                    matcher.setMinDisparity(visionConfig.min_disparity)
-                    matcher.setNumDisparities(visionConfig.num_disparities)
-                    matcher.setBlockSize(visionConfig.block_size)
-                    matcher.setP1(8*channels*visionConfig.block_size*visionConfig.block_size)
-                    matcher.setP2(32*channels*visionConfig.block_size*visionConfig.block_size)
-                    matcher.setDisp12MaxDiff(visionConfig.disp_12_max_diff)
-                    matcher.setPreFilterCap(visionConfig.pre_filter_cap)
-                    matcher.setUniquenessRatio(visionConfig.uniqueness_ratio)
-                    matcher.setSpeckleWindowSize(visionConfig.speckle_window)
-                    matcher.setSpeckleRange(visionConfig.speckle_range)
+                    # matcher.setMinDisparity(visionConfig.min_disparity)
+                    # matcher.setNumDisparities(visionConfig.num_disparities)
+                    # matcher.setBlockSize(visionConfig.block_size)
+                    # matcher.setP1(8*channels*visionConfig.block_size*visionConfig.block_size)
+                    # matcher.setP2(32*channels*visionConfig.block_size*visionConfig.block_size)
+                    # matcher.setDisp12MaxDiff(visionConfig.disp_12_max_diff)
+                    # matcher.setPreFilterCap(visionConfig.pre_filter_cap)
+                    # matcher.setUniquenessRatio(visionConfig.uniqueness_ratio)
+                    # matcher.setSpeckleWindowSize(visionConfig.speckle_window)
+                    # matcher.setSpeckleRange(visionConfig.speckle_range)
 
                     disparity = matcher.compute(rightFrame, leftFrame)
 

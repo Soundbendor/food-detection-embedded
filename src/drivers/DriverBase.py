@@ -18,6 +18,7 @@ class DriverBase:
 
         # The rate at which the thread this driver is running in will loop
         self.loopTime = 0.001
+        self.initialized = True
     
     """
     Should be overloaded on all sub drivers so initialize can be called on all drivers at once

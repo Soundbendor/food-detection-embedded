@@ -13,7 +13,7 @@ import shutil
 from time import sleep
 
 # If we only want to take one test image
-ONLY_ONE = False
+ONLY_ONE = True
 
 # Given an ID create a new pipeline for that VideoCapture object
 def createPipeline(id):
@@ -43,6 +43,8 @@ def main():
     rightCap = cv2.VideoCapture(createPipeline(1), cv2.CAP_GSTREAMER)
 
     input("Procceeding will remove any previously collected calibration images. Would you like to continue? (press enter)")
+    print("Captures starting in 2 seconds...")
+    sleep(2)
     warmUpCaptures(leftCap, rightCap)
 
     createDataFolders()

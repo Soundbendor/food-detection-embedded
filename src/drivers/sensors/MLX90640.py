@@ -165,7 +165,6 @@ class MLX90640(DriverBase):
         if(self.getEvent("CAPTURE").is_set()):
             self.mlx.capture()
             self.getEvent("CAPTURE").clear()
-            logging.info("Succsessfully captured image!")
 
     def kill(self):
         self.mlx.close()

@@ -13,6 +13,5 @@ Authentication_details.txt
 *.jpg
 *.png
 *.dat
-*.so
 *.o
 *.npy

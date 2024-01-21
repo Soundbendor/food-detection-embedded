@@ -64,7 +64,6 @@ class BME688(DriverBase):
         try:
             if(self.sensor.get_sensor_data()):
                 ts = int(time()-self.startTime)
-                print(f"Current TS: {ts}")
                 self.data["temperature(c)"].value = self.sensor.data.temperature
                 # Convert hectopascals to kilopascals
                 self.data["pressure(kpa)"].value = self.sensor.data.pressure * 0.1

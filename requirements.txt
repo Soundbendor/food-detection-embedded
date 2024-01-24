@@ -1,7 +1,7 @@
 charset-normalizer
 urllib3
 gpiod==1.4.0
-numpy==1.19.3
+numpy==1.21.6
 httpx
 Jetson.GPIO
 requests

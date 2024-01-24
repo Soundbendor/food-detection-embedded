@@ -3,15 +3,17 @@
 # Setup script for installing required drivers and setting user permissions to run the detection loop
 # Author: Will Richards, 2023
 
-echo "Creating virtual python environment..."
+echo "Updating system..."
 
 sudo apt-get update -y && sudo apt-get upgrade -y
+
+echo "Creating virtual python environment..."
 
 # Create a venv using python 3.6
 sudo apt-get install python3-venv
 python3.7 -m venv venv
 
-echo "Installing dependencies"
+echo "Installing dependencies..."
 
 # Update pip
 ./venv/bin/pip install --upgrade pip

@@ -5,6 +5,7 @@ Provides the top level of the whole system so individual components can be utili
 """
 
 import time
+import os
 
 from drivers.DriverManager import DriverManager
 
@@ -26,6 +27,8 @@ class MainController():
         logger = Logging(__file__)
         calibration = CalibrationLoader("CalibrationDetails.json")
 
+        if not os.path.exists("../data/"):
+            os.mkdir("../data/")
         # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers 
         self.manager = DriverManager(NAU7802(calibration.get("NAU7802_CALIBRATION_FACTOR")), BME688(), MLX90640(), LidSwitch(), RealsenseCam(), SoundController())
 

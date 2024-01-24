@@ -5,9 +5,11 @@
 
 echo "Creating virtual python environment..."
 
+sudo apt-get update -y && sudo apt-get upgrade -y
+
 # Create a venv using python 3.6
 sudo apt-get install python3-venv
-python3.6 -m venv venv
+python3.7 -m venv venv
 
 echo "Installing dependencies"
 
@@ -17,14 +19,8 @@ echo "Installing dependencies"
 # Install the python libraries from requirements.txt
 ./venv/bin/pip install -r requirements.txt
 
-echo "Extracting precompiled OpenCV"
-
-# Unzip opencv and move into correct directory
-unzip ./dependencies/opencv-gstream-enabled.zip -d ./dependencies/opencv
-mv ./dependencies/opencv/cv2 ./venv/lib/python3.6/site-packages/cv2
-rm -rf ./dependencies/opencv
-
 sudo apt-get -y install python3-pyaudio
+sudo apt-get install ffmpeg
 
 echo "Updating GPIO user permisions..."
 

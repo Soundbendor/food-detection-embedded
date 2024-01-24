@@ -13,3 +13,5 @@ cmapy==0.6.6
 bme680==1.1.1
 StereoVision==1.0.4
 pydub==0.25.1
+pyaudio==0.2.14
+pyrealsense2==2.54.2.5684

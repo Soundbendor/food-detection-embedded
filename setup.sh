@@ -9,11 +9,15 @@ sudo apt-get update -y && sudo apt-get upgrade -y
 
 echo "Creating virtual python environment..."
 
-# Create a venv using python 3.6
-sudo apt-get install python3-venv
+# Create a venv using python 3.7
+sudo apt-get -y install python3.7
+sudo apt-get -y install python3.7-dev
+sudo apt-get -y install python3.7-venv
 python3.7 -m venv venv
 
 echo "Installing dependencies..."
+
+sudo apt-get -y install portaudio19-dev
 
 # Update pip
 ./venv/bin/pip install --upgrade pip
@@ -22,7 +26,7 @@ echo "Installing dependencies..."
 ./venv/bin/pip install -r requirements.txt
 
 sudo apt-get -y install python3-pyaudio
-sudo apt-get install ffmpeg
+sudo apt-get -y install ffmpeg
 
 echo "Updating GPIO user permisions..."
 

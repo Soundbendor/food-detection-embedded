@@ -61,7 +61,13 @@ class RealsenseCam(DriverBase):
     """
     def measure(self) -> None:
         # If a capture event was triggered we want to grab the current frames from the camera
-        if(self.getEvent("CAPTURE").is_set() and self.initialized):
+        if(self.getEvent("CAPTURE").is_set()):
+
+            # If the device didn't initialize we want to clear the capture so we don't hang forever
+            if not self.initialized:
+                self.getEvent("CAPTURE").clear()
+                return
+            
             capSuccsess, frames = self.realsense_pipeline.try_wait_for_frames()
             if capSuccsess:
                 depth_frame = frames.get_depth_frame()

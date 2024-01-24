@@ -12,3 +12,4 @@ scipy==1.5.4
 cmapy==0.6.6
 bme680==1.1.1
 StereoVision==1.0.4
+pydub==0.25.1

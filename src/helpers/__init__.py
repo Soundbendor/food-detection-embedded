@@ -4,7 +4,8 @@ import sys
 import os
 import json
 
-TWO_HOURS_SECONDS = 7200
+#TWO_HOURS_SECONDS = 7200
+TWO_HOURS_SECONDS = 5
 
 class TimeHelper():
     def __init__(self):

@@ -15,6 +15,8 @@ from drivers.sensors.BME688 import BME688
 from drivers.sensors.MLX90640 import MLX90640
 from drivers.sensors.LidSwitch import LidSwitch
 
+from drivers.sensors.SoundController import SoundController
+
 # Additional Helper Methods
 from helpers import Logging, CalibrationLoader
 
@@ -25,7 +27,7 @@ class MainController():
         calibration = CalibrationLoader("CalibrationDetails.json")
 
         # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers 
-        self.manager = DriverManager(NAU7802(calibration.get("NAU7802_CALIBRATION_FACTOR")), BME688(), MLX90640(), LidSwitch(), RealsenseCam())
+        self.manager = DriverManager(NAU7802(calibration.get("NAU7802_CALIBRATION_FACTOR")), BME688(), MLX90640(), LidSwitch(), RealsenseCam(), SoundController())
 
     """
     Handles events that need to be checked quickly in the main loop
@@ -45,10 +47,11 @@ class MainController():
         # We want to tell the "cameras" we would like to capture the latest frames
         self.manager.setEvent("Realsense.CAPTURE")
         self.manager.setEvent("MLX90640.CAPTURE")
+        self.manager.setEvent("SoundController.RECORD")
 
         # While the capture events are still set we should just wait until they are cleared meaning they succeeded
-        while self.manager.getEvent("Realsense.CAPTURE") and self.manager.getEvent("MLX90640.CAPTURE"):
-            time.sleep(0.01)
+        while self.manager.getEvent("Realsense.CAPTURE") or self.manager.getEvent("MLX90640.CAPTURE") or self.manager.getEvent("SoundController.RECORD"):
+            time.sleep(0.5)
 
         print(self.manager.getJSON())
 

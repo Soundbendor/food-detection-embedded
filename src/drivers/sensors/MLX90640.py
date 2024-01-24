@@ -122,7 +122,7 @@ class ThermalCam():
         self._preloadImage()
         heats = self._captureRaw()
         heatmap = self._createHeatmap(heats)
-        fileName = "heatmap.jpg"
+        fileName = "../data/heatmap.jpg"
         cv2.imwrite(fileName, heatmap)
         logging.info("Succsessfully captured heatmap")
         

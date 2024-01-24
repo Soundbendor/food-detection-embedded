@@ -21,7 +21,7 @@ class RealsenseCam(DriverBase):
         super().__init__("Realsense")
 
         # Set loop time to be 0 because it will block automatically
-        self.loopTime = 1/fps
+        self.loopTime = 0.15
         self.framerate = fps
         self.camera_width = width
         self.camera_height = height
@@ -29,6 +29,13 @@ class RealsenseCam(DriverBase):
         # Realsense paramters
         self.realsense_pipeline = rs.pipeline()
         self.realsense_config = rs.config()
+        self.realsense_colorizer = rs.colorizer()
+        self.realsense_align = rs.align(rs.stream.color)
+
+        # Polygon Output Parameters
+        self.realsense_ply = rs.save_to_ply("../data/depth.ply")
+        self.realsense_ply.set_option(rs.save_to_ply.option_ply_binary, True)
+        self.realsense_ply.set_option(rs.save_to_ply.option_ply_normals, True)
         
 
         # List of events to hold, the SHOULD_CAPTURE event 
@@ -37,7 +44,8 @@ class RealsenseCam(DriverBase):
         }
         
     def initialize(self):
-        self.realsense_config.enable_stream(rs.stream.color, self.camera_width, self.camera_height, rs.format.z16, self.framerate)
+        self.realsense_config.enable_stream(rs.stream.color, self.camera_width, self.camera_height, rs.format.bgr8, self.framerate)
+        self.realsense_config.enable_stream(rs.stream.depth, self.camera_width, self.camera_height, rs.format.z16, self.framerate)
 
         try:
             self.realsense_pipeline.start(self.realsense_config)
@@ -59,12 +67,16 @@ class RealsenseCam(DriverBase):
                 depth_frame = frames.get_depth_frame()
                 color_frame = frames.get_color_frame()
                 if depth_frame and color_frame:
+                    colorized = self.realsense_colorizer.process(frames)
                     depth_image = np.asanyarray(depth_frame.get_data())
-                    color_image = np.asanyarray(depth_frame.get_data())
+                    color_image = np.asanyarray(color_frame.get_data())
                     depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
 
-                    cv2.imwrite("depthImage.jpg", depth_colormap)
-                    cv2.imwrite("colorImage.jpg", color_image)
+                    # Save data to disk
+                    self.realsense_ply.process(colorized)
+                    cv2.imwrite("../data/depthImage.jpg", depth_colormap)
+                    cv2.imwrite("../data/colorImage.jpg", color_image)
+
 
                     # Only clear capture event on successful retrieval
                     self.getEvent("CAPTURE").clear()
@@ -74,8 +86,7 @@ class RealsenseCam(DriverBase):
                     
             else:
                 logging.error("Failed to retrieve last frame")
-            
-            logging.info("Succsessfully captured image")
+
     
     """
     Release VideoCaptures on shutdown

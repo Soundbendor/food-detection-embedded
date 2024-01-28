@@ -10,11 +10,11 @@ from drivers.DriverBase import DriverBase
 from drivers.sensors.Microphone import Microphone
 
 class SoundController(DriverBase):
-    def __init__(self, record_duration = 10):
+    def __init__(self, soundControllerConnection, record_duration = 10):
         super().__init__("SoundController")
-        self.record_duration = record_duration
-        self.microphone = Microphone()
+        self.microphone = Microphone(record_duration)
         self.sound = None
+        self.soundControllerConnection = soundControllerConnection
 
         self.loopTime = 0.05
         
@@ -22,11 +22,14 @@ class SoundController(DriverBase):
             "RECORD": Event()
         }
 
+    def initialize(self):
+        self.microphone.initialize()
+
     def measure(self):
         if(self.events["RECORD"][0].is_set()):
             # Todo: Play sound here
 
-            self.microphone.record(self.record_duration)
+            self.soundControllerConnection.send(self.microphone.record())
             self.events["RECORD"][0].clear()
         
     def kill(self):
@@ -34,4 +37,4 @@ class SoundController(DriverBase):
         self.microphone.kill()
 
     def createDataDict(self):
-        return {}
+        return {"TranscribedText": ""}

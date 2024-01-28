@@ -21,8 +21,11 @@ class LidSwitch(DriverBase):
     def __init__(self, pin = 12):
         super().__init__("LidSwitch")
 
-        # The current GPIO pin that the hall-effect sensor is connected to
-        self.selectedPin = pin
+        # The current GPIO pin that the hall-effect sensor is connected to.
+        # NOTE: We have to use tegra naming conventions here because the LED driver runs in TEGRA_SOC mode so we have to make a conversion from our normal board pin number to the TEGRA_SOC pin
+        # Solution: https://stackoverflow.com/a/61039192
+        tegra_to_board_conversion = {k: list(GPIO.gpio_pin_data.get_data()[-1]['TEGRA_SOC'].keys())[i] for i, k in enumerate(GPIO.gpio_pin_data.get_data()[-1]['BOARD'])}
+        self.selectedPin = tegra_to_board_conversion[pin]
 
         # If the lid is open or not
         self.lidOpen = False
@@ -42,7 +45,7 @@ class LidSwitch(DriverBase):
     def initialize(self):
         # Set the GPIO numbering to that of the board itself and then set the specified GPIO pin as an input
         GPIO.setwarnings(False)
-        GPIO.setmode(GPIO.BOARD)
+        GPIO.setmode(GPIO.TEGRA_SOC)
         GPIO.setup(self.selectedPin, GPIO.IN)
         logging.info("Succsessfully configured hall effect sensor!")
     

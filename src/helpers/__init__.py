@@ -4,8 +4,8 @@ import sys
 import os
 import json
 
-#TWO_HOURS_SECONDS = 7200
-TWO_HOURS_SECONDS = 5
+TWO_HOURS_SECONDS = 7200
+#TWO_HOURS_SECONDS = 5
 
 class TimeHelper():
     def __init__(self):
@@ -27,12 +27,16 @@ class Logging():
     """
     Configure logging format and output type based on arguments passed to the program
     """
-    def __init__(self, path):
+    def __init__(self, path, verbose=True):
         FORMAT = '%(asctime)s [%(filename)s:%(funcName)s:%(lineno)d] [%(levelname)s] %(message)s'
+
+        loggingLevel = logging.INFO
+        if not verbose:
+            loggingLevel = logging.WARNING
 
         # Check if we want to specify an output file for the logging
         if(len(sys.argv) < 2):
-            logging.basicConfig(format=FORMAT, level=logging.INFO)
+            logging.basicConfig(format=FORMAT, level=loggingLevel)
             logging.info("No output file specified file logging will be disabled to enable: ./main.py <outputfilepath>")
         else:
             logging.basicConfig(format=FORMAT, level=logging.INFO, handlers=[logging.FileHandler(str(os.path.dirname(os.path.abspath(path))) + "/" + sys.argv[1]), logging.StreamHandler()])
@@ -55,3 +59,9 @@ class CalibrationLoader():
     """
     def get(self, field):
         return self.data[field]
+    
+"""
+Handles chunking 
+"""
+class VoiceDetection():
+    pass

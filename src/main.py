@@ -9,11 +9,15 @@ Records data when the lid is opened and then closed and once every 2 hours
 """
 
 from time import sleep
+import os
 
 from drivers.MainController import MainController
 from helpers import TimeHelper    
 
 def main():
+    # Change our current working directory to this file so our relative paths still work no matter where this file was called from
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
     # Read calibration parameters in and setup our debug logging, additionally setup our time tracker
     timeHelper = TimeHelper()
     controller = MainController()

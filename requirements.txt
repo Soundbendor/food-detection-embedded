@@ -3,7 +3,7 @@ urllib3
 gpiod==1.4.0
 numpy==1.21.6
 httpx
-Jetson.GPIO
+Jetson.GPIO==2.1.6
 requests
 pynau7802==0.2.1
 mlx90640-driver==1.1.2
@@ -15,3 +15,6 @@ StereoVision==1.0.4
 pydub==0.25.1
 pyaudio==0.2.14
 pyrealsense2==2.54.2.5684
+openai-whisper==20230124
+torchaudio==0.13.1
+adafruit-circuitpython-tlc59711==2.0.13

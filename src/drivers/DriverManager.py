@@ -3,6 +3,7 @@ Will Richards, Oregon State University, 2023
 
 """
 
+import multiprocessing
 from .DriverBase import DriverBase
 from .ThreadedDriver import ThreadedDriver
 from multiprocessing import Value, Array
@@ -10,7 +11,7 @@ import logging
 import json
 from time import time
 
-from multiprocessing.sharedctypes import SynchronizedArray
+from multiprocessing.sharedctypes import SynchronizedArray, Synchronized
 from multiprocessing.synchronize import Event
 
 class DriverManager():
@@ -31,7 +32,7 @@ class DriverManager():
 
             # Start the proccess
             proccess.start()
-            logging.info(f"{sensor.moduleName} proccess started with pid: {proccess.pid}")
+            logging.debug(f"{sensor.moduleName} proccess started with pid: {proccess.pid}")
             self.proccessList.append(proccess)
            
         
@@ -139,7 +140,10 @@ class DriverManager():
             #self.jsonDict[key]["data"] = originalData[key]["data"]
             self.jsonDict[key]["data"] = {}
             for dataKey, value in originalData[key]["data"].items():
-                self.jsonDict[key]["data"][dataKey] = value.value
+                if type(value) == Synchronized:
+                    self.jsonDict[key]["data"][dataKey] = value.value
+                else:
+                    self.jsonDict[key]["data"][dataKey] = value
             self.jsonDict[key]["events"] = {}
             for eventKey, eventValue in originalData[key]["events"].items():
                 self.jsonDict[key]["events"][eventKey] = list(originalData[key]["events"][eventKey])
@@ -158,7 +162,10 @@ class DriverManager():
         # Update the data values for each sensor
         for key, value in originalData.items():
             for dataKey, value in self.jsonDict[key]["data"].items():
-                    self.jsonDict[key]["data"][dataKey] = originalData[key]["data"][dataKey].value
+                    if type(originalData[key]["data"][dataKey]) == Synchronized:
+                        self.jsonDict[key]["data"][dataKey] = originalData[key]["data"][dataKey].value
+                    else:
+                        self.jsonDict[key]["data"][dataKey] = originalData[key]["data"][dataKey]
         
         
         # Update teh events for each sensor

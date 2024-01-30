@@ -1,11 +1,10 @@
 """
-Will Richards, Oregon State University, 2023
+Will Richards, Oregon State University, 2024
 
 Provides a functionality to interface with a standard USB microphone using a USB Audio DAC and PyAudio
 """
 
 import logging
-from cv2 import exp
 import pyaudio
 import wave
 from pydub import AudioSegment as am
@@ -14,9 +13,16 @@ import numpy as np
 import whisper
 import torch
 import numpy as np
+import re
 
 class Microphone():
-    def __init__(self, record_duration):
+
+    """
+    Create a new instance of the microhpone which will be used to collect item descriptions
+
+    :param record_duration: The lenght of time in seconds that the microphone will record for
+    """
+    def __init__(self, record_duration=10):
 
         # Audio recording parameters
         self.sampling_rate = 44100
@@ -33,20 +39,6 @@ class Microphone():
         self.model, utils = torch.hub.load(repo_or_dir='snakers4/silero-vad',model='silero_vad',force_reload=True,onnx=False)
         (self.get_speech_timestamps, self.save_audio, self.read_audio,_, self.collect_chunks) = utils
 
-        # Attempt to open the microphone stream
-        try:
-            self.stream = self.pAudio.open(
-                format=pyaudio.paInt16,
-                rate = self.sampling_rate,
-                input=True,
-                channels=1,
-                input_device_index=self.device_index,
-                frames_per_buffer=self.frames_per_buffer,
-                start=False,
-            )
-        except Exception as e:
-            logging.error("Failed to open audio input device: {e}")
-            self.initialized = False
 
     """
     Initialize the whisper model and warm it up by feeding 0s into it
@@ -61,6 +53,9 @@ class Microphone():
             
     """
     Write some audio data out to a .wav file
+
+    :param data: Data to be written to the wav file
+    :param outputFile: The name of the file the data should be written to
     """
     def writeWave(self, data, outputFile):
         # Write the pre downsampled audio to .wav file
@@ -73,6 +68,9 @@ class Microphone():
 
     """
     Downsample a given audio file to 16khz, and then remove the previous file
+
+    :param inputFile: File that we wish to downsample
+    :param outputFile: The resulting downsampled output file
     """
     def downsampleAudio(self, inputFile, outputFile):
         logging.info("Downsampling Audio....")
@@ -83,9 +81,26 @@ class Microphone():
 
     """
     Record audio from the microphone and write it to a file
+
+    :param outputFile: File to write the recorded audio to
     """
     def _record(self, outputFile):
         frames = []
+
+        # Attempt to open the microphone stream
+        try:
+            self.stream = self.pAudio.open(
+                format=pyaudio.paInt16,
+                rate = self.sampling_rate,
+                input=True,
+                channels=1,
+                input_device_index=self.device_index,
+                frames_per_buffer=self.frames_per_buffer,
+            )
+        except Exception as e:
+            logging.error("Failed to open audio input device: {e}")
+            self.initialized = False
+
 
         logging.info("RECORDING....")
         self.stream.start_stream()
@@ -97,17 +112,22 @@ class Microphone():
         self.stream.stop_stream()
 
         self.writeWave(frames, outputFile)
+        self.stream.close()
         logging.info("STOPPED RECORDING")
+
     
     """
     Utilize the Silero-VAD model to determine if a given audio contains speaking
 
-    Return true or false, if true write spoken parts to a file
+    :param inputFile: The file we want to run our voice detection algorithm on
+    :param outputFile: The file that if we did find speaking contains only the speaking parts
+
+    :return: Whether or not the VAD detected speaking in the given input file
     """
     def detectSpeaking(self, inputFile, outputFile) -> bool:
         logging.info("Detecting speaking....")
         wav = self.read_audio(inputFile, sampling_rate=self.downsample_rate)
-        speech_timestamps = self.get_speech_timestamps(wav, self.model, sampling_rate=self.downsample_rate)
+        speech_timestamps = self.get_speech_timestamps(wav, self.model, sampling_rate=self.downsample_rate, speech_pad_ms=100)
         if(len(speech_timestamps) > 0):
             self.save_audio(outputFile, self.collect_chunks(speech_timestamps, wav), sampling_rate=self.downsample_rate) 
             return True
@@ -115,6 +135,8 @@ class Microphone():
     
     """
     Utilize the whisper model to transcribe a given input file into the text
+
+    :param inputFile: File to transcribe
     """
     def transcribe(self, inputFile) -> str:
         logging.info("Transcribing audio....")
@@ -127,29 +149,28 @@ class Microphone():
     """
     def record(self):
         if self.initialized:
-
             # Record and downsample the audio to 16khz
             self._record("../data/preDownsampledAudio.wav")
             self.downsampleAudio("../data/preDownsampledAudio.wav", "../data/downsampledAudio.wav")
+
+
             if(self.detectSpeaking("../data/downsampledAudio.wav", "../data/only_speech.wav")):
-                transcibedText = self.transcribe('../data/only_speech.wav')
-                #logging.info(f"Transcribed Text: {transcibedText}")
+                transcribedText = self.transcribe('../data/only_speech.wav')
+                transcribedText = re.sub("[.,:;]", "", transcribedText).strip()
                 os.remove('../data/only_speech.wav')
-                return transcibedText
+                return transcribedText
             else:
                 logging.warning("No speaking detected in clip!")
                 return ""
-                # TODO: If no speaking was detected in the clip we probably want to prompt the user for what was put in again
 
         else:
             logging.warning("Microphone not initialized!")
             return ""
 
-
-
+    """
+    Cleanup thread
+    """
     def kill(self):
-        if self.initialized:
-            self.stream.close()
         self.pAudio.terminate()
 
 

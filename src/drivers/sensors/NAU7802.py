@@ -14,16 +14,21 @@ from multiprocessing import Event, Value
 
 class NAU7802(DriverBase):
 
-
     """
     Basic constructor for the NAU7802
+
+    :param calibration_factor: Pre-calculated calibration factor to get valid weight readings
     """
     def __init__(self, calibration_factor = 0):
         super().__init__("NAU7802")
+
         self.nau = PyNAU7802.NAU7802()
         self.collectedData = 0
+        
         if(calibration_factor == 0):
-            print("No calibration factor entered!")
+            logging.warning("No calibration factor entered!")
+
+
         self.calFactor = calibration_factor
 
         # How much additional weight will trigger a weight change event
@@ -51,7 +56,6 @@ class NAU7802(DriverBase):
         logging.info("Taring scale...")
         self.tareScale()
 
-        
         self.nau.setCalibrationFactor(self.calFactor)
        
 
@@ -71,7 +75,7 @@ class NAU7802(DriverBase):
         data.clear()
 
         # This will determine wether or not the event has occured in this cycle or not
-        self.determineEventState()
+        #self.determineEventState()
         self.data["weight"].value = self.collectedData
 
 
@@ -111,7 +115,10 @@ class NAU7802(DriverBase):
         # If our weight didn't change and our weight changed last time then we want to clear this flag so we can trigger another event on the next cycle
         elif(self.weightDetectedLastTime):
             self.weightDetectedLastTime = False
-        
+    
+    """
+    Add the weight pramameter to the NAU's data field
+    """
     def createDataDict(self):
         self.data = {
             "weight": Value('d', 0.0)

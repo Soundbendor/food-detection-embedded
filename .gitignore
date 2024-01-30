@@ -17,3 +17,4 @@ Authentication_details.txt
 *.npy
 *.ply
 *.wav
+*.secret

@@ -2,16 +2,12 @@
 Will Richards, Oregon State University, 2023
 
 Provides a genric wrapper for converting generic drivers into its own driver proccess.
-We wait to use multiproccessing instead of threads to avoid GIL in python
 """
 
-from multiprocessing import Event, Manager, Process, Value
+from multiprocessing import Process
+from time import sleep
 
-from time import sleep, time
-import logging
-
-
-from .DriverBase import DriverBase
+from DriverBase import DriverBase
 
 class ThreadedDriver(Process):
 
@@ -19,7 +15,7 @@ class ThreadedDriver(Process):
     Ctor for a new driver thread
 
     :param driver: Instance of the driver we are "threadifying"
-    :param data: Manager controlled data object to handle all the different sensors in use
+    :param data: Manager created dictionary where sensors can populate values within
     """
     def __init__(self, driver: DriverBase, data):
         super().__init__()

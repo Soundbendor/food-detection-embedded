@@ -18,3 +18,4 @@ pyrealsense2==2.54.2.5684
 openai-whisper==20230124
 torchaudio==0.13.1
 adafruit-circuitpython-tlc59711==2.0.13
+boto3==1.33.13

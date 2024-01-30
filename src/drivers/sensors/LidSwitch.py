@@ -4,18 +4,16 @@ Will Richards, Oregon State University, 2023
 Provides a basic wrapper for reading values and triggering events upon the changes of a hall-effect sensor
 """
 
-from operator import truediv
-from drivers.DriverBase import DriverBase
 from multiprocessing import Event, Value
+import Jetson.GPIO as GPIO
 import logging
 
-import Jetson.GPIO as GPIO
+from drivers.DriverBase import DriverBase
 
 class LidSwitch(DriverBase):
     """
-    Driver base constructor takes in module name so we can make nice looking logs
+    Construct a new instance of the Lid Hall-effect switch
 
-    :param modName: Name of the module we are creating
     :param pin: What GPIO pin the hall-effect sensor is connected to
     """
     def __init__(self, pin = 12):
@@ -40,7 +38,7 @@ class LidSwitch(DriverBase):
         }
     
     """
-    Should be overloaded on all sub drivers so initialize can be called on all drivers at once
+    Initialize the pin mode required to read the data from the hall-effect sensor
     """
     def initialize(self):
         # Set the GPIO numbering to that of the board itself and then set the specified GPIO pin as an input
@@ -50,7 +48,7 @@ class LidSwitch(DriverBase):
         logging.info("Succsessfully configured hall effect sensor!")
     
     """
-    Should be overloaded on all sub drivers so initialize can be called on all drivers at once
+    Handles the triggering of events when the lid state changes and updates the Lid_State value in the complete dictionary
     """
     def measure(self):
         # Handle the changing state of the lid
@@ -60,7 +58,7 @@ class LidSwitch(DriverBase):
         self.data["Lid_State"].value = int(self.lidOpen)
     
     """
-    Handle the open and close events
+    Handle the open and close events of the lid
     """
     def handleEvents(self):
         currentReading = GPIO.input(self.selectedPin)

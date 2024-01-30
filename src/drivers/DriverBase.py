@@ -57,10 +57,11 @@ class DriverBase:
         pass
 
     """
-    Create and return a dictionary of the data that the specific sensor will be supplying
+    Create a specified dictionary of values to create keys for the values we will update
     """
     def createDataDict(self):
-        pass
+        self.data = {}
+        return self.data
 
     """
     Sets the length of each loop of the driver

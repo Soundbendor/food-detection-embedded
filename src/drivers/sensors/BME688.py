@@ -7,7 +7,7 @@ Abstraction layer for the BME688 gas sensor
 import bme680
 
 import logging
-from time import sleep, time
+from time import  time
 import os
 from ctypes import *
 
@@ -16,8 +16,11 @@ from drivers.DriverBase import DriverBase
 from multiprocessing import Event, Value
 
 class BME688(DriverBase):
+
     """
     Basic constructor for the BME688
+
+    :param i2c_address: The given I2C address this device is registered with
     """
     def __init__(self, i2c_address = 0x77):
         super().__init__("BME688")
@@ -38,7 +41,7 @@ class BME688(DriverBase):
 
 
     """
-    Initialize the NAU7802 to begin taking sensor readings
+    Initialize the BME688 to begin taking sensor readings
     """
     def initialize(self):
         # Set oversampling amounts
@@ -58,15 +61,14 @@ class BME688(DriverBase):
        
 
     """
-    Measure and return the weight read from the load cell
+    Measure and store the readigns from the BME688 passing the gas resistance values through the Bosch BSEC library to compute equivelent CO2 and bVOC
     """
     def measure(self):
         try:
             if(self.sensor.get_sensor_data()):
                 ts = int(time()-self.startTime)
                 self.data["temperature(c)"].value = self.sensor.data.temperature
-                # Convert hectopascals to kilopascals
-                self.data["pressure(kpa)"].value = self.sensor.data.pressure * 0.1
+                self.data["pressure(kpa)"].value = self.sensor.data.pressure * 0.1  # Convert hectopascals to kilopascals
                 self.data["humidity(%rh)"].value = self.sensor.data.humidity
 
                 # Only measure the gas if the measurement is ready
@@ -86,7 +88,6 @@ class BME688(DriverBase):
                 
         except Exception as e:
             logging.error(f"The following error occured while attempting to read data: {e}")
-        
         
     
     """

@@ -9,7 +9,6 @@ import time
 import os
 
 from drivers.DriverManager import DriverManager
-from drivers.sensors.LEDDriver import LEDDriver
 
 # Sensor Drivers
 from drivers.sensors.NAU7802 import NAU7802
@@ -18,18 +17,22 @@ from drivers.sensors.BME688 import BME688
 from drivers.sensors.MLX90640 import MLX90640
 from drivers.sensors.LidSwitch import LidSwitch
 from drivers.sensors.LEDDriver import LEDDriver
-
 from drivers.sensors.SoundController import SoundController
 
 # Additional Helper Methods
-from helpers import Logging, CalibrationLoader
+from helpers import Logging, CalibrationLoader, RequestHandler
 
 
 class MainController():
+
+    """
+    Create a new instance of our main controlller
+    """
     def __init__(self) -> None:
         logger = Logging(__file__, verbose=True)
         calibration = CalibrationLoader("CalibrationDetails.json")
-
+        self.requests = RequestHandler()
+ 
         if not os.path.exists("../data/"):
             os.mkdir("../data/")
 
@@ -44,15 +47,16 @@ class MainController():
     def handleCallbacks(self):
         # Check the state of the LidSwitch
         if(self.manager.getEvent("LidSwitch.LID_CLOSED")):
-            self.collectData()
+            self.collectData(triggeredByLid=True)
             self.manager.clearEvent("LidSwitch.LID_CLOSED")
+  
 
     """
     Collect a sample from all of the sensors on the device
 
-    :param manager: Takes the DriverManager as a paramter so we can request events and what not
+    :param triggeredByLid: Whether or not our current sample was triggered by the lid opening or just the "cron job"
     """
-    def collectData(self) -> bool:
+    def collectData(self, triggeredByLid=True) -> bool:
         # We want to tell the "cameras" we would like to capture the latest frames
         self.manager.setEvent("LEDDriver.CAMERA")
         self.manager.setEvent("Realsense.CAPTURE")
@@ -63,22 +67,32 @@ class MainController():
         while self.manager.getEvent("Realsense.CAPTURE") or self.manager.getEvent("MLX90640.CAPTURE"):
             time.sleep(0.2)
 
-        self.manager.setEvent("LEDDriver.PROCCESSING")
-        self.manager.setEvent("SoundController.RECORD")
-        while self.manager.getEvent("SoundController.RECORD"):
-            time.sleep(0.2)
-        
-        # Add the transcribed text into the JSON document, only update if value was returned
-        transcription = self.mainControllerConnection.recv()
-        if len(transcription) > 1:
-            self.manager.getData()["SoundController"]["data"]["TranscribedText"] = transcription
+        # Set the light to yellow before recording the 
+        self.manager.setEvent("LEDDriver.PROCESSING")
+
+        # If we actaully want to prompt for entry or it is part of the "cron job"
+        if(triggeredByLid):
+            self.manager.setEvent("SoundController.RECORD")
+            while self.manager.getEvent("SoundController.RECORD"):
+                time.sleep(0.2)
+            
+            # Add the transcribed text into the JSON document, only update if value was returned
+            transcription = self.mainControllerConnection.recv()
+            if len(transcription) > 1:
+                self.manager.getData()["SoundController"]["data"]["TranscribedText"] = transcription
 
         print(self.manager.getJSON())
+
+        # Upload the current files in our data folder to S3 and send the API request
+        self.requests.sendAPIRequest("Test", self.manager.getJSON())
 
         # After we have sent all the stuff and are done, set the leds to green for a few seconds and then turn them off
         self.manager.setEvent("LEDDriver.DONE")
         time.sleep(5)
         self.manager.setEvent("LEDDriver.NONE")
 
+    """
+    Shutdown device connected via the DriverManager
+    """
     def kill(self):
         self.manager.kill()

@@ -5,10 +5,8 @@ Abstraction layer for the MLX90640
 """
 
 from mlx90640 import MLX90640 as mlx90640
-from drivers.DriverBase import DriverBase
+from multiprocessing import Event
 import logging
-
-import sys
 import cv2
 import numpy as np
 from scipy import ndimage
@@ -16,8 +14,11 @@ from datetime import datetime
 from enum import Enum
 import cmapy
 
-from multiprocessing import Event
+from drivers.DriverBase import DriverBase
 
+"""
+Enum to map readable camera refresh rates to there integer values
+"""
 class CameraRefreshRate(Enum):
     RATE_05 = 0x00,
     RATE_1 = 0x01,
@@ -27,7 +28,6 @@ class CameraRefreshRate(Enum):
     RATE_16 = 0x05,
     RATE_32 = 0x06,
     RATE_64 = 0x07
-
 
 
 """
@@ -74,6 +74,8 @@ class ThermalCam():
     Capture the current readings from the MLX90640
     """
     def _captureRaw(self):
+
+        # Hardcoded values, we don't really care about a super accurate heatmap
         emissivity = 0.95
         ta = 23.15
 
@@ -112,7 +114,7 @@ class ThermalCam():
     Take several captures before the actual one so the sensor has data to average
     """
     def _preloadImage(self):
-        for i in range(5):
+        for _ in range(5):
             self._captureRaw()
 
     """
@@ -122,8 +124,7 @@ class ThermalCam():
         self._preloadImage()
         heats = self._captureRaw()
         heatmap = self._createHeatmap(heats)
-        fileName = "../data/heatmap.jpg"
-        cv2.imwrite(fileName, heatmap)
+        cv2.imwrite("../data/heatmap.jpg", heatmap)
         logging.info("Succsessfully captured heatmap")
         
 
@@ -132,15 +133,6 @@ class ThermalCam():
     """
     def close(self):
         self.mlx.i2c_tear_down()
-
-    """
-    Get filename safe string of the current time
-
-    :return: Filename safe stringified time
-    """
-    def _stringifyTime(self) -> str:
-        currentTime = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-        return currentTime
         
 
 class MLX90640(DriverBase):
@@ -155,22 +147,24 @@ class MLX90640(DriverBase):
             "CAPTURE": Event()
         }
 
+    """
+    Initialzize a new instance of our "thermal camera"
+    """
     def initialize(self):
-
-        # Capture 5 raw packets to warm up the sensor so the first image is a full heatmap
-        for i in range(5):
-            self.mlx._captureRaw()
+        logging.info("Succsessfully initialized!")
     
+    """
+    If a measurement is requested in the form of the CAPTURE event then capture a new image from the camera
+    """
     def measure(self) -> None:
         if(self.getEvent("CAPTURE").is_set()):
             self.mlx.capture()
             self.getEvent("CAPTURE").clear()
 
+    """
+    Clean up hardware for shutdown
+    """
     def kill(self):
         self.mlx.close()
-
-    def createDataDict(self):
-        self.data = {}
-        return self.data
 
         

@@ -15,6 +15,12 @@ from multiprocessing.sharedctypes import SynchronizedArray, Synchronized
 from multiprocessing.synchronize import Event
 
 class DriverManager():
+
+    """
+    Create a new instance of our DriverManager to control all of the subproccess threads
+
+    :param sensors: A list of as many sensors as we want to use on our current device
+    """
     def __init__(self, *sensors: DriverBase):
         # Store a list of sensors, spawned sensor proccesses and a data dictionary to store our data
         self.sensors = list(sensors)
@@ -23,7 +29,8 @@ class DriverManager():
         self.timeTriggers = {}
     
         # Loop over all sensors we are using and "threadify" them
-        for sensor in self.sensors:            
+        for sensor in self.sensors:       
+
             # Format a new sensor objecti in the dectionary
             self._formatNewSensor(sensor)
             
@@ -35,12 +42,7 @@ class DriverManager():
             logging.debug(f"{sensor.moduleName} proccess started with pid: {proccess.pid}")
             self.proccessList.append(proccess)
            
-        
         self.createJSONFormattedDict()
-    
-    """Log the most recent packet"""
-    def displayData(self):
-        logging.info(json.dumps(self.getJSON(), indent=4))
        
 
     """
@@ -56,37 +58,45 @@ class DriverManager():
             # Set the call back for the specific event
             self.data[splitName[0]]["events"][splitName[1]][1] = callback
         except KeyError:
-            logging.error("Specified event/sensor doesn't exist!")
+            logging.error(f"Specified event/sensor doesn't exist: {event}")
     
     """
     Set an event on a given sub-module
+
+    :param event: The event we want to set in the form of ModuleName.EventName
     """
     def setEvent(self, event):
         try:
             splitName = event.split(".")
             self.data[splitName[0]]["events"][splitName[1]][0].set()
         except KeyError:
-            logging.error("Specified event/sensor doesn't exist!")
+            logging.error(f"Specified event/sensor doesn't exist: {event}")
 
     """
     Get an event on a given sub-module
+
+    :param event: The event we want to get in the form of ModuleName.EventName
     """
     def getEvent(self, event):
         try:
             splitName = event.split(".")
             return self.data[splitName[0]]["events"][splitName[1]][0].is_set()
         except KeyError:
-            logging.error("Specified event/sensor doesn't exist!")
+            logging.error(f"Specified event/sensor doesn't exist: {event}")
 
     """
     Clear an event on a given sub-module
+
+    :param event: The event we want to clear in the form of ModuleName.EventName
     """
     def clearEvent(self, event):
         try:
             splitName = event.split(".")
             return self.data[splitName[0]]["events"][splitName[1]][0].clear()
         except KeyError:
-            logging.error("Specified event/sensor doesn't exist!")
+            logging.error(f"Specified event/sensor doesn't exist: {event}")
+
+    
     """
     Check what callbacks need to be called per loop, and execute them as needed
     """
@@ -105,29 +115,6 @@ class DriverManager():
     """
     def getData(self) -> dict:
         return self.data
-    
-    """
-    Have the manager trigger events every set amount of time in the loop
-
-    :param seconds: At what second intervals you want certain functions to be called at
-    :param callback: The function to call when the interval is met
-    :param timeStep: At what interval these functions are called
-    """
-    def triggerEvery(self, seconds: float, name, callback):
-        currentTime = time() 
-        # If the event hasn't already been registerd register it
-        if(name not in self.timeTriggers):
-            self.timeTriggers[name] = {"CurrentValue": currentTime, "TargetValue": currentTime+seconds}
-
-        # If we have already registered the event then update the current value and then check if we are at the target value then call the function if so
-        else:
-            self.timeTriggers[name]["CurrentValue"] = currentTime
-            if(self.timeTriggers[name]["CurrentValue"] >= self.timeTriggers[name]["TargetValue"]):
-                self.timeTriggers[name]["CurrentValue"] = currentTime
-                self.timeTriggers[name]["TargetValue"] = currentTime + seconds
-                callback()
-
-
     
     """
     Create the initial JSON dictionary so that we can just update values later
@@ -160,17 +147,17 @@ class DriverManager():
         originalData = self.getData()
 
         # Update the data values for each sensor
-        for key, value in originalData.items():
-            for dataKey, value in self.jsonDict[key]["data"].items():
+        for key, _ in originalData.items():
+            for dataKey, _ in self.jsonDict[key]["data"].items():
                     if type(originalData[key]["data"][dataKey]) == Synchronized:
                         self.jsonDict[key]["data"][dataKey] = originalData[key]["data"][dataKey].value
                     else:
                         self.jsonDict[key]["data"][dataKey] = originalData[key]["data"][dataKey]
         
         
-        # Update teh events for each sensor
-        for key, value in originalData.items():
-            for eventKey, value in self.jsonDict[key]["events"].items():
+        # Update the events for each sensor
+        for key, _ in originalData.items():
+            for eventKey, _ in self.jsonDict[key]["events"].items():
                     self.jsonDict[key]["events"][eventKey][0] = originalData[key]["events"][eventKey][0].is_set()
 
                     if(originalData[key]["events"][eventKey][1] != None):
@@ -178,9 +165,9 @@ class DriverManager():
         return self.jsonDict
 
     """
-    Format the dictionary to add a new sensor
+    Format a new dictionary for the given sensor
 
-    :param sensor: The sensor we are formatting for
+    :param sensor: The sensor we are creating the dictionary for
     """
     def _formatNewSensor(self, sensor: DriverBase) -> None:
         self.data[sensor.moduleName] = {}

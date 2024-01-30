@@ -1,5 +1,5 @@
 """
-Will Richards, Oregon State University, 2023
+Will Richards, Oregon State University, 2024
 
 Provides a wrapper for the TCLC59711 SPI LED Driver
 """
@@ -10,8 +10,14 @@ from multiprocessing import Event
 import logging
 import adafruit_tlc59711
 import board
-import busio
 
+"""
+Device modes that the LED's are used to represent
+CAMERA - The camera is currently taking an image, solid white
+PROCCESSING - The bin is in the middle of computing results / taking measurements, Breathing yellow 
+DONE - The bin has finished taking readings and is now idle, green
+NONE - The device is currently idle, black
+"""
 class LEDMode(enum.Enum):
     CAMERA = 0,
     PROCESSING = 1,
@@ -20,11 +26,11 @@ class LEDMode(enum.Enum):
 
 
 class LEDDriver(DriverBase):
-    """
-    Driver base constructor takes in module name so we can make nice looking logs
 
-    :param modName: Name of the module we are creating
-    :param pin: What GPIO pin the hall-effect sensor is connected to
+    """
+    LED Driver constructor
+
+    :param pixel_count: The number of LED "pixels" that are connected to the controller
     """
     def __init__(self, pixel_count = 16):
         super().__init__("LEDDriver")
@@ -32,14 +38,6 @@ class LEDDriver(DriverBase):
         spi = board.SPI()
         self.pixels = adafruit_tlc59711.TLC59711(spi, pixel_count=pixel_count)
         self.mode = LEDMode.NONE
-
-        """
-            List of events that the sensor can raise, this sensor uses them to trigger different lighting conditions
-            CAMERA - Changes the current mode to camera, which is just white to take the picture
-            PROCESSING - Breathing yellow color
-            DONE - Solid Green
-            NONE - LEDs are off
-        """
         self.events = {
             "CAMERA": Event(),
             "PROCESSING": Event(),
@@ -48,14 +46,14 @@ class LEDDriver(DriverBase):
         }
     
     """
-    Should be overloaded on all sub drivers so initialize can be called on all drivers at once
+    This doesn't do anything other than tell us the driver has been initialized succsessfully
     """
     def initialize(self):
         # Set the GPIO numbering to that of the board itself and then set the specified GPIO pin as an input
         logging.info("Succsessfully configured LED Driver!")
     
     """
-    Should be overloaded on all sub drivers so initialize can be called on all drivers at once
+    Updates the LED's based on the given device mode
     """
     def measure(self):
         self.handleEvents()
@@ -115,9 +113,4 @@ class LEDDriver(DriverBase):
     def noneMode(self):
         self.pixels.set_all_black()
 
-    """
-    Create a specified dictionary of values to create keys for the values we will update
-    """
-    def createDataDict(self):
-        self.data = {}
-        return self.data
+   

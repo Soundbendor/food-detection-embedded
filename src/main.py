@@ -22,12 +22,12 @@ def main():
     timeHelper = TimeHelper()
     controller = MainController()
     
-    # Register a callback for when the lid is closed so we can sample our data
+    # Register a callback for when the lid is closed so we can sample our data00000000
     while(True):
         try:
             controller.handleCallbacks()
             if timeHelper.twoHourInterval():
-                controller.collectData()
+                controller.collectData(triggeredByLid=False)
 
             sleep(0.001)
            

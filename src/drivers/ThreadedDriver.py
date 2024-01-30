@@ -7,7 +7,7 @@ Provides a genric wrapper for converting generic drivers into its own driver pro
 from multiprocessing import Process
 from time import sleep
 
-from DriverBase import DriverBase
+from drivers.DriverBase import DriverBase
 
 class ThreadedDriver(Process):
 
@@ -35,7 +35,7 @@ class ThreadedDriver(Process):
                 
         except KeyboardInterrupt:
             self.kill()
-        
+
     """
     Kill the proccess, doesn't do anything special right now but might eventually
     """

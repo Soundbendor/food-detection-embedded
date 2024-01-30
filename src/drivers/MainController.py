@@ -38,8 +38,18 @@ class MainController():
 
         # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers
         self.mainControllerConnection, soundControllerConnection = multiprocessing.Pipe()
-        self.manager = DriverManager(NAU7802(calibration.get("NAU7802_CALIBRATION_FACTOR")), BME688(), MLX90640(), LidSwitch(), RealsenseCam(), SoundController(soundControllerConnection), LEDDriver())
+        self.manager = DriverManager(LEDDriver(), NAU7802(calibration.get("NAU7802_CALIBRATION_FACTOR")), BME688(), MLX90640(), LidSwitch(), RealsenseCam(), SoundController(soundControllerConnection))
         
+        # After we have initialzied all the proccesses we want to flash green to signifiy we are done
+        if self.manager.allProcsInitialized:
+            self.manager.setEvent("LEDDriver.DONE")
+            time.sleep(2)
+            self.manager.setEvent("LEDDriver.NONE")
+        else:
+            self.manager.setEvent("LEDDriver.ERROR")
+            time.sleep(2)
+            self.manager.setEvent("LEDDriver.NONE")
+
 
     """
     Handles events that need to be checked quickly in the main loop
@@ -84,11 +94,11 @@ class MainController():
         print(self.manager.getJSON())
 
         # Upload the current files in our data folder to S3 and send the API request
-        self.requests.sendAPIRequest("Test", self.manager.getJSON())
+        self.requests.sendAPIRequest(self.manager.getJSON())
 
         # After we have sent all the stuff and are done, set the leds to green for a few seconds and then turn them off
         self.manager.setEvent("LEDDriver.DONE")
-        time.sleep(5)
+        time.sleep(2)
         self.manager.setEvent("LEDDriver.NONE")
 
     """

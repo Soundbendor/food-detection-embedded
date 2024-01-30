@@ -1,18 +1,17 @@
 """
 Will Richards, Oregon State University, 2023
 
+Proccess manager for each of our subsensor proccesses
 """
 
-import multiprocessing
-from .DriverBase import DriverBase
-from .ThreadedDriver import ThreadedDriver
-from multiprocessing import Value, Array
-import logging
-import json
-from time import time
 
-from multiprocessing.sharedctypes import SynchronizedArray, Synchronized
-from multiprocessing.synchronize import Event
+import logging
+from time import time, sleep
+from multiprocessing.sharedctypes import Synchronized
+from multiprocessing import Pipe
+
+from drivers.DriverBase import DriverBase
+from drivers.ThreadedDriver import ThreadedDriver
 
 class DriverManager():
 
@@ -23,10 +22,12 @@ class DriverManager():
     """
     def __init__(self, *sensors: DriverBase):
         # Store a list of sensors, spawned sensor proccesses and a data dictionary to store our data
-        self.sensors = list(sensors)
-        self.proccessList = []
+        self.sensors: list[DriverBase] = list(sensors)
+        self.proccessList: list[ThreadedDriver] = []
         self.data = {}
         self.timeTriggers = {}
+
+        logging.info("Waiting for proccesses to initialize...")
     
         # Loop over all sensors we are using and "threadify" them
         for sensor in self.sensors:       
@@ -39,9 +40,38 @@ class DriverManager():
 
             # Start the proccess
             proccess.start()
-            logging.debug(f"{sensor.moduleName} proccess started with pid: {proccess.pid}")
+            logging.info(f"{sensor.moduleName} proccess started with pid: {proccess.pid}")
             self.proccessList.append(proccess)
-           
+
+        # Check if all of our proccesses have been initialized
+        self.allProcsInitialized = False
+        startTime = time()
+        while (not self.allProcsInitialized) and (startTime+25) > time():
+            allInit = True
+            for proccess in self.proccessList:
+                if proccess.data["initialized"].value != 1:
+                    allInit = False
+                    break
+
+            if allInit:
+                self.allProcsInitialized = True
+                break
+            sleep(0.3)
+
+        # If not all initailized tell us which ones
+        if not self.allProcsInitialized:
+            output = "The following proccesses failed to initialize:\n"
+            for proccess in self.proccessList:
+                if proccess.data["initialized"].value != 1:
+                    output += f"\t{proccess.driver.moduleName}\n"
+            logging.error(output)
+        else:
+            logging.info("All proccesses initialized succssessfully")
+
+            
+            
+
+
         self.createJSONFormattedDict()
        
 

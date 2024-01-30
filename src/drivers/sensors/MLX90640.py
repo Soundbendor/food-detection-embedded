@@ -152,6 +152,7 @@ class MLX90640(DriverBase):
     """
     def initialize(self):
         logging.info("Succsessfully initialized!")
+        self.data["initialized"].value = 1
     
     """
     If a measurement is requested in the form of the CAPTURE event then capture a new image from the camera

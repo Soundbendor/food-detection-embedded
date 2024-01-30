@@ -46,6 +46,7 @@ class LidSwitch(DriverBase):
         GPIO.setmode(GPIO.TEGRA_SOC)
         GPIO.setup(self.selectedPin, GPIO.IN)
         logging.info("Succsessfully configured hall effect sensor!")
+        self.data["initialized"].value = 1
     
     """
     Handles the triggering of events when the lid state changes and updates the Lid_State value in the complete dictionary
@@ -83,5 +84,6 @@ class LidSwitch(DriverBase):
     def createDataDict(self):
         self.data = {
             "Lid_State": Value('i', 0),
+            "initialized": Value('i', 0)
         }
         return self.data

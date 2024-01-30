@@ -4,11 +4,9 @@ Will Richards, Oregon State University, 2023
 Wrapper for Microphone and Audio output to be threadified to avoid truly blocking the main thread
 """
 
-from multiprocessing import Event
+from multiprocessing import Event, Value
 import subprocess
 import os
-from time import sleep
-import pyaudio
 
 from drivers.DriverBase import DriverBase
 from drivers.sensors.Microphone import Microphone
@@ -44,6 +42,8 @@ class SoundController(DriverBase):
         self.muteMic()
         self.muteSpeaker()
         self.microphone.initialize()
+        self.initialized = True
+        self.data["initialized"].value = 1
 
     """
     Mute the speaker attatched to the waveshare adapter
@@ -80,7 +80,7 @@ class SoundController(DriverBase):
         if(self.events["RECORD"][0].is_set()):
             # NOTE: We must mute and unmute the speaker and micophpone channels otherwise the cause huge amounts of deafening feedback
             self.unmuteSpeaker()
-            self.speaker.playClip("itemRequestAudio.wav")
+            self.speaker.playClip("../media/itemRequestAudio.wav")
             self.muteSpeaker()
 
             # If we heard silence then we want to prompt the user to say something again 
@@ -98,7 +98,7 @@ class SoundController(DriverBase):
                     self.soundControllerConnection.send(recordingResult)
                 else:
                     self.unmuteSpeaker()
-                    self.speaker.playClip("didntCatch.wav")
+                    self.speaker.playClip("../media/didntCatch.wav")
                     self.muteSpeaker()
             self.events["RECORD"][0].clear()
         
@@ -113,4 +113,8 @@ class SoundController(DriverBase):
     Add TranscribedText to our data dictionary that will be populated by the main thread
     """
     def createDataDict(self):
-        return {"TranscribedText": ""}
+        self.data = {
+                "TranscribedText": "",
+                "initialized": Value('i', 0)
+            }
+        return self.data

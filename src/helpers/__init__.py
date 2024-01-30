@@ -1,13 +1,18 @@
+import warnings
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore",category=DeprecationWarning)
+    import boto3
 
 import logging
 import sys
 import os
 import json
 from time import time, gmtime, strftime
-import boto3
+
 import glob
 import uuid
 import requests
+
 
 TWO_HOURS_SECONDS = 7200
 #TWO_HOURS_SECONDS = 20
@@ -82,11 +87,10 @@ class CalibrationLoader():
 Handles requests to remote APIs (S3 and FastAPI)
 """
 class RequestHandler():
-    def __init__(self, secret_file="config.secret", api_endpoint="http://ec2-54-214-80-154.us-west-2.compute.amazonaws.com"):
+    def __init__(self, secret_file="config.secret"):
         self.awsCreds = self.loadAWSCredentials(secret_file)
-        self.apiKey = self.loadFastAPICredentials(secret_file)
+        self.apiKey, self.endpoint = self.loadFastAPICredentials(secret_file)
         self.s3 = boto3.client("s3", aws_access_key_id=self.awsCreds[0], aws_secret_access_key=self.awsCreds[1], region_name=self.awsCreds[2])
-        self.endpoint = api_endpoint
     
     """
     Upload the most recent files in the 'data' folder to S3
@@ -119,7 +123,7 @@ class RequestHandler():
             self.s3.upload_file(file, self.awsCreds[3], formattedName)
             
             # Create the URL where this file will now be located at
-            uploadUrl = f"https://{self.awsCreds[3]}.s3.{self.creds[2]}.amazonaws.com/{formattedName}"
+            uploadUrl = f"https://{self.awsCreds[3]}.s3.{self.awsCreds[2]}.amazonaws.com/{formattedName}"
 
             # Set the URL to the matching file in the dictionary
             imageLocations[file_name[0]] = uploadUrl
@@ -158,8 +162,8 @@ class RequestHandler():
         # API Request
         headers = {
             "accept": "application/json",
-            "token": self.apiKey,
-            "Content-Type": "multipart/form-data"
+            "X-API-Key": self.apiKey,
+            "Content-Type": "application/x-www-form-urlencoded"
         }
 
         payload = {
@@ -171,16 +175,21 @@ class RequestHandler():
             "weight": data["NAU7802"]["data"]["weight"],
             "temperature": data["BME688"]["data"]["temperature(c)"],
             "pressure": data["BME688"]["data"]["pressure(kpa)"],
-            "humdity": data["BME688"]["data"]["humidity(%rh)"],
+            "humidity": data["BME688"]["data"]["humidity(%rh)"],
             "iaq": data["BME688"]["data"]["iaq"],
-            "co2-eq": data["BME688"]["data"]["CO2-eq"],
-            "bVOC-eq": data["BME688"]["data"]["bVOC-eq"],
+            "co2_eq": data["BME688"]["data"]["CO2-eq"],
+            "bvoc_eq": data["BME688"]["data"]["bVOC-eq"],
             "transcription": data["SoundController"]["data"]["TranscribedText"]
         }
 
-        response = requests.post(endpoint, headers=headers, data=payload)
-        print(response.json())
-        # TODO: Return true or false depedning on return state
+        response = requests.post(endpoint, headers=headers, data=payload).json()
+
+        if('status' in response and response["status"] == True):
+            logging.info("Data successfully uploaded!")
+        else:
+            logging.error("Failed to upload data to API.")
+            
+        
 
     """
     Load our AWS secret credentials in from a file
@@ -202,4 +211,4 @@ class RequestHandler():
         secretFile = open(file, 'r')
         credsJson = json.load(secretFile)
         secretFile.close()
-        return credsJson["FASTAPI_CREDS"]["apiKey"]
+        return (credsJson["FASTAPI_CREDS"]["apiKey"], credsJson["FASTAPI_CREDS"]["endpoint"])

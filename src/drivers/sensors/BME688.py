@@ -58,6 +58,8 @@ class BME688(DriverBase):
         self.sensor.set_gas_heater_duration(150)
         self.sensor.select_gas_heater_profile(0)
         logging.info("Initialization complete!")
+        self.initialized = True
+        self.data["initialized"].value = 1
        
 
     """
@@ -102,7 +104,8 @@ class BME688(DriverBase):
             "iaq": Value('d', 0.0),
             "sIAQ": Value('d', 0.0),
             "CO2-eq": Value('d', 0.0),
-            "bVOC-eq": Value('d', 0.0)
+            "bVOC-eq": Value('d', 0.0),
+            "initialized": Value('i', 0)
         }
         return self.data
     

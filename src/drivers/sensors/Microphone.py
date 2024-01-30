@@ -33,7 +33,6 @@ class Microphone():
         self.record_duration = record_duration
 
         self.pAudio = pyaudio.PyAudio()
-        self.initialized = True
 
         # Load the silero-vad Voice Activation Model to reduce overall inference time by ignoring audio with no voice in it
         self.model, utils = torch.hub.load(repo_or_dir='snakers4/silero-vad',model='silero_vad',force_reload=True,onnx=False)
@@ -44,12 +43,12 @@ class Microphone():
     Initialize the whisper model and warm it up by feeding 0s into it
     """
     def initialize(self):
-        if(self.initialized):
-            logging.info("Loading model...")
-            self.asrModel = whisper.load_model("base.en")
-            logging.info("Loading complete! Warming up model...")
-            whisper.transcribe(model=self.asrModel, audio=np.zeros(self.record_duration * self.downsample_rate, np.float32), fp16=False)
-            logging.info("Model has been warmed up! Ready for inference")
+        logging.info("Loading model...")
+        self.asrModel = whisper.load_model("base.en")
+        logging.info("Loading complete! Warming up model...")
+        whisper.transcribe(model=self.asrModel, audio=np.zeros(self.record_duration * self.downsample_rate, np.float32), fp16=False)
+        logging.info("Model has been warmed up! Ready for inference")
+        self.initialized = True
             
     """
     Write some audio data out to a .wav file
@@ -127,7 +126,7 @@ class Microphone():
     def detectSpeaking(self, inputFile, outputFile) -> bool:
         logging.info("Detecting speaking....")
         wav = self.read_audio(inputFile, sampling_rate=self.downsample_rate)
-        speech_timestamps = self.get_speech_timestamps(wav, self.model, sampling_rate=self.downsample_rate, speech_pad_ms=100)
+        speech_timestamps = self.get_speech_timestamps(wav, self.model, sampling_rate=self.downsample_rate, speech_pad_ms=500)
         if(len(speech_timestamps) > 0):
             self.save_audio(outputFile, self.collect_chunks(speech_timestamps, wav), sampling_rate=self.downsample_rate) 
             return True

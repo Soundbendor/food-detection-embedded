@@ -56,9 +56,11 @@ class RealsenseCam(DriverBase):
         except RuntimeError as e:
             logging.error(f"An Error occurred: {e}")
             self.initialized = False
+            return
 
-        if self.initialized:
-            logging.info("Successfully initialized realsense camera!")
+        logging.info("Successfully initialized realsense camera!")
+        self.initialized = True
+        self.data["initialized"].value = 1
 
     """
     Check if the CAPTURE event was triggered this cycle and if so we want to collect our depthImage, colorImage and .ply depth file

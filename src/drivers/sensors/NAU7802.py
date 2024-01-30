@@ -57,6 +57,8 @@ class NAU7802(DriverBase):
         self.tareScale()
 
         self.nau.setCalibrationFactor(self.calFactor)
+        self.initialized = True
+        self.data["initialized"].value = 1
        
 
     """
@@ -121,6 +123,7 @@ class NAU7802(DriverBase):
     """
     def createDataDict(self):
         self.data = {
-            "weight": Value('d', 0.0)
+            "weight": Value('d', 0.0),
+            "initialized": Value('i', 0)
         }
         return self.data

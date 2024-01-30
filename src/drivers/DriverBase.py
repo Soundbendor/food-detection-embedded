@@ -4,7 +4,7 @@ Will Richards, Oregon State University, 2023
 Provides a unified parent class that all sensor drivers can inherit from
 """
 
-from multiprocessing import Event
+from multiprocessing import Event, Value
 
 class DriverBase:
     """
@@ -18,7 +18,7 @@ class DriverBase:
 
         # The rate at which the thread this driver is running in will loop
         self.loopTime = 0.001
-        self.initialized = True
+        self.initialized = False
     
     """
     Should be overloaded on all sub drivers so initialize can be called on all drivers at once
@@ -60,7 +60,9 @@ class DriverBase:
     Create a specified dictionary of values to create keys for the values we will update
     """
     def createDataDict(self):
-        self.data = {}
+        self.data = {
+            "initialized": Value('i', 0)
+        }
         return self.data
 
     """

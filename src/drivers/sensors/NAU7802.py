@@ -37,7 +37,8 @@ class NAU7802(DriverBase):
 
         # List of events that the sensor can raise
         self.events = {
-            "WEIGHT_CHANGE": Event()
+            "WEIGHT_CHANGE": Event(),
+            "CALIBRATE": Event()
         }
 
         
@@ -65,20 +66,24 @@ class NAU7802(DriverBase):
     Measure and return the weight read from the load cell
     """
     def measure(self):
-        logging.debug("Measuring...")
-        self.lastWeight = self.collectedData
+        if not self.getEvent("CALIBRATE").is_set():
+            logging.debug("Measuring...")
+            self.lastWeight = self.collectedData
 
-        # Average 100 samples to get a fairly accurate reading
-        data = []
-        for i in range(4):
-            data.append(self.nau.getWeight(True, 25))
-        
-        self.collectedData = sum(data)/len(data)
-        data.clear()
+            # Average 100 samples to get a fairly accurate reading
+            data = []
+            for i in range(4):
+                data.append(self.nau.getWeight(True, 25))
+            
+            self.collectedData = sum(data)/len(data)
+            data.clear()
 
-        # This will determine wether or not the event has occured in this cycle or not
-        #self.determineEventState()
-        self.data["weight"].value = self.collectedData
+            # This will determine wether or not the event has occured in this cycle or not
+            #self.determineEventState()
+            self.data["weight"].value = self.collectedData
+        else:
+            self.calibrate()
+            self.getEvent("CALIBRATE").clear()
 
 
     """
@@ -91,7 +96,7 @@ class NAU7802(DriverBase):
         self.tareScale()
 
         # Prompt the user for the mass of a known object in grams
-        mass = int(input("Mass of calibration weight (grams): "))
+        mass = 50
         logging.info("Waiting 10 seconds for weight to be put on scale")
         time.sleep(10)
 
@@ -124,6 +129,7 @@ class NAU7802(DriverBase):
     def createDataDict(self):
         self.data = {
             "weight": Value('d', 0.0),
+            "weight_delta": Value('d', 0.0),
             "initialized": Value('i', 0)
         }
         return self.data

@@ -156,34 +156,35 @@ class RequestHandler():
     :param data: The complete JSON data packet 
     """
     def sendAPIRequest(self, data: dict):
-        endpoint = self.endpoint + "/api/model/detect"
+        endpoint = self.endpoint + "/api/scan"
         s3Locations = self.uploadS3()
         
         # API Request
         headers = {
             "accept": "application/json",
-            "X-API-Key": self.apiKey,
-            "Content-Type": "application/x-www-form-urlencoded"
+            "token": self.apiKey,
+            "Content-Type": "application/json"
         }
 
         payload = {
-            "colorImageLink": s3Locations["colorImage"],
-            "depthImageLink": s3Locations["depthImage"],
-            "heatmapImageLink": s3Locations["heatmap"],
-            "depthFileLink": s3Locations["depth"],
-            "downsampledAudioLink": s3Locations["downsampledAudio"],
-            "weight": data["NAU7802"]["data"]["weight"],
-            "temperature": data["BME688"]["data"]["temperature(c)"],
-            "pressure": data["BME688"]["data"]["pressure(kpa)"],
-            "humidity": data["BME688"]["data"]["humidity(%rh)"],
-            "iaq": data["BME688"]["data"]["iaq"],
-            "co2_eq": data["BME688"]["data"]["CO2-eq"],
-            "bvoc_eq": data["BME688"]["data"]["bVOC-eq"],
-            "transcription": data["SoundController"]["data"]["TranscribedText"]
+            "colorImage": str(s3Locations["colorImage"]),
+            "depthImage": str(s3Locations["depthImage"]),
+            "heatmapImage": str(s3Locations["heatmap"]),
+            "topologyMap": str(s3Locations["depth"]),
+            "voiceRecording": str(s3Locations["downsampledAudio"]),
+            "total_weight": float(data["NAU7802"]["data"]["weight"]),
+            "weight_delta": float(data["NAU7802"]["data"]["weight_delta"]),
+            "temperature": float(data["BME688"]["data"]["temperature(c)"]),
+            "pressure": float(data["BME688"]["data"]["pressure(kpa)"]),
+            "humidity": float(data["BME688"]["data"]["humidity(%rh)"]),
+            "iaq": float(data["BME688"]["data"]["iaq"]),
+            "co2_eq": float(data["BME688"]["data"]["CO2-eq"]),
+            "tvoc": float(data["BME688"]["data"]["bVOC-eq"]),
+            "transcription": str(data["SoundController"]["data"]["TranscribedText"]),
+            "userTrigger": bool(data["DriverManager"]["data"]["userTrigger"])
         }
 
-        response = requests.post(endpoint, headers=headers, data=payload).json()
-
+        response = requests.post(endpoint, headers=headers, json=payload).json()
         if('status' in response and response["status"] == True):
             logging.info("Data successfully uploaded!")
         else:

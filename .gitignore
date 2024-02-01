@@ -4,8 +4,6 @@ venv/
 .env
 logs
 .vscode/
-BSEC/algo/
-images/
 
 # Various temp. file types
 Authentication_details.txt

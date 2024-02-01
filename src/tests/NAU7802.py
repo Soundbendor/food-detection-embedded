@@ -4,7 +4,7 @@ Will Richards, Oregon State University, 2023
 
 Provides a basic runnable test to check functionality of NAU7802
 """
-from ..drivers.NAU7802 import NAU7802
+from drivers.sensors.NAU7802 import NAU7802
 
 import os
 import logging
@@ -14,7 +14,8 @@ CALIBRATION_FACTOR = -135.4875
 
 def main():
     # Create a new sensor, using the defaults is fine here
-    nau = NAU7802(CALIBRATION_FACTOR)
+    #nau = NAU7802(CALIBRATION_FACTOR)
+    nau = NAU7802()
 
     # Initialize the sensor and conduct a measurement
     nau.initialize()

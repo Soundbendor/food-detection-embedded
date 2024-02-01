@@ -68,9 +68,10 @@ class DriverManager():
         else:
             logging.info("All proccesses initialized succssessfully")
 
-            
-            
-
+        self.data["DriverManager"] = {}
+        self.data["DriverManager"]["data"] = {}
+        self.data["DriverManager"]["data"]["userTrigger"] = False
+        self.data["DriverManager"]["events"] = {}
 
         self.createJSONFormattedDict()
        

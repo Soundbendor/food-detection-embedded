@@ -39,7 +39,7 @@ class MainController():
         # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers
         self.mainControllerConnection, soundControllerConnection = multiprocessing.Pipe()
         self.manager = DriverManager(LEDDriver(), NAU7802(calibration.get("NAU7802_CALIBRATION_FACTOR")), BME688(), MLX90640(), LidSwitch(), RealsenseCam(), SoundController(soundControllerConnection))
-        
+
         # After we have initialzied all the proccesses we want to flash green to signifiy we are done
         if self.manager.allProcsInitialized:
             self.manager.setEvent("LEDDriver.DONE")
@@ -50,6 +50,7 @@ class MainController():
             time.sleep(2)
             self.manager.setEvent("LEDDriver.NONE")
 
+        self.startingWeight = self.manager.getData()["NAU7802"]["data"]["weight"].value
 
     """
     Handles events that need to be checked quickly in the main loop
@@ -59,14 +60,22 @@ class MainController():
         if(self.manager.getEvent("LidSwitch.LID_CLOSED")):
             self.collectData(triggeredByLid=True)
             self.manager.clearEvent("LidSwitch.LID_CLOSED")
-  
 
+        # If the Lid is opened we want to record the current weight
+        elif(self.manager.getEvent("LidSwitch.LID_OPENED")):
+            self.startingWeight = self.manager.getData()["NAU7802"]["data"]["weight"].value
+            self.manager.clearEvent("LidSwitch.LID_OPENED")
+            
     """
     Collect a sample from all of the sensors on the device
 
     :param triggeredByLid: Whether or not our current sample was triggered by the lid opening or just the "cron job"
     """
     def collectData(self, triggeredByLid=True) -> bool:
+        # When collect data is called we want to set the trigger type
+        data = self.manager.getData()
+        data["DriverManager"]["data"]["userTrigger"] = triggeredByLid
+
         # We want to tell the "cameras" we would like to capture the latest frames
         self.manager.setEvent("LEDDriver.CAMERA")
         self.manager.setEvent("Realsense.CAPTURE")
@@ -90,6 +99,8 @@ class MainController():
             transcription = self.mainControllerConnection.recv()
             if len(transcription) > 1:
                 self.manager.getData()["SoundController"]["data"]["TranscribedText"] = transcription
+
+            data["NAU7802"]["data"]["weight_delta"].value = data["NAU7802"]["data"]["weight"].value - self.startingWeight
 
         print(self.manager.getJSON())
 

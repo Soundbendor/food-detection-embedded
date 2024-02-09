@@ -64,6 +64,17 @@ def get_wifi_locations():
             }
         elif wifi_points[ssid]["signal"] < int(signal):
             wifi_points[ssid]["signal"] = int(signal)
+    wifi_list = map(
+        lambda x: [x["ssid"], x["security"]. x["signal"]],
+        list(wifi_points.values())
+    )
+    # sort by signal strength
+    wifi_list = sorted(wifi_list, key=lambda x: x[2], reverse=True)
+    while True:
+        content = json.dumps(wifi_list).encode("utf-8")
+        if len(content) < 512:
+            break
+        wifi_list.pop()
     return wifi_points
 
 def check_wifi_status():

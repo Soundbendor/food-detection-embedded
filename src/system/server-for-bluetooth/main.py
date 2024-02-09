@@ -12,6 +12,8 @@ import signal
 import sys
 import traceback
 import time
+import re
+import threading
 
 uuid = "92f3fd29-7d60-167d-973b-fba35e49d4ea"
 loop = asyncio.get_event_loop()
@@ -44,6 +46,26 @@ def connect_to_wifi(ssid, password):
     print(process.stderr.decode("utf-8"))
     return response
 
+def get_wifi_locations():
+    wifi_points = {}
+    _, process = run_cmd(["nmcli", "device", "wifi", "list", "--rescan", "yes"])
+    raw_lines = process.stdout.decode("utf-8").splitlines()[1:]
+    for line in raw_lines:
+        regex = re.compile(
+            r"^(\*?)\s+(.+?)\s+(\w+)\s+(\d+)\s+(\d+\s+[\w/]+)\s+(\d+)\s+([^\s]+)\s+(.*?)\s*$"
+        )
+        match = regex.match(line)
+        _conn, ssid, _type, channel, speed, signal, _bars, security = match.groups()
+        if ssid not in wifi_points:
+            wifi_points[ssid] = {
+                "ssid": ssid,
+                "security": security,
+                "signal": int(signal)
+            }
+        elif wifi_points[ssid]["signal"] < int(signal):
+            wifi_points[ssid]["signal"] = int(signal)
+    return wifi_points
+
 def check_wifi_status():
     code, process = run_cmd(["iwgetid", "-r"])
     if code == 0:
@@ -74,11 +96,33 @@ def disconnect_from_wifi():
         "success": code == 0
     }
 
+base_id = 31415924535897932384626433832790
+
 class WifiSetupService(Service):
     def __init__(self):
         # Base 16 service UUID, This should be a primary service.
-        super().__init__("1849", True)
+        super().__init__(str(base_id), True)
         self.update_wifi_last_result = {"success": False, "message": "", "timestamp": 0}
+        self.update_wifi_list_last_result = []
+        self.update_wifi_loop = None
+        self.update_wifi_loop_count = 0
+
+    def wifi_scan_loop_thread(self):
+        while self.update_wifi_loop_count > 0:
+            self.update_wifi_list_last_result = get_wifi_locations()
+            self.update_wifi_loop_count -= 1
+            self.wifi_connection_measurement.changed(
+                json.dumps(self.update_wifi_list_last_result).encode("utf-8")
+            )
+            time.sleep(5)
+        self.update_wifi_loop = None
+
+    def start_wifi_scan_loop(self):
+        if self.update_wifi_loop is None:
+            t = threading.Thread(target=self.wifi_scan_loop_thread)
+            self.update_wifi_loop = t
+            self.update_wifi_loop_count = 5
+            t.start()
 
     def update_wifi_status(self):
         results = check_wifi_status()
@@ -87,12 +131,12 @@ class WifiSetupService(Service):
         self.wifi_connection_measurement.changed(data)
         return data
 
-    @characteristic("2AF9", CharFlags.NOTIFY | CharFlags.ENCRYPT_READ)
+    @characteristic(str(base_id + 1), CharFlags.NOTIFY | CharFlags.ENCRYPT_READ)
     def wifi_connection_measurement(self, _):
         print("WiFi Connection Read")
         return self.update_wifi_status()
 
-    @characteristic("2AB5", CharFlags.ENCRYPT_WRITE | CharFlags.NOTIFY | CharFlags.ENCRYPT_READ | CharFlags.WRITE_WITHOUT_RESPONSE)
+    @characteristic(str(base_id + 2), CharFlags.ENCRYPT_WRITE | CharFlags.NOTIFY | CharFlags.ENCRYPT_READ | CharFlags.WRITE_WITHOUT_RESPONSE)
     def set_wifi_args(self, _):
         print("WiFi Set Return Read")
         return json.dumps(self.update_wifi_last_result).encode("utf-8")
@@ -112,6 +156,12 @@ class WifiSetupService(Service):
             print(e)
         self.update_wifi_last_result = connect_to_wifi(ssid, password)
         return json.dumps(self.update_wifi_last_result).encode("utf-8")
+
+    @characteristic(str(base_id + 3), CharFlags.NOTIFY | CharFlags.ENCRYPT_READ)
+    def get_nearby_ssids(self, _):
+        self.update_wifi_list_last_result = get_wifi_locations()
+        self.start_wifi_scan_loop()
+        return json.dumps(self.update_wifi_list_last_result).encode("utf-8")
 
 async def main():
     bus = await get_message_bus()

@@ -11,6 +11,7 @@ import requests
 import signal
 import sys
 import traceback
+import time
 
 uuid = "92f3fd29-7d60-167d-973b-fba35e49d4ea"
 loop = asyncio.get_event_loop()
@@ -24,17 +25,23 @@ def run_cmd(cmd):
     return process.returncode, process
 
 def connect_to_wifi(ssid, password):
-    code, _ = run_cmd(["nmcli", "device", "wifi", "connect", ssid, "password", password])
+    code, process = run_cmd(["nmcli", "device", "wifi", "connect", ssid, "password", password])
     if code == 0:
         response = {
             "message": "Wi-Fi configuration successful",
-            "success": True
+            "success": True,
+            "timestamp": time.time()
         }
     else:
         response = {
             "message": "Wi-Fi configuration failed",
-            "success": False
+            "log": process.stderr.decode("utf-8"),
+            "success": False,
+            "timestamp": time.time()
         }
+    print(response)
+    print(process.stdout.decode("utf-8"))
+    print(process.stderr.decode("utf-8"))
     return response
 
 def check_wifi_status():
@@ -71,7 +78,7 @@ class WifiSetupService(Service):
     def __init__(self):
         # Base 16 service UUID, This should be a primary service.
         super().__init__("1849", True)
-        self.update_wifi_last_result = {"success": False, "message": ""}
+        self.update_wifi_last_result = {"success": False, "message": "", "timestamp": 0}
 
     def update_wifi_status(self):
         results = check_wifi_status()
@@ -85,7 +92,7 @@ class WifiSetupService(Service):
         print("WiFi Connection Read")
         return self.update_wifi_status()
 
-    @characteristic("2AB5", CharFlags.ENCRYPT_WRITE | CharFlags.NOTIFY | CharFlags.ENCRYPT_READ)
+    @characteristic("2AB5", CharFlags.ENCRYPT_WRITE | CharFlags.NOTIFY | CharFlags.ENCRYPT_READ | CharFlags.WRITE_WITHOUT_RESPONSE)
     def set_wifi_args(self, _):
         print("WiFi Set Return Read")
         return json.dumps(self.update_wifi_last_result).encode("utf-8")
@@ -99,9 +106,12 @@ class WifiSetupService(Service):
             data = json.loads(value.decode("utf-8"))
             ssid = data.get("ssid")
             password = data.get("password")
-        except:
-            pass
+            print("WIFI SET: Loading credentials from payload")
+            print(data)
+        except Exception as e:
+            print(e)
         self.update_wifi_last_result = connect_to_wifi(ssid, password)
+        return json.dumps(self.update_wifi_last_result).encode("utf-8")
 
 async def main():
     bus = await get_message_bus()

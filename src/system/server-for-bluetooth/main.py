@@ -75,7 +75,7 @@ def get_wifi_locations():
         if len(content) < 512:
             break
         wifi_list.pop()
-    return wifi_points
+    return wifi_list
 
 def check_wifi_status():
     code, process = run_cmd(["iwgetid", "-r"])

@@ -115,17 +115,13 @@ class WifiSetupService(Service):
         super().__init__(str(base_id), True)
         self.update_wifi_last_result = {"success": False, "message": "", "timestamp": 0}
         self.update_wifi_list_last_result = get_wifi_locations()
-        wifi_scan_thread = threading.Thread(target=self.wifi_scan_loop, daemon=True)
-        wifi_scan_thread.start()
 
-    def wifi_scan_loop(self):
-        while True:
-            self.update_wifi_list_last_result = get_wifi_locations()
-            print("Updated WiFi List", self.update_wifi_list_last_result)
-            self.wifi_connection_measurement.changed(
-                json.dumps(self.update_wifi_list_last_result).encode("utf-8")
-            )
-            time.sleep(10)
+    def update_wifi_list(self):
+        self.update_wifi_list_last_result = get_wifi_locations()
+        print("Updated WiFi List", self.update_wifi_list_last_result)
+        self.wifi_connection_measurement.changed(
+            json.dumps(self.update_wifi_list_last_result).encode("utf-8")
+        )
 
     def update_wifi_status(self):
         results = check_wifi_status()
@@ -134,12 +130,12 @@ class WifiSetupService(Service):
         self.wifi_connection_measurement.changed(data)
         return data
 
-    @characteristic(str(base_id + 1), CharFlags.NOTIFY | CharFlags.ENCRYPT_READ)
+    @characteristic(str(base_id + 1), CharFlags.ENCRYPT_READ)
     def wifi_connection_measurement(self, _):
         print("WiFi Connection Read")
         return self.update_wifi_status()
 
-    @characteristic(str(base_id + 2), CharFlags.ENCRYPT_WRITE | CharFlags.NOTIFY | CharFlags.ENCRYPT_READ | CharFlags.WRITE_WITHOUT_RESPONSE)
+    @characteristic(str(base_id + 2), CharFlags.ENCRYPT_WRITE | CharFlags.ENCRYPT_READ | CharFlags.WRITE_WITHOUT_RESPONSE)
     def set_wifi_args(self, _):
         print("WiFi Set Return Read")
         return json.dumps(self.update_wifi_last_result).encode("utf-8")
@@ -162,6 +158,7 @@ class WifiSetupService(Service):
 
     @characteristic(str(base_id + 3), CharFlags.NOTIFY | CharFlags.ENCRYPT_READ)
     def get_nearby_ssids(self, _):
+        print("WiFi List Read")
         return json.dumps(self.update_wifi_list_last_result).encode("utf-8")
 
 async def main():
@@ -205,26 +202,38 @@ async def main():
         bus.unexport(path, advert._INTERFACE)
 
     try:
+        reregister_check_time = 30
+        register_timer = 0
+        wifi_list_timer = 0
         while True:
-            await asyncio.sleep(30)
-            try:
-                print("Un-registering")
+            await asyncio.sleep(1)
+            register_timer += 1
+            wifi_list_timer += 1
+            if wifi_list_timer >= 10:
+                wifi_list_timer = 0
+                service.update_wifi_list()
+            if register_timer >= reregister_check_time:
+                register_timer = 0
                 try:
-                    await unregister(advert, bus, adapter)
+                    print("Un-registering")
+                    try:
+                        await unregister(advert, bus, adapter)
+                    except:
+                        print("Unregistration failed")
+                        traceback.print_exc()
+                    await asyncio.sleep(1)
+                    print("Re-advertising")
+                    await advert.register(bus, adapter)
+                    print("Advertisement registered")
+                    reregister_check_time = 30
                 except:
-                    print("Unregistration failed")
-                    traceback.print_exc()
-                await asyncio.sleep(1)
-                print("Re-advertising")
-                await advert.register(bus, adapter)
-                print("Advertisement registered")
-            except:
-                print("Re-advertising failed (likely previously connected to device)")
-                print("Restart bin to restart advertising")
-                try:
-                    await unregister(advert, bus, adapter)
-                except:
-                    pass
+                    print("Re-advertising failed (likely previously connected to device)")
+                    print("Restart bin or disconnect device to resume advertising")
+                    reregister_check_time = 10
+                    try:
+                        await unregister(advert, bus, adapter)
+                    except:
+                        pass
     except:
         pass
 

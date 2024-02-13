@@ -114,26 +114,19 @@ class WifiSetupService(Service):
         # Base 16 service UUID, This should be a primary service.
         super().__init__(str(base_id), True)
         self.update_wifi_last_result = {"success": False, "message": "", "timestamp": 0}
-        self.update_wifi_list_last_result = []
+        self.update_wifi_list_last_result = get_wifi_locations()
         self.update_wifi_loop = None
         self.update_wifi_loop_count = 0
+        self.wifi_scan_loop()
 
-    def wifi_scan_loop_thread(self):
-        while self.update_wifi_loop_count > 0:
+    def wifi_scan_loop(self):
+        while True:
             self.update_wifi_list_last_result = get_wifi_locations()
-            self.update_wifi_loop_count -= 1
+            print("Updated WiFi List", self.update_wifi_list_last_result)
             self.wifi_connection_measurement.changed(
                 json.dumps(self.update_wifi_list_last_result).encode("utf-8")
             )
-            time.sleep(5)
-        self.update_wifi_loop = None
-
-    def start_wifi_scan_loop(self):
-        if self.update_wifi_loop is None:
-            t = threading.Thread(target=self.wifi_scan_loop_thread)
-            self.update_wifi_loop = t
-            self.update_wifi_loop_count = 5
-            t.start()
+            time.sleep(10)
 
     def update_wifi_status(self):
         results = check_wifi_status()
@@ -170,8 +163,6 @@ class WifiSetupService(Service):
 
     @characteristic(str(base_id + 3), CharFlags.NOTIFY | CharFlags.ENCRYPT_READ)
     def get_nearby_ssids(self, _):
-        self.update_wifi_list_last_result = get_wifi_locations()
-        self.start_wifi_scan_loop()
         return json.dumps(self.update_wifi_list_last_result).encode("utf-8")
 
 async def main():

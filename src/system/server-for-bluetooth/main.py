@@ -65,7 +65,7 @@ def get_wifi_locations():
         elif wifi_points[ssid]["signal"] < int(signal):
             wifi_points[ssid]["signal"] = int(signal)
     wifi_list = map(
-        lambda x: [x["ssid"], x["security"]. x["signal"]],
+        lambda x: [x["ssid"], x["security"], x["signal"]],
         list(wifi_points.values())
     )
     # sort by signal strength
@@ -115,9 +115,8 @@ class WifiSetupService(Service):
         super().__init__(str(base_id), True)
         self.update_wifi_last_result = {"success": False, "message": "", "timestamp": 0}
         self.update_wifi_list_last_result = get_wifi_locations()
-        self.update_wifi_loop = None
-        self.update_wifi_loop_count = 0
-        self.wifi_scan_loop()
+        wifi_scan_thread = threading.Thread(target=self.wifi_scan_loop, daemon=True)
+        wifi_scan_thread.start()
 
     def wifi_scan_loop(self):
         while True:

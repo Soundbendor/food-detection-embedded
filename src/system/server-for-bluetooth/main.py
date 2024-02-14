@@ -13,7 +13,6 @@ import sys
 import traceback
 import time
 import re
-import threading
 
 uuid = "92f3fd29-7d60-167d-973b-fba35e49d4ea"
 loop = asyncio.get_event_loop()
@@ -201,6 +200,11 @@ async def main():
             pass
         bus.unexport(path, advert._INTERFACE)
 
+    def check_for_connections():
+        _, process = run_cmd(["hcitool", "con"])
+        output = process.stdout.decode("utf-8").strip()
+        return len(output.split("\n")) > 1
+
     try:
         reregister_check_time = 30
         register_timer = 0
@@ -214,26 +218,28 @@ async def main():
                 service.update_wifi_list()
             if register_timer >= reregister_check_time:
                 register_timer = 0
-                try:
-                    print("Un-registering")
-                    try:
-                        await unregister(advert, bus, adapter)
-                    except:
-                        print("Unregistration failed")
-                        traceback.print_exc()
-                    await asyncio.sleep(1)
-                    print("Re-advertising")
-                    await advert.register(bus, adapter)
-                    print("Advertisement registered")
-                    reregister_check_time = 30
-                except:
-                    print("Re-advertising failed (likely previously connected to device)")
-                    print("Restart bin or disconnect device to resume advertising")
+                if check_for_connections():
+                    print("Connection exists, waiting")
                     reregister_check_time = 10
+                else:
+                    reregister_check_time = 30
                     try:
-                        await unregister(advert, bus, adapter)
+                        print("Un-registering")
+                        try:
+                            await unregister(advert, bus, adapter)
+                        except:
+                            print("Unregistration failed")
+                            traceback.print_exc()
+                        await asyncio.sleep(1)
+                        print("Re-advertising")
+                        await advert.register(bus, adapter)
+                        print("Advertisement registered")
                     except:
-                        pass
+                        print("Re-advertising failed...")
+                        try:
+                            await unregister(advert, bus, adapter)
+                        except:
+                            pass
     except:
         pass
 

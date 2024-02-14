@@ -14,7 +14,6 @@ import traceback
 import time
 import re
 
-uuid = "92f3fd29-7d60-167d-973b-fba35e49d4ea"
 loop = asyncio.get_event_loop()
 
 def run_cmd(cmd):
@@ -118,16 +117,14 @@ class WifiSetupService(Service):
     def update_wifi_list(self):
         self.update_wifi_list_last_result = get_wifi_locations()
         print("Updated WiFi List", self.update_wifi_list_last_result)
-        self.wifi_connection_measurement.changed(
+        self.get_nearby_ssids.changed(
             json.dumps(self.update_wifi_list_last_result).encode("utf-8")
         )
 
     def update_wifi_status(self):
         results = check_wifi_status()
         print("Updated WiFi Status")
-        data = json.dumps(results).encode("utf-8")
-        self.wifi_connection_measurement.changed(data)
-        return data
+        return json.dumps(results).encode("utf-8")
 
     @characteristic(str(base_id + 1), CharFlags.ENCRYPT_READ)
     def wifi_connection_measurement(self, _):
@@ -174,7 +171,7 @@ async def main():
     await adapter.set_alias("Jetson Compost Bin")
     advert = Advertisement(
         "B.AI.CB#12345678901",
-        [uuid],
+        [str(base_id)],
         0x0,
         30
     )
@@ -209,16 +206,19 @@ async def main():
         reregister_check_time = 30
         register_timer = 0
         wifi_list_timer = 0
+        device_is_connected = False
         while True:
             await asyncio.sleep(1)
             register_timer += 1
             wifi_list_timer += 1
-            if wifi_list_timer >= 10:
+            if wifi_list_timer >= 5:
                 wifi_list_timer = 0
-                service.update_wifi_list()
+                if device_is_connected:
+                    service.update_wifi_list()
             if register_timer >= reregister_check_time:
                 register_timer = 0
-                if check_for_connections():
+                device_is_connected = check_for_connections()
+                if device_is_connected:
                     print("Connection exists, waiting")
                     reregister_check_time = 10
                 else:

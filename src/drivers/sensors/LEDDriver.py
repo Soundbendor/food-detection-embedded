@@ -8,7 +8,7 @@ import enum
 from drivers.DriverBase import DriverBase
 from multiprocessing import Event
 import logging
-import adafruit_tlc59711
+import neopixel_spi as neopixel
 import board
 
 """
@@ -38,7 +38,9 @@ class LEDDriver(DriverBase):
         super().__init__("LEDDriver")
 
         spi = board.SPI()
-        self.pixels = adafruit_tlc59711.TLC59711(spi, pixel_count=pixel_count)
+        self.pixels = neopixel.NeoPixel_SPI(
+            spi, pixel_count, brightness=0.1, auto_write=True, pixel_order=neopixel.GRBW, bit0=0b10000000
+        )   
         self.mode = LEDMode.PROCESSING
         self.initialized = False
         self.events = {
@@ -105,30 +107,34 @@ class LEDDriver(DriverBase):
     Drives the LEDs to white for the camera to take a picture
     """
     def cameraMode(self):
-        self.pixels.set_pixel_all((1, 1, 1))
+        self.pixels.fill((0, 0, 0, 255))
 
     """
     Drives the LEDs to breath yellow while we are proccessing the data
     """
     def proccessingMode(self):
-        self.pixels.set_pixel_all((1, 0.917, 0))
+        self.pixels.fill((252,186,3,0))
 
     """
     Drives the LEDs to solid green to signify we are done with the sample
     """
     def doneMode(self):
-        self.pixels.set_pixel_all((0, 1, 0))
+        self.pixels.fill((0,255,0,0))
 
     """
     Drives the LEDs to off to signify we are not doing anything
     """
     def noneMode(self):
-        self.pixels.set_all_black()
+        self.pixels.fill((0,0,0,0))
     
     """
     Informs the user something went wrong by turning all pixels to red
     """
     def errorMode(self):
-        self.pixels.set_pixel_all((1,0,0))
+        self.pixels.fill((255,0,0,0))
+
+    def kill(self):
+        self.pixels.fill((0,0,0,0))
+        self.pixels.show()
 
    

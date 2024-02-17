@@ -5,15 +5,15 @@
 
 echo "Updating system..."
 
-sudo apt-get update -y && sudo apt-get upgrade -y
+sudo apt-get update -y
 
 echo "Creating virtual python environment..."
 
 # Create a venv using python 3.7
-sudo apt-get -y install python3.7
-sudo apt-get -y install python3.7-dev
-sudo apt-get -y install python3.7-venv
-python3.7 -m venv venv
+sudo apt-get -y install python3.11
+sudo apt-get -y install python3.11-dev
+sudo apt-get -y install python3.11-venv
+python3.11 -m venv venv
 
 echo "Installing dependencies..."
 
@@ -27,16 +27,5 @@ sudo apt-get -y install portaudio19-dev
 
 sudo apt-get -y install python3-pyaudio
 sudo apt-get -y install ffmpeg
-
-echo "Updating GPIO user permisions..."
-
-# Add our user to the gpio group
-sudo groupadd -f -r gpio
-sudo usermod -a -G gpio $(whoami)
-
-# Add GPIO rules and update the current ones once the new one has been added
-sudo cp venv/lib/python3.6/site-packages/Jetson/GPIO/99-gpio.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules && sudo udevadm trigger
-
 
 echo "Setup complete!"

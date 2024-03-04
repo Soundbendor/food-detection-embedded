@@ -4,6 +4,7 @@ venv/
 .env
 logs
 .vscode/
+data/*
 
 # Various temp. file types
 Authentication_details.txt
@@ -14,5 +15,4 @@ Authentication_details.txt
 *.o
 *.npy
 *.ply
-*.wav
 *.secret

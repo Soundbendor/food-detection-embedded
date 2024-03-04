@@ -1,8 +1,3 @@
-import warnings
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore",category=DeprecationWarning)
-    import boto3
-
 import logging
 import sys
 import os
@@ -87,50 +82,46 @@ class CalibrationLoader():
 Handles requests to remote APIs (S3 and FastAPI)
 """
 class RequestHandler():
-    def __init__(self, secret_file="config.secret"):
-        self.awsCreds = self.loadAWSCredentials(secret_file)
+    def __init__(self, dataDir = "../data", secret_file="config.secret"):
+        self.dataDir = dataDir
         self.apiKey, self.endpoint = self.loadFastAPICredentials(secret_file)
-        self.s3 = boto3.client("s3", aws_access_key_id=self.awsCreds[0], aws_secret_access_key=self.awsCreds[1], region_name=self.awsCreds[2])
     
     """
-    Upload the most recent files in the 'data' folder to S3
+    Upload the most recent files in the 'data' folder to our remote server for storage
 
     :return: Dictionary of base file names (ie. "colorImage") mapped to the stored location in our S3 bucket
     """
-    def uploadS3(self):
-        dataFiles = glob.glob("../data/*")
-        currentTime = time()
-        imageLocations = {
-            "colorImage": "",
-            "depthImage": "",
-            "depth": "",
-            "downsampledAudio": "",
-            "heatmap": ""
+    def uploadFiles(self):
+        endpoint = self.endpoint + "/api/upload_files"
+
+        filesToUpload = {
+            "colorImageFile": open(f"{self.dataDir}/colorImage.jpg", "rb"),
+            "depthImageFile": open(f"{self.dataDir}/depthImage.jpg", "rb"),
+            "heatmapImageFile": open(f"{self.dataDir}/heatmap.jpg", "rb"),
+            "topologyMapFile": open(f"{self.dataDir}/depth.ply", "rb"),
+            "voiceRecordingFile ": open(f"{self.dataDir}/downsampledAudio.wav", "rb")
+            }
+        
+        # API Request
+        headers = {
+            "accept": "application/json",
+            "token": self.apiKey,
+            "Content-Type": "multipart/form-data"
         }
-        
-        # Glob files in data folder and format new names with timestamp upload to S3 then update the upload URL for the correspoding file in the dictionary
-        for file in dataFiles:
 
-            # Format new file name with date for upload to S3
-            fileSplit = file.split("/")
-            file_name = fileSplit[len(fileSplit)-1].split(".")
-            
-            # File formatted as fileType_Data_UUID.filextension
-            # eg. colorImage_2024-1-29--22-14-23_233349935970430
-            formattedName = strftime(f"{file_name[0]}_%Y-%m-%d--%H-%M-%S_{uuid.getnode()}.{file_name[1]}",gmtime(currentTime))
-
-            # Upload the file itself with the new name to S3
-            self.s3.upload_file(file, self.awsCreds[3], formattedName)
-            
-            # Create the URL where this file will now be located at
-            uploadUrl = f"https://{self.awsCreds[3]}.s3.{self.awsCreds[2]}.amazonaws.com/{formattedName}"
-
-            # Set the URL to the matching file in the dictionary
-            imageLocations[file_name[0]] = uploadUrl
-            logging.info(f"Successfully uploaded {formattedName} to S3!")
-            
-        
-        return imageLocations
+        params = {
+            "deviceID": int(uuid.getnode())
+        }
+    
+        response = requests.post(endpoint, params=params, headers=headers,files=filesToUpload).json()
+        if response["status"] == True:
+            del response["status"]
+            # Upload files to FastAPI and return the resu
+            logging.info(f"Successfully uploaded files to server!")
+            return response
+        else:
+            logging.info(f"Failed to upload files to server!")
+            return {}
     
     """
     Test method to verify our API key is functioning
@@ -157,7 +148,7 @@ class RequestHandler():
     """
     def sendAPIRequest(self, data: dict):
         endpoint = self.endpoint + "/api/scan"
-        s3Locations = self.uploadS3()
+        fileLocations = self.uploadFiles()
         
         # API Request
         headers = {
@@ -167,11 +158,11 @@ class RequestHandler():
         }
 
         payload = {
-            "colorImage": str(s3Locations["colorImage"]),
-            "depthImage": str(s3Locations["depthImage"]),
-            "heatmapImage": str(s3Locations["heatmap"]),
-            "topologyMap": str(s3Locations["depth"]),
-            "voiceRecording": str(s3Locations["downsampledAudio"]),
+            "colorImage": str(fileLocations["colorImage"]),
+            "depthImage": str(fileLocations["depthImage"]),
+            "heatmapImage": str(fileLocations["heatmapImage"]),
+            "topologyMap": str(fileLocations["topologyMap"]),
+            "voiceRecording": str(fileLocations["voiceRecording"]),
             "total_weight": float(data["NAU7802"]["data"]["weight"]),
             "weight_delta": float(data["NAU7802"]["data"]["weight_delta"]),
             "temperature": float(data["BME688"]["data"]["temperature(c)"]),
@@ -181,7 +172,8 @@ class RequestHandler():
             "co2_eq": float(data["BME688"]["data"]["CO2-eq"]),
             "tvoc": float(data["BME688"]["data"]["bVOC-eq"]),
             "transcription": str(data["SoundController"]["data"]["TranscribedText"]),
-            "userTrigger": bool(data["DriverManager"]["data"]["userTrigger"])
+            "userTrigger": bool(data["DriverManager"]["data"]["userTrigger"]),
+            "deviceID": int(uuid.getnode())
         }
 
         response = requests.post(endpoint, headers=headers, json=payload).json()
@@ -191,17 +183,6 @@ class RequestHandler():
             logging.error("Failed to upload data to API.")
             
         
-
-    """
-    Load our AWS secret credentials in from a file
-
-    :param file: The file in which the credentials are stored
-    """
-    def loadAWSCredentials(self, file):
-        secretFile = open(file, 'r')
-        credsJson = json.load(secretFile)
-        secretFile.close()
-        return (credsJson["AWS_CREDS"]["access_key_id"], credsJson["AWS_CREDS"]["access_key"], credsJson["AWS_CREDS"]["region"], credsJson["AWS_CREDS"]["bucket"])
     
     """
     Load and return our Fast API credentials

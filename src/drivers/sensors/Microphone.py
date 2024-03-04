@@ -14,6 +14,7 @@ import whisper
 import torch
 import numpy as np
 import re
+import subprocess
 
 class Microphone():
 
@@ -25,9 +26,9 @@ class Microphone():
     def __init__(self, record_duration=10):
 
         # Audio recording parameters
-        self.sampling_rate = 44100
-        self.downsample_rate = 16000
-        self.device_index = 11
+        self.sampling_rate = 16000
+        self.device_index = 1
+        self.channels = 2
         self.frames_per_buffer = 128
         self.format = pyaudio.paInt16
         self.record_duration = record_duration
@@ -38,6 +39,10 @@ class Microphone():
         self.model, utils = torch.hub.load(repo_or_dir='snakers4/silero-vad',model='silero_vad',force_reload=True,onnx=False)
         (self.get_speech_timestamps, self.save_audio, self.read_audio,_, self.collect_chunks) = utils
 
+        # Enable the microphone capture
+        with open(os.devnull, 'wb') as devnull:
+            subprocess.check_call(['/usr/bin/amixer', '-c', '3', 'set', 'Mic', 'cap'], stdout=devnull, stderr=subprocess.STDOUT)
+
 
     """
     Initialize the whisper model and warm it up by feeding 0s into it
@@ -46,7 +51,7 @@ class Microphone():
         logging.info("Loading model...")
         self.asrModel = whisper.load_model("base.en")
         logging.info("Loading complete! Warming up model...")
-        whisper.transcribe(model=self.asrModel, audio=np.zeros(self.record_duration * self.downsample_rate, np.float32), fp16=False)
+        whisper.transcribe(model=self.asrModel, audio=np.zeros(self.record_duration * self.sampling_rate, np.float32), fp16=False)
         logging.info("Model has been warmed up! Ready for inference")
         self.initialized = True
             
@@ -59,7 +64,7 @@ class Microphone():
     def writeWave(self, data, outputFile):
         # Write the pre downsampled audio to .wav file
         wf = wave.open(outputFile, "wb")
-        wf.setnchannels(1)
+        wf.setnchannels(self.channels)
         wf.setsampwidth(self.pAudio.get_sample_size(self.format))
         wf.setframerate(self.sampling_rate)
         wf.writeframes(b''.join(data))
@@ -74,7 +79,7 @@ class Microphone():
     def downsampleAudio(self, inputFile, outputFile):
         logging.info("Downsampling Audio....")
         sound = am.from_file(inputFile, format="wav", frame_rate=self.sampling_rate)
-        sound = sound.set_frame_rate(self.downsample_rate)
+        sound = sound.set_frame_rate(self.sampling_rate)
         sound.export(outputFile, format="wav")
         os.remove(inputFile)
 
@@ -92,7 +97,7 @@ class Microphone():
                 format=pyaudio.paInt16,
                 rate = self.sampling_rate,
                 input=True,
-                channels=1,
+                channels=2,
                 input_device_index=self.device_index,
                 frames_per_buffer=self.frames_per_buffer,
             )
@@ -125,10 +130,10 @@ class Microphone():
     """
     def detectSpeaking(self, inputFile, outputFile) -> bool:
         logging.info("Detecting speaking....")
-        wav = self.read_audio(inputFile, sampling_rate=self.downsample_rate)
-        speech_timestamps = self.get_speech_timestamps(wav, self.model, sampling_rate=self.downsample_rate, speech_pad_ms=500)
+        wav = self.read_audio(inputFile, sampling_rate=self.sampling_rate)
+        speech_timestamps = self.get_speech_timestamps(wav, self.model, sampling_rate=self.sampling_rate, speech_pad_ms=500)
         if(len(speech_timestamps) > 0):
-            self.save_audio(outputFile, self.collect_chunks(speech_timestamps, wav), sampling_rate=self.downsample_rate) 
+            self.save_audio(outputFile, self.collect_chunks(speech_timestamps, wav), sampling_rate=self.sampling_rate) 
             return True
         return False
     
@@ -149,10 +154,8 @@ class Microphone():
     def record(self):
         if self.initialized:
             # Record and downsample the audio to 16khz
-            self._record("../data/preDownsampledAudio.wav")
-            self.downsampleAudio("../data/preDownsampledAudio.wav", "../data/downsampledAudio.wav")
-
-
+            self._record("../data/downsampledAudio.wav")
+            
             if(self.detectSpeaking("../data/downsampledAudio.wav", "../data/only_speech.wav")):
                 transcribedText = self.transcribe('../data/only_speech.wav')
                 transcribedText = re.sub("[.,:;]", "", transcribedText).strip()

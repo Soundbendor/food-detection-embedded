@@ -17,7 +17,8 @@ class Speaker():
     def __init__(self):
 
         # Audio playback parameters
-        self.device_index = 11
+        self.device_index = 1
+        self.channels = 2
         self.frames_per_buffer = 1024
         self.pAudio = pyaudio.PyAudio()
         self.initialized = True
@@ -34,10 +35,10 @@ class Speaker():
         # Attempt to open the speaker stream
         try:
             self.stream = self.pAudio.open(format = self.pAudio.get_format_from_width(wf.getsampwidth()),
-                channels = 1,
+                channels = self.channels,
                 rate = wf.getframerate(),
                 output = True,
-                output_device_index=11)
+                output_device_index=self.device_index)
         except Exception as e:
             logging.error("Failed to open audio input device: {e}")
             self.initialized = False

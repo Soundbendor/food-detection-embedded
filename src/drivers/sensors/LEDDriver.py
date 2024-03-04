@@ -50,6 +50,8 @@ class LEDDriver(DriverBase):
             "NONE": Event(),
             "ERROR": Event()
         }
+        self.currentLed = 0
+        self.loopTime = 0.1
     
     """
     This doesn't do anything other than tell us the driver has been initialized succsessfully
@@ -87,6 +89,7 @@ class LEDDriver(DriverBase):
             self.getEvent("CAMERA").clear()
         
         elif self.getEvent("PROCESSING").is_set():
+            self.noneMode()
             self.mode = LEDMode.PROCESSING
             self.getEvent("PROCESSING").clear()
 
@@ -110,10 +113,17 @@ class LEDDriver(DriverBase):
         self.pixels.fill((0, 0, 0, 255))
 
     """
-    Drives the LEDs to breath yellow while we are proccessing the data
+    Drives the LEDs to spin yellow while we are proccessing the data
     """
     def proccessingMode(self):
-        self.pixels.fill((252,186,3,0))
+        self.pixels[self.currentLed] = (252,186,3,0)
+        self.pixels[self.currentLed-1] = (252//2,186//2,3//2,0)
+        self.pixels[self.currentLed-2] = (252//3,186//3,3//3,0)
+        self.pixels[self.currentLed-3] = (0,0,0,0)
+        self.currentLed += 1
+        if(self.currentLed == 16):
+            self.currentLed = 0
+        
 
     """
     Drives the LEDs to solid green to signify we are done with the sample

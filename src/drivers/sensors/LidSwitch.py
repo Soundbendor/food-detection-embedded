@@ -17,7 +17,7 @@ class LidSwitch(DriverBase):
 
     :param pin: What GPIO pin the hall-effect sensor is connected to
     """
-    def __init__(self, pin = 11):
+    def __init__(self, pin = 17):
         super().__init__("LidSwitch")
 
         # If the lid is open or not
@@ -39,7 +39,7 @@ class LidSwitch(DriverBase):
     def initialize(self):
         # Set the GPIO numbering to that of the board itself and then set the specified GPIO pin as an input
         GPIO.setwarnings(False)
-        GPIO.setmode(GPIO.BOARD)
+        GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.selectedPin, GPIO.IN)
         logging.info("Succsessfully configured hall effect sensor!")
         self.data["initialized"].value = 1

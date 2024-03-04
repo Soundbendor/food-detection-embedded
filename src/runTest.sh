@@ -22,6 +22,9 @@ case $1 in
 
         echo "Testing BME..."
         python3 -m tests.bmeTest
+        
+        echo "Testing speaker and microphone..."
+        python3 -m tests.soundTest
         ;;
     realsense)
         python3 -m tests.realsenseTest
@@ -40,5 +43,8 @@ case $1 in
         ;;
     bme)
         python3 -m tests.bmeTest
+        ;;
+    sound)
+        python3 -m tests.soundTest
         ;;
 esac

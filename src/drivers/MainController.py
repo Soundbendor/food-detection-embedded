@@ -105,7 +105,8 @@ class MainController():
         print(self.manager.getJSON())
 
         # Upload the current files in our data folder to S3 and send the API request
-        self.requests.sendAPIRequest(self.manager.getJSON())
+        #self.requests.sendAPIRequest(self.manager.getJSON())
+        print("Done!")
 
         # After we have sent all the stuff and are done, set the leds to green for a few seconds and then turn them off
         self.manager.setEvent("LEDDriver.DONE")

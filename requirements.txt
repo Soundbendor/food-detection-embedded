@@ -10,6 +10,7 @@ bme680==1.1.1
 pydub==0.25.1
 pyaudio==0.2.14
 openai-whisper==20231117
-torchaudio==2.2.0
+torchaudio==2.2.1
 adafruit-circuitpython-neopixel-spi==1.0.9
-boto3==1.34.42
+boto3==1.34.51
+pyrealsense2==2.54.2.5684

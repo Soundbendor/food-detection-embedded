@@ -50,9 +50,12 @@ extra/bench-gg.txt
 models/*.mlmodel
 models/*.mlmodelc
 models/*.mlpackage
+!models/ggml-tiny.en-q5_0.bin
+!models/ggml-base.en-q5_0.bin
 bindings/java/.gradle/
 bindings/java/.idea/
 .idea/
+
 
 benchmark_results.csv
 cmake-build-debug/

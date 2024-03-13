@@ -20,3 +20,8 @@ RUN apt-get -y install ffmpeg
 RUN pip install -r requirements.txt --break-system-packages
 
 COPY . /firmware
+
+# Compile whisper
+WORKDIR /firmware/whisper.cpp
+RUN make
+WORKDIR /firmware

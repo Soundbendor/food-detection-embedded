@@ -11,10 +11,9 @@ from pydub import AudioSegment as am
 import os
 import numpy as np
 import whisper
-import torch
 import numpy as np
-import re
 import subprocess
+import time
 
 class Microphone():
 
@@ -23,7 +22,7 @@ class Microphone():
 
     :param record_duration: The lenght of time in seconds that the microphone will record for
     """
-    def __init__(self, record_duration=10):
+    def __init__(self, record_duration=10, model="tiny.en-q5_0"):
 
         # Audio recording parameters
         self.sampling_rate = 16000
@@ -34,10 +33,11 @@ class Microphone():
         self.record_duration = record_duration
 
         self.pAudio = pyaudio.PyAudio()
+        self.modelPath = f"../whisper.cpp/models/ggml-{model}.bin"
 
         # Load the silero-vad Voice Activation Model to reduce overall inference time by ignoring audio with no voice in it
-        self.model, utils = torch.hub.load(repo_or_dir='snakers4/silero-vad',model='silero_vad',force_reload=True,onnx=False)
-        (self.get_speech_timestamps, self.save_audio, self.read_audio,_, self.collect_chunks) = utils
+        # self.model, utils = torch.hub.load(repo_or_dir='snakers4/silero-vad',model='silero_vad',force_reload=True,onnx=False)
+        # (self.get_speech_timestamps, self.save_audio, self.read_audio,_, self.collect_chunks) = utils
 
         # Enable the microphone capture
         with open(os.devnull, 'wb') as devnull:
@@ -49,9 +49,10 @@ class Microphone():
     """
     def initialize(self):
         logging.info("Loading model...")
-        self.asrModel = whisper.load_model("base.en")
+        logging.info(os.getcwd())
+        # self.asrModel = whisper.load_model("base.en")
         logging.info("Loading complete! Warming up model...")
-        whisper.transcribe(model=self.asrModel, audio=np.zeros(self.record_duration * self.sampling_rate, np.float32), fp16=False)
+        # whisper.transcribe(model=self.asrModel, audio=np.zeros(self.record_duration * self.sampling_rate, np.float32), fp16=False)
         logging.info("Model has been warmed up! Ready for inference")
         self.initialized = True
             
@@ -148,6 +149,22 @@ class Microphone():
         results = whisper.transcribe(model=self.asrModel, audio=audio, fp16=False)
         return results["text"]
 
+    def proccess_audio_whispercpp(self, inputFile):
+        full_command = f"../whisper.cpp/main -m {self.modelPath} -f {inputFile} -np -nt"
+        process = subprocess.Popen(full_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # Get the output and error (if any)
+        output, error = process.communicate()
+
+        if error:
+            logging.error(f"Error proccessing audio: {error.decode('utf-8')}")
+
+        # Process and return the output string
+        decoded_str = output.decode('utf-8').strip()
+        processed_str = decoded_str.replace('[BLANK_AUDIO]', '').strip()
+
+        return processed_str
+
+
     """
     Record a clip from the microphone
     """
@@ -156,14 +173,19 @@ class Microphone():
             # Record and downsample the audio to 16khz
             self._record("../data/downsampledAudio.wav")
             
-            if(self.detectSpeaking("../data/downsampledAudio.wav", "../data/only_speech.wav")):
-                transcribedText = self.transcribe('../data/only_speech.wav')
-                transcribedText = re.sub("[.,:;]", "", transcribedText).strip()
-                os.remove('../data/only_speech.wav')
-                return transcribedText
-            else:
-                logging.warning("No speaking detected in clip!")
-                return ""
+            # if(self.detectSpeaking("../data/downsampledAudio.wav", "../data/only_speech.wav")):
+            #     transcribedText = self.transcribe('../data/only_speech.wav')
+            #     transcribedText = re.sub("[.,:;]", "", transcribedText).strip()
+            #     os.remove('../data/only_speech.wav')
+            #     return transcribedText
+            # else:
+            #     logging.warning("No speaking detected in clip!")
+            #     return ""
+
+            startTime = time.time()
+            transcribedText = self.proccess_audio_whispercpp("../data/downsampledAudio.wav")
+            logging.info(f"Transcription Time: {time.time() - startTime}")
+            return transcribedText
 
         else:
             logging.warning("Microphone not initialized!")

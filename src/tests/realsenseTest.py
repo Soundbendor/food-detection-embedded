@@ -2,6 +2,7 @@
 Individual component test of the realsense camera
 """
 import os
+from pathlib import Path
 
 from helpers import Logging
 from time import sleep
@@ -12,11 +13,12 @@ from drivers.DriverManager import DriverManager
 
 if __name__ == "__main__":
     # Change our current working directory to this file so our relative paths still work no matter where this file was called from
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    path = Path(__file__)
+    os.chdir(path.parent.absolute().parent.absolute())
 
     # Create our data folder if it doesn't exist already
-    if not os.path.exists("../../data/"):
-            os.mkdir("../../data/")
+    if not os.path.exists("../data/"):
+            os.mkdir("../data/")
 
     logger = Logging(__file__)
     manager = DriverManager(RealsenseCam())

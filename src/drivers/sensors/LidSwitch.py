@@ -5,7 +5,9 @@ Provides a basic wrapper for reading values and triggering events upon the chang
 """
 
 from multiprocessing import Event, Value
-import RPi.GPIO as GPIO
+import gpiod
+from gpiod.line import Direction
+from gpiod.line import Value as GPIOValue
 
 import logging
 
@@ -24,7 +26,7 @@ class LidSwitch(DriverBase):
         self.lidOpen = False
         
         # Set default lid state to be closed
-        self.lastState = GPIO.LOW
+        self.lastState = 0
         self.selectedPin = pin
         
         # List of events that the sensor can raise
@@ -37,10 +39,11 @@ class LidSwitch(DriverBase):
     Initialize the pin mode required to read the data from the hall-effect sensor
     """
     def initialize(self):
-        # Set the GPIO numbering to that of the board itself and then set the specified GPIO pin as an input
-        GPIO.setwarnings(False)
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self.selectedPin, GPIO.IN)
+        self.request = gpiod.request_lines("/dev/gpiochip4", consumer="HallEffect", config={
+            self.selectedPin: gpiod.LineSettings(
+                direction=Direction.INPUT
+            )
+        })
         logging.info("Succsessfully configured hall effect sensor!")
         self.data["initialized"].value = 1
     
@@ -58,17 +61,17 @@ class LidSwitch(DriverBase):
     Handle the open and close events of the lid
     """
     def handleEvents(self):
-        currentReading = GPIO.input(self.selectedPin)
+        currentReading = self.request.get_value(self.selectedPin)
 
         # Set the value of lidOpen equal to whether or not the pin is pulled HIGH
-        self.lidOpen = (currentReading == GPIO.HIGH)
+        self.lidOpen = (currentReading == GPIOValue.ACTIVE)
 
         # If between the current reading and the last reading the state of the hall-effect sensor transitioned from LOW to HIGH we opened the lid and should trigger the event
-        if (currentReading == GPIO.HIGH and self.lastState == GPIO.LOW):
+        if (currentReading == GPIOValue.ACTIVE and self.lastState == GPIOValue.INACTIVE):
             self.getEvent("LID_OPENED").set()
 
         # Tranistion from a HIGH state to a LOW state we know the lid was closed and should trigger the event
-        elif(currentReading == GPIO.LOW and self.lastState == GPIO.HIGH):
+        elif(currentReading == GPIOValue.INACTIVE and self.lastState == GPIOValue.ACTIVE):
             self.getEvent("LID_CLOSED").set()
 
         # Update the last state

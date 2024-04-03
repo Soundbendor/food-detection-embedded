@@ -8,13 +8,14 @@ COPY ./requirements.txt /firmware/requirements.txt
 # Update apt sources
 RUN apt-get update
 
-# Install python 3.9
+# Update pip
 RUN pip install --upgrade pip --break-system-packages
 
 # Install apt dependencies
 RUN apt-get -y install portaudio19-dev
 RUN apt-get -y install python3-pyaudio
 RUN apt-get -y install ffmpeg
+RUN apt-get -y install alsa-utils
 
 # Install python dependenices
 RUN pip install -r requirements.txt --break-system-packages
@@ -25,3 +26,6 @@ COPY . /firmware
 WORKDIR /firmware/whisper.cpp
 RUN make
 WORKDIR /firmware
+
+RUN mv /firmware/dependencies/librealsense2.so /usr/local/lib/python3.9/site-packages/librealsense2.so
+RUN mv /firmware/dependencies/pyrealsense2.cpython-39-aarch64-linux-gnu.so /usr/local/lib/python3.9/site-packages/pyrealsense2.cpython-39-aarch64-linux-gnu.so

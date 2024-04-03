@@ -26,11 +26,12 @@ class Microphone():
 
         # Audio recording parameters
         self.sampling_rate = 16000
-        self.device_index = 1
+        self.device_index = 0
         self.channels = 2
         self.frames_per_buffer = 128
         self.format = pyaudio.paInt16
         self.record_duration = record_duration
+        self.alsaSoundCardNum = 2
 
         self.pAudio = pyaudio.PyAudio()
         self.modelPath = f"../whisper.cpp/models/ggml-{model}.bin"
@@ -41,7 +42,7 @@ class Microphone():
 
         # Enable the microphone capture
         with open(os.devnull, 'wb') as devnull:
-            subprocess.check_call(['/usr/bin/amixer', '-c', '3', 'set', 'Mic', 'cap'], stdout=devnull, stderr=subprocess.STDOUT)
+            subprocess.check_call(['/usr/bin/amixer', '-c', str(self.alsaSoundCardNum), 'set', 'Mic', 'cap'], stdout=devnull, stderr=subprocess.STDOUT)
 
 
     """

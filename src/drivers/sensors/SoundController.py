@@ -27,6 +27,7 @@ class SoundController(DriverBase):
         self.microphone = Microphone(record_duration)
         self.speaker = Speaker()
         self.soundControllerConnection = soundControllerConnection
+        self.alsaSoundCardNum = 2
 
         # Set our loop time to 0.05 cause we dont need super fast looping
         self.loopTime = 0.05
@@ -50,28 +51,28 @@ class SoundController(DriverBase):
     """
     def muteSpeaker(self):
         with open(os.devnull, 'wb') as devnull:
-            subprocess.check_call(['/usr/bin/amixer', '-c', '3', 'sset', 'Speaker', 'mute'], stdout=devnull, stderr=subprocess.STDOUT)
+            subprocess.check_call(['/usr/bin/amixer', '-c', str(self.alsaSoundCardNum), 'sset', 'Speaker', 'mute'], stdout=devnull, stderr=subprocess.STDOUT)
 
     """
     Unmute the speaker attatched to the waveshare adapter
     """
     def unmuteSpeaker(self):
         with open(os.devnull, 'wb') as devnull:
-            subprocess.check_call(['/usr/bin/amixer', '-c', '3', 'sset', 'Speaker', 'unmute'], stdout=devnull, stderr=subprocess.STDOUT)
+            subprocess.check_call(['/usr/bin/amixer', '-c', str(self.alsaSoundCardNum), 'sset', 'Speaker', 'unmute'], stdout=devnull, stderr=subprocess.STDOUT)
 
     """
     Mute the mic attatched to the waveshare adapter
     """
     def muteMic(self):
         with open(os.devnull, 'wb') as devnull:
-            subprocess.check_call(['/usr/bin/amixer', '-c', '3', 'sset', 'Mic', 'mute'], stdout=devnull, stderr=subprocess.STDOUT)
+            subprocess.check_call(['/usr/bin/amixer', '-c', str(self.alsaSoundCardNum), 'sset', 'Mic', 'mute'], stdout=devnull, stderr=subprocess.STDOUT)
 
     """
     Unmute the mic attatched to the waveshare adapter
     """
     def unmuteMic(self):
         with open(os.devnull, 'wb') as devnull:
-            subprocess.check_call(['/usr/bin/amixer', '-c', '3', 'sset', 'Mic', 'unmute'], stdout=devnull, stderr=subprocess.STDOUT)
+            subprocess.check_call(['/usr/bin/amixer', '-c', str(self.alsaSoundCardNum), 'sset', 'Mic', 'unmute'], stdout=devnull, stderr=subprocess.STDOUT)
 
     """
     If a capture request was recieved we want to play the audio and then record a clip until a non-silent clip is recieved

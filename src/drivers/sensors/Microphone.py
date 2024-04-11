@@ -10,7 +10,7 @@ import wave
 from pydub import AudioSegment as am
 import os
 import numpy as np
-import whisper
+# import whisper
 import numpy as np
 import subprocess
 import time
@@ -144,11 +144,11 @@ class Microphone():
 
     :param inputFile: File to transcribe
     """
-    def transcribe(self, inputFile) -> str:
-        logging.info("Transcribing audio....")
-        audio = whisper.load_audio(inputFile)
-        results = whisper.transcribe(model=self.asrModel, audio=audio, fp16=False)
-        return results["text"]
+    # def transcribe(self, inputFile) -> str:
+    #     logging.info("Transcribing audio....")
+    #     audio = whisper.load_audio(inputFile)
+    #     results = whisper.transcribe(model=self.asrModel, audio=audio, fp16=False)
+    #     return results["text"]
 
     def proccess_audio_whispercpp(self, inputFile):
         full_command = f"../whisper.cpp/main -m {self.modelPath} -f {inputFile} -np -nt"

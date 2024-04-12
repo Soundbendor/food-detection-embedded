@@ -147,20 +147,34 @@ class RequestHandler():
     :param data: The complete JSON data packet 
     """
     def sendAPIRequest(self, data: dict):
-        endpoint = self.endpoint + "/api/model/detect"
-        # fileLocations = self.uploadFiles()
+        endpoint = self.endpoint + "/api/scan"
+        fileLocations = self.uploadFiles()
         
         # API Request
-        # headers = {
-        #     "accept": "application/json",
-        #     "token": self.apiKey,
-        #     "Content-Type": "application/json"
-        # }
+        headers = {
+            "accept": "application/json",
+            "token": self.apiKey,
+            "Content-Type": "application/json"
+        }
 
-        image_location = "{self.dataDir}/colorImage.jpg",
-        files = {'img_file': (image_location, open(image_location, 'rb'), 'image/jpg')}
-        request = https_client.post(endpoint, data= {'img_name': image_name}, headers=headers, files = files, timeout=45.0)
-
+        payload = {
+            "colorImage": str(fileLocations["colorImage"]),
+            "depthImage": str(fileLocations["depthImage"]),
+            "heatmapImage": str(fileLocations["heatmapImage"]),
+            "topologyMap": str(fileLocations["topologyMap"]),
+            "voiceRecording": str(fileLocations["voiceRecording"]),
+            "total_weight": float(data["NAU7802"]["data"]["weight"]),
+            "weight_delta": float(data["NAU7802"]["data"]["weight_delta"]),
+            "temperature": float(data["BME688"]["data"]["temperature(c)"]),
+            "pressure": float(data["BME688"]["data"]["pressure(kpa)"]),
+            "humidity": float(data["BME688"]["data"]["humidity(%rh)"]),
+            "iaq": float(data["BME688"]["data"]["iaq"]),
+            "co2_eq": float(data["BME688"]["data"]["CO2-eq"]),
+            "tvoc": float(data["BME688"]["data"]["bVOC-eq"]),
+            "transcription": str(data["SoundController"]["data"]["TranscribedText"]),
+            "userTrigger": bool(data["DriverManager"]["data"]["userTrigger"]),
+            "deviceID": int(uuid.getnode())
+        }
 
         response = requests.post(endpoint, headers=headers, json=payload).json()
         if('status' in response and response["status"] == True):

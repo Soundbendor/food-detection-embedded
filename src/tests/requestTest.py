@@ -19,7 +19,7 @@ if __name__ == "__main__":
     if not os.path.exists("../data/"):
             os.mkdir("../data/")
 
-    logger = Logging(__file__)
+    logger = Logging()
     requests = RequestHandler("../data")
 
     logging.info("Attempting to send heartbeat...")

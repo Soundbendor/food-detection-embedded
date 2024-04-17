@@ -19,6 +19,7 @@ RUN apt-get -y install python3-pyaudio
 RUN apt-get -y install ffmpeg
 RUN apt-get -y install alsa-utils
 RUN apt-get -y install libbluetooth-dev
+RUN apt-get -y install network-manager
 
 # Install python dependenices
 RUN pip install -r requirements.txt --break-system-packages

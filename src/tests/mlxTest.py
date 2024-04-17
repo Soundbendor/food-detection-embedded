@@ -20,7 +20,7 @@ if __name__ == "__main__":
     if not os.path.exists("../../data/"):
             os.mkdir("../../data/")
 
-    logger = Logging(__file__)
+    logger = Logging()
     manager = DriverManager(MLX90640())
 
     while True:

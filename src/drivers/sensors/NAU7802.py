@@ -57,8 +57,9 @@ class NAU7802(DriverBase):
         logging.info("Taring scale...")
         #self.nau.reset()
         self.nau.setSampleRate(PyNAU7802.NAU7802_SPS_40)
-        self.nau.setGain(PyNAU7802.NAU7802_GAIN_128)
+        self.nau.setGain(PyNAU7802.NAU7802_GAIN_16)
         self.nau.setLDO(PyNAU7802.NAU7802_LDO_4V5)
+        self.nau.calibrateAFE()
 
         self.tareScale()
 
@@ -101,7 +102,7 @@ class NAU7802(DriverBase):
         self.tareScale()
 
         # Prompt the user for the mass of a known object in grams
-        mass = 20
+        mass = 100
         logging.info("Waiting 10 seconds for weight to be put on scale")
         time.sleep(10)
 

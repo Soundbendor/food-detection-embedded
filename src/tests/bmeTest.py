@@ -12,7 +12,7 @@ if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
-    logger = Logging(__file__)
+    logger = Logging()
     manager = DriverManager(BME688())
     
     while True:

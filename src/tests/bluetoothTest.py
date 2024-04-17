@@ -8,7 +8,7 @@ from pathlib import Path
 from helpers import Logging, RequestHandler
 from time import sleep
 
-from drivers.NetworkDriver import WiFiManager
+from drivers.NetworkDriver import BluetoothDriver, WiFiManager
 
 if __name__ == "__main__":
     # Change our current working directory to this file so our relative paths still work no matter where this file was called from
@@ -20,8 +20,6 @@ if __name__ == "__main__":
             os.mkdir("../data/")
 
     logger = Logging()
-    wifi = WiFiManager()
-
-    wifi.scanNetworks()
+    bluetooth = BluetoothDriver()
 
     

@@ -13,7 +13,7 @@ if __name__ == "__main__":
     path = Path(__file__)
     os.chdir(path.parent.absolute().parent.absolute())
 
-    logger = Logging(__file__)
+    logger = Logging()
     mainControllerConnection, soundControllerConnection = multiprocessing.Pipe()
     manager = DriverManager(SoundController(soundControllerConnection))
     while True:

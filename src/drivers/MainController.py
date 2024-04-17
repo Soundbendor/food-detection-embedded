@@ -30,7 +30,7 @@ class MainController():
     Create a new instance of our main controlller
     """
     def __init__(self) -> None:
-        logger = Logging(__file__, verbose=True)
+        
         calibration = CalibrationLoader("CalibrationDetails.json")
         
         if not os.path.exists("../data/"):

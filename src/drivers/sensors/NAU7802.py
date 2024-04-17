@@ -55,6 +55,11 @@ class NAU7802(DriverBase):
             return False
 
         logging.info("Taring scale...")
+        #self.nau.reset()
+        self.nau.setSampleRate(PyNAU7802.NAU7802_SPS_40)
+        self.nau.setGain(PyNAU7802.NAU7802_GAIN_128)
+        self.nau.setLDO(PyNAU7802.NAU7802_LDO_4V5)
+
         self.tareScale()
 
         self.nau.setCalibrationFactor(self.calFactor)
@@ -70,7 +75,7 @@ class NAU7802(DriverBase):
             logging.debug("Measuring...")
             self.lastWeight = self.collectedData
 
-            # Average 100 samples to get a fairly accurate reading
+            #Average 100 samples to get a fairly accurate reading
             data = []
             for i in range(4):
                 data.append(self.nau.getWeight(True, 25))

@@ -12,7 +12,7 @@ from time import sleep
 import os
 
 from drivers.MainController import MainController
-from helpers import TimeHelper    
+from helpers import TimeHelper, Logging    
 
 def main():
     # Change our current working directory to this file so our relative paths still work no matter where this file was called from
@@ -37,4 +37,5 @@ def main():
             break
 
 if __name__ == "__main__":
+    logger = Logging(verbose=True)
     main()

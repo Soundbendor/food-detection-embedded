@@ -36,7 +36,7 @@ class Logging():
     :param path: The current file path of the module creating our logging module
     :param verbose: Determines wether or not we should be printing all of the info messages or just warning and higher
     """
-    def __init__(self, path, verbose=True):
+    def __init__(self, verbose=True):
         FORMAT = '%(asctime)s [%(filename)s:%(funcName)s:%(lineno)d] [%(levelname)s] %(message)s'
 
         loggingLevel = logging.INFO
@@ -48,7 +48,7 @@ class Logging():
             logging.basicConfig(format=FORMAT, level=loggingLevel)
             logging.info("No output file specified file logging will be disabled to enable: ./main.py <outputfilepath>")
         else:
-            logging.basicConfig(format=FORMAT, level=logging.INFO, handlers=[logging.FileHandler(str(os.path.dirname(os.path.abspath(path))) + "/" + sys.argv[1]), logging.StreamHandler()])
+            logging.basicConfig(format=FORMAT, level=logging.INFO, handlers=[logging.FileHandler(sys.argv[1]), logging.StreamHandler()])
 
 """
 Load sensor calibration details from a given file 

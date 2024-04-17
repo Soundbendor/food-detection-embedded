@@ -1,7 +1,7 @@
 """"
-Will Richards, Oregon State University, 2023
+Will Richards, Oregon State University, 2024
 
-Abstraction layer for the IMX219 steroscopic imaging camera
+Abstraction layer for the D405/D401 Intel Realsense depth camera
 """
 
 import pyrealsense2 as rs
@@ -18,7 +18,7 @@ class RealsenseCam(DriverBase):
     """
     Construct a new instance of the camera
     """
-    def __init__(self, width = 640, height = 480, fps = 30):
+    def __init__(self, controllerPipe, width = 640, height = 480, fps = 30):
         super().__init__("Realsense")
 
         # Set loop time to be 0 because it will block automatically
@@ -31,11 +31,7 @@ class RealsenseCam(DriverBase):
         self.realsense_pipeline = rs.pipeline()
         self.realsense_config = rs.config()
         self.realsense_colorizer = rs.colorizer()
-
-        # Polygon Output Parameters
-        self.realsense_ply = rs.save_to_ply("../data/depth.ply")
-        self.realsense_ply.set_option(rs.save_to_ply.option_ply_binary, True)
-        self.realsense_ply.set_option(rs.save_to_ply.option_ply_normals, True)
+        self.controllerConnection = controllerPipe
         
 
         # List of events to hold
@@ -52,11 +48,14 @@ class RealsenseCam(DriverBase):
         self.realsense_config.enable_stream(rs.stream.depth, self.camera_width, self.camera_height, rs.format.z16, self.framerate)
 
         try:
-            self.realsense_pipeline.start(self.realsense_config)
+            self.realsense_profile = self.realsense_pipeline.start(self.realsense_config)
         except RuntimeError as e:
             logging.error(f"An Error occurred: {e}")
             self.initialized = False
             return
+        
+        # Turn off auto white balance to ensure the colors remain true and not "warm"
+        self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.enable_auto_white_balance, False)
 
         logging.info("Successfully initialized realsense camera!")
         self.initialized = True
@@ -84,22 +83,33 @@ class RealsenseCam(DriverBase):
                 depth_frame = frames.get_depth_frame()
                 color_frame = frames.get_color_frame()
                 if depth_frame and color_frame:
+                    # Create the names for each of the files that will be saved
+                    currentTime = time()
+                    fileNames = {
+                        "topologyMap": self._formatFileName("depth.ply", currentTime),
+                        "depthImage": self._formatFileName("depthImage.jpg", currentTime),
+                        "colorImage": self._formatFileName("colorImage.jpg", currentTime),
+                    }
 
                     # Convert our images into array's and colorize the depth map
                     colorized = self.realsense_colorizer.process(frames)
                     depth_image = np.asanyarray(depth_frame.get_data())
                     color_image = np.asanyarray(color_frame.get_data())
                     depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
-
+                    
                     # Generate our .ply file and save our images to the disk
-                    self.realsense_ply.process(colorized)
-                    cv2.imwrite("../data/depthImage.jpg", depth_colormap)
-                    cv2.imwrite("../data/colorImage.jpg", color_image)
-
-
+                    realsense_ply = rs.save_to_ply(fileNames["topologyMap"])
+                    realsense_ply.set_option(rs.save_to_ply.option_ply_binary, True)
+                    realsense_ply.set_option(rs.save_to_ply.option_ply_normals, True)
+                    realsense_ply.process(colorized)
+                    cv2.imwrite(fileNames["depthImage"], depth_colormap)
+                    cv2.imwrite(fileNames["colorImage"], color_image)
+                    self.controllerConnection.send(fileNames)
+                    logging.info("Captured frames successfully!")
+                    
                     # Only clear capture event on successful retrieval
                     self.getEvent("CAPTURE").clear()
-                    logging.info("Captured frames successfully!")
+                    
                 else:
                     logging.warn("Unable to retrieve frame(s)")
                     
@@ -115,3 +125,11 @@ class RealsenseCam(DriverBase):
             self.realsense_pipeline.stop()
         except RuntimeError as e:
             logging.error(f"An error occurred: {e}")
+    
+    """
+    Given a generic file name like colorImage.jpg format it to be saved in ../data/colorImage_2024-04-16--19--00-12.jpg
+    """
+    def _formatFileName(self, fileName: str, currentTime):
+        fileNameSplit = fileName.split(".")
+        outputFile = strftime(f"../data/{fileNameSplit[0]}_%Y-%m-%d--%H-%M-%S.{fileNameSplit[1]}",gmtime(currentTime))
+        return outputFile

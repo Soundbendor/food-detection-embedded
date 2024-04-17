@@ -2,11 +2,9 @@ import logging
 import sys
 import os
 import json
-from time import time, gmtime, strftime
-
-import glob
+from time import time
 import uuid
-import requests
+import httpx
 
 
 TWO_HOURS_SECONDS = 7200
@@ -69,6 +67,7 @@ class CalibrationLoader():
         with open(file, "r") as f:
             self.data = json.load(f)
             logging.info("Succsessfully loaded calibration details!")
+
     
     """
     Retrieve the given calibration data
@@ -84,36 +83,36 @@ Handles requests to remote APIs (S3 and FastAPI)
 class RequestHandler():
     def __init__(self, dataDir = "../data", secret_file="config.secret"):
         self.dataDir = dataDir
-        self.apiKey, self.endpoint = self.loadFastAPICredentials(secret_file)
+        self.apiKey, self.endpoint, self.port = self.loadFastAPICredentials(secret_file)
+        self.endpoint = f"http://{self.endpoint}:{self.port}"
     
     """
     Upload the most recent files in the 'data' folder to our remote server for storage
 
     :return: Dictionary of base file names (ie. "colorImage") mapped to the stored location in our S3 bucket
     """
-    def uploadFiles(self):
+    def uploadFiles(self, fileNames: dict):
         endpoint = self.endpoint + "/api/upload_files"
 
-        filesToUpload = {
-            "colorImageFile": open(f"{self.dataDir}/colorImage.jpg", "rb"),
-            "depthImageFile": open(f"{self.dataDir}/depthImage.jpg", "rb"),
-            "heatmapImageFile": open(f"{self.dataDir}/heatmap.jpg", "rb"),
-            "topologyMapFile": open(f"{self.dataDir}/depth.ply", "rb"),
-            "voiceRecordingFile ": open(f"{self.dataDir}/downsampledAudio.wav", "rb")
-            }
-        
-        # API Request
+        # Format request headers
         headers = {
-            "accept": "application/json",
-            "token": self.apiKey,
-            "Content-Type": "multipart/form-data"
+            "token": self.apiKey
         }
+
+        filesToUpload = {
+                "colorImageFile": ("colorImage.jpg", open(fileNames["colorImage"], "rb"), "image/jpg"),
+                "depthImageFile": ("depthImage.jpg", open(fileNames["depthImage"], "rb"), "image/jpg"),
+                "heatmapImageFile": ("heatmap.jpg", open(fileNames["heatmapImage"], "rb"), "image/jpg"),
+                "topologyMapFile": ("depth.ply", open(fileNames["topologyMap"], "rb"), "application/octet-stream"),
+                "voiceRecordingFile": ("downsampledAudio.wav", open(fileNames["voiceRecording"], "rb"), "audio/wav")
+            }
 
         params = {
             "deviceID": int(uuid.getnode())
         }
     
-        response = requests.post(endpoint, params=params, headers=headers,files=filesToUpload).json()
+        response = httpx.post(endpoint, params=params, headers=headers, files=filesToUpload).json()
+
         if response["status"] == True:
             del response["status"]
             # Upload files to FastAPI and return the resu
@@ -128,59 +127,62 @@ class RequestHandler():
 
     :param apiKey: Our API Key used to authenticate with our API
     """
-    def sendSecureHeartbeat(self):
-        endpoint = self.endpoint + "/api/health/secure_heartbeat"
-        response = requests.get(
-            endpoint, 
-            headers={
-                "accept": "application/json",
-                "token": self.apiKey
-            }
-        )
-        print(response.json())
-        # TODO: Return true or false depedning on return state
-
+    def sendHeartbeat(self):
+        endpoint = self.endpoint + "/api/health/heartbeat"
+        response = httpx.get(endpoint).json()
+       
+        if response["is_alive"] == True:
+            logging.info("Succsessfully recieved hearbeat!")
+            return True
+        else:
+            logging.error("Failed to recieive heartbeat from server!")
+            return False
 
     """
-    Send a request to our API endpoint 
+    Send a request to our API endpoint, this includes our file upload procedure
 
     :param data: The complete JSON data packet 
     """
-    def sendAPIRequest(self, data: dict):
+    def sendAPIRequest(self, fileNames: dict, data: dict):
         endpoint = self.endpoint + "/api/scan"
-        fileLocations = self.uploadFiles()
+        fileLocations = self.uploadFiles(fileNames)
+
+        if len(fileLocations) > 0:
         
-        # API Request
-        headers = {
-            "accept": "application/json",
-            "token": self.apiKey,
-            "Content-Type": "application/json"
-        }
+            # API Request
+            headers = {
+                "token": self.apiKey,
+            }
 
-        payload = {
-            "colorImage": str(fileLocations["colorImage"]),
-            "depthImage": str(fileLocations["depthImage"]),
-            "heatmapImage": str(fileLocations["heatmapImage"]),
-            "topologyMap": str(fileLocations["topologyMap"]),
-            "voiceRecording": str(fileLocations["voiceRecording"]),
-            "total_weight": float(data["NAU7802"]["data"]["weight"]),
-            "weight_delta": float(data["NAU7802"]["data"]["weight_delta"]),
-            "temperature": float(data["BME688"]["data"]["temperature(c)"]),
-            "pressure": float(data["BME688"]["data"]["pressure(kpa)"]),
-            "humidity": float(data["BME688"]["data"]["humidity(%rh)"]),
-            "iaq": float(data["BME688"]["data"]["iaq"]),
-            "co2_eq": float(data["BME688"]["data"]["CO2-eq"]),
-            "tvoc": float(data["BME688"]["data"]["bVOC-eq"]),
-            "transcription": str(data["SoundController"]["data"]["TranscribedText"]),
-            "userTrigger": bool(data["DriverManager"]["data"]["userTrigger"]),
-            "deviceID": int(uuid.getnode())
-        }
+            payload = {
+                "colorImage": str(fileLocations["colorImage"]),
+                "depthImage": str(fileLocations["depthImage"]),
+                "heatmapImage": str(fileLocations["heatmapImage"]),
+                "topologyMap": str(fileLocations["topologyMap"]),
+                "voiceRecording": str(fileLocations["voiceRecording"]),
+                "total_weight": float(data["NAU7802"]["data"]["weight"]),
+                "weight_delta": float(data["NAU7802"]["data"]["weight_delta"]),
+                "temperature": float(data["BME688"]["data"]["temperature(c)"]),
+                "pressure": float(data["BME688"]["data"]["pressure(kpa)"]),
+                "humidity": float(data["BME688"]["data"]["humidity(%rh)"]),
+                "iaq": float(data["BME688"]["data"]["iaq"]),
+                "co2_eq": float(data["BME688"]["data"]["CO2-eq"]),
+                "tvoc": float(data["BME688"]["data"]["bVOC-eq"]),
+                "transcription": str(data["SoundController"]["data"]["TranscribedText"]),
+                "userTrigger": bool(data["DriverManager"]["data"]["userTrigger"]),
+                "deviceID": int(uuid.getnode())
+            }
 
-        response = requests.post(endpoint, headers=headers, json=payload).json()
-        if('status' in response and response["status"] == True):
-            logging.info("Data successfully uploaded!")
+            response = httpx.post(endpoint, headers=headers, json=payload).json()
+            if('status' in response and response["status"] == True):
+                logging.info("Data successfully uploaded!")
+                return True
+            else:
+                logging.error("Failed to upload data to API.")
+                return False
         else:
-            logging.error("Failed to upload data to API.")
+            logging.error("No file names supplied from file upload!")
+            return False
             
         
     
@@ -193,4 +195,4 @@ class RequestHandler():
         secretFile = open(file, 'r')
         credsJson = json.load(secretFile)
         secretFile.close()
-        return (credsJson["FASTAPI_CREDS"]["apiKey"], credsJson["FASTAPI_CREDS"]["endpoint"])
+        return (credsJson["FASTAPI_CREDS"]["apiKey"], credsJson["FASTAPI_CREDS"]["endpoint"], credsJson["FASTAPI_CREDS"]["port"])

@@ -10,7 +10,7 @@ import logging
 import cv2
 import numpy as np
 from scipy import ndimage
-from datetime import datetime
+from time import time, strftime, gmtime
 from enum import Enum
 import cmapy
 
@@ -124,8 +124,11 @@ class ThermalCam():
         self._preloadImage()
         heats = self._captureRaw()
         heatmap = self._createHeatmap(heats)
-        cv2.imwrite("../data/heatmap.jpg", heatmap)
+        currentTime = time()
+        name = self._formatFileName("heatmap.jpg", currentTime)
+        cv2.imwrite(name, heatmap)
         logging.info("Succsessfully captured heatmap")
+        return name
         
 
     """
@@ -133,15 +136,23 @@ class ThermalCam():
     """
     def close(self):
         self.mlx.i2c_tear_down()
+    
+    """
+    Given a generic file name like colorImage.jpg format it to be saved in ../data/colorImage_2024-04-16--19--00-12.jpg
+    """
+    def _formatFileName(self, fileName: str, currentTime):
+        fileNameSplit = fileName.split(".")
+        outputFile = strftime(f"../data/{fileNameSplit[0]}_%Y-%m-%d--%H-%M-%S.{fileNameSplit[1]}",gmtime(currentTime))
+        return outputFile
         
-
 class MLX90640(DriverBase):
 
     """
     Construct a new instance of the camera
     """
-    def __init__(self):
+    def __init__(self, controllerPipe):
         super().__init__("MLX90640")
+        self.controllerConnection = controllerPipe
         self.mlx = ThermalCam()
         self.events = {
             "CAPTURE": Event()
@@ -159,7 +170,8 @@ class MLX90640(DriverBase):
     """
     def measure(self) -> None:
         if(self.getEvent("CAPTURE").is_set()):
-            self.mlx.capture()
+            fileName = self.mlx.capture()
+            self.controllerConnection.send({'heatmapImage': fileName})
             self.getEvent("CAPTURE").clear()
 
     """
@@ -167,5 +179,6 @@ class MLX90640(DriverBase):
     """
     def kill(self):
         self.mlx.close()
+
 
         

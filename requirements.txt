@@ -1,5 +1,5 @@
 numpy==1.26.4
-requests==2.31.0
+httpx==0.27.0
 pynau7802==0.2.2
 mlx90640-driver==1.1.2
 mlx90640-driver-devicetree==1.1.0

@@ -4,7 +4,7 @@ Will Richards, Oregon State University, 2024
 Provides the top level of the whole system so individual components can be utilized individually without needing to give them their own thread via the DriverManager
 """
 
-import multiprocessing
+from multiprocessing import Pipe, Queue
 import time
 import os
 
@@ -18,9 +18,10 @@ from drivers.sensors.MLX90640 import MLX90640
 from drivers.sensors.LidSwitch import LidSwitch
 from drivers.sensors.LEDDriver import LEDDriver
 from drivers.sensors.SoundController import SoundController
+from drivers.sensors.AsyncPublisher import AsyncPublisher
 
 # Additional Helper Methods
-from helpers import Logging, CalibrationLoader, RequestHandler
+from helpers import Logging, CalibrationLoader
 
 
 class MainController():
@@ -31,14 +32,20 @@ class MainController():
     def __init__(self) -> None:
         logger = Logging(__file__, verbose=True)
         calibration = CalibrationLoader("CalibrationDetails.json")
-        self.requests = RequestHandler()
- 
+        
         if not os.path.exists("../data/"):
             os.mkdir("../data/")
 
+        # Create pipes to all proccesses that create files so we can retrieve the file name that they save the most recent data as
+        self.soundControllerConnection, soundControllerConnection = Pipe()
+        self.realsenseControllerConenction, realsenseControllerConenction = Pipe()
+        self.mlxControllerConenction, mlxControllerConenction = Pipe()
+
+        # Queue of data that needs to be published to the server
+        self.publisherQueue = Queue()
+
         # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers
-        self.mainControllerConnection, soundControllerConnection = multiprocessing.Pipe()
-        self.manager = DriverManager(LEDDriver(), NAU7802(calibration.get("NAU7802_CALIBRATION_FACTOR")), BME688(), MLX90640(), LidSwitch(), RealsenseCam(), SoundController(soundControllerConnection))
+        self.manager = DriverManager(LEDDriver(), NAU7802(calibration.get("NAU7802_CALIBRATION_FACTOR")), BME688(), MLX90640(mlxControllerConenction), LidSwitch(), RealsenseCam(realsenseControllerConenction), SoundController(soundControllerConnection), AsyncPublisher(self.publisherQueue))
 
         # After we have initialzied all the proccesses we want to flash green to signifiy we are done
         if self.manager.allProcsInitialized:
@@ -74,6 +81,7 @@ class MainController():
     def collectData(self, triggeredByLid=True) -> bool:
         # When collect data is called we want to set the trigger type
         data = self.manager.getData()
+        fileNames = {}
         data["DriverManager"]["data"]["userTrigger"] = triggeredByLid
 
         # We want to tell the "cameras" we would like to capture the latest frames
@@ -85,6 +93,10 @@ class MainController():
         # While the capture events are still set we should just wait until they are cleared meaning they succeeded
         while self.manager.getEvent("Realsense.CAPTURE") or self.manager.getEvent("MLX90640.CAPTURE"):
             time.sleep(0.2)
+        
+        # Grab dictionaries of the file paths generated from the Realsense module and the MLX90640 module
+        fileNames.update(self.realsenseControllerConenction.recv())
+        fileNames.update(self.mlxControllerConenction.recv())
 
         # Set the light to yellow before recording the 
         self.manager.setEvent("LEDDriver.PROCESSING")
@@ -95,17 +107,14 @@ class MainController():
             while self.manager.getEvent("SoundController.RECORD"):
                 time.sleep(0.2)
             
-            # Add the transcribed text into the JSON document, only update if value was returned
-            transcription = self.mainControllerConnection.recv()
-            if len(transcription) > 1:
-                self.manager.getData()["SoundController"]["data"]["TranscribedText"] = transcription
+            # Get the resulting file path from the sound controller
+            fileNames.update(self.soundControllerConnection.recv())
 
             data["NAU7802"]["data"]["weight_delta"].value = data["NAU7802"]["data"]["weight"].value - self.startingWeight
 
-        print(self.manager.getJSON())
 
-        # Upload the current files in our data folder to S3 and send the API request
-        #self.requests.sendAPIRequest(self.manager.getJSON())
+        # Add the most recent batch of data to the transcription and publishing queue 
+        self.publisherQueue.put((fileNames, self.manager.getJSON()))
         print("Done!")
 
         # After we have sent all the stuff and are done, set the leds to green for a few seconds and then turn them off

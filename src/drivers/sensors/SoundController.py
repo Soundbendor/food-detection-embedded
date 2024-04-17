@@ -85,18 +85,18 @@ class SoundController(DriverBase):
             self.muteSpeaker()
 
             # If we heard silence then we want to prompt the user to say something again 
-            gotTranscription = False
-            while not gotTranscription:
+            gotRecording = False
+            while not gotRecording:
 
                 # Record the microphone and pass the result through voice activation detection and then whisper to get the transcription
                 self.unmuteMic()
-                recordingResult = self.microphone.record()
+                fileName = self.microphone.record()
                 self.muteMic()
 
                 # If the result was good send it back to the main thread, if not we want to prompt the user to say the items again
-                if(len(recordingResult) != 0):
-                    gotTranscription = True
-                    self.soundControllerConnection.send(recordingResult)
+                if(len(fileName) != 0):
+                    gotRecording = True
+                    self.soundControllerConnection.send({"voiceRecording": fileName})
                 else:
                     self.unmuteSpeaker()
                     self.speaker.playClip("../media/didntCatch.wav")

@@ -96,7 +96,7 @@ class NAU7802(DriverBase):
         self.tareScale()
 
         # Prompt the user for the mass of a known object in grams
-        mass = 50
+        mass = 20
         logging.info("Waiting 10 seconds for weight to be put on scale")
         time.sleep(10)
 

@@ -1,7 +1,7 @@
 """
 Will Richards, Oregon State University, 2024
 
-Provides a wrapper for the TCLC59711 SPI LED Driver
+Provides a wrapper for the Neopixel LED Driver
 """
 
 import enum
@@ -39,7 +39,7 @@ class LEDDriver(DriverBase):
 
         spi = board.SPI()
         self.pixels = neopixel.NeoPixel_SPI(
-            spi, pixel_count, brightness=0.1, auto_write=True, pixel_order=neopixel.GRBW, bit0=0b10000000
+            spi, pixel_count, brightness=1, auto_write=True, pixel_order=neopixel.GRBW, bit0=0b10000000
         )   
         self.mode = LEDMode.PROCESSING
         self.initialized = False

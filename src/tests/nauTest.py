@@ -11,7 +11,6 @@ if __name__ == "__main__":
     # Change our current working directory to this file so our relative paths still work no matter where this file was called from
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-
     logger = Logging(__file__)
     calibration = CalibrationLoader("../CalibrationDetails.json")
     manager = DriverManager(NAU7802(calibration.get("NAU7802_CALIBRATION_FACTOR")))

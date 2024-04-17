@@ -7,13 +7,10 @@ Provides a functionality to interface with a standard USB microphone using a USB
 import logging
 import pyaudio
 import wave
-from pydub import AudioSegment as am
 import os
 import numpy as np
-import whisper
-import numpy as np
 import subprocess
-import time
+from time import time, strftime, gmtime
 
 class Microphone():
 
@@ -22,7 +19,7 @@ class Microphone():
 
     :param record_duration: The lenght of time in seconds that the microphone will record for
     """
-    def __init__(self, record_duration=10, model="tiny.en-q5_0"):
+    def __init__(self, record_duration=10, model="base.en-q5_0"):
 
         # Audio recording parameters
         self.sampling_rate = 16000
@@ -34,11 +31,6 @@ class Microphone():
         self.alsaSoundCardNum = 2
 
         self.pAudio = pyaudio.PyAudio()
-        self.modelPath = f"../whisper.cpp/models/ggml-{model}.bin"
-
-        # Load the silero-vad Voice Activation Model to reduce overall inference time by ignoring audio with no voice in it
-        # self.model, utils = torch.hub.load(repo_or_dir='snakers4/silero-vad',model='silero_vad',force_reload=True,onnx=False)
-        # (self.get_speech_timestamps, self.save_audio, self.read_audio,_, self.collect_chunks) = utils
 
         # Enable the microphone capture
         with open(os.devnull, 'wb') as devnull:
@@ -49,12 +41,7 @@ class Microphone():
     Initialize the whisper model and warm it up by feeding 0s into it
     """
     def initialize(self):
-        logging.info("Loading model...")
-        logging.info(os.getcwd())
-        # self.asrModel = whisper.load_model("base.en")
-        logging.info("Loading complete! Warming up model...")
-        # whisper.transcribe(model=self.asrModel, audio=np.zeros(self.record_duration * self.sampling_rate, np.float32), fp16=False)
-        logging.info("Model has been warmed up! Ready for inference")
+        logging.info("Microphone initialized!")
         self.initialized = True
             
     """
@@ -71,19 +58,6 @@ class Microphone():
         wf.setframerate(self.sampling_rate)
         wf.writeframes(b''.join(data))
         wf.close()
-
-    """
-    Downsample a given audio file to 16khz, and then remove the previous file
-
-    :param inputFile: File that we wish to downsample
-    :param outputFile: The resulting downsampled output file
-    """
-    def downsampleAudio(self, inputFile, outputFile):
-        logging.info("Downsampling Audio....")
-        sound = am.from_file(inputFile, format="wav", frame_rate=self.sampling_rate)
-        sound = sound.set_frame_rate(self.sampling_rate)
-        sound.export(outputFile, format="wav")
-        os.remove(inputFile)
 
     """
     Record audio from the microphone and write it to a file
@@ -117,54 +91,13 @@ class Microphone():
 
         self.stream.stop_stream()
 
+        fileName = outputFile.split(".")
+        currentTime = time()
+        outputFile = strftime(f"../data/{fileName[0]}_%Y-%m-%d--%H-%M-%S.{fileName[1]}",gmtime(currentTime))
         self.writeWave(frames, outputFile)
         self.stream.close()
         logging.info("STOPPED RECORDING")
-
-    
-    """
-    Utilize the Silero-VAD model to determine if a given audio contains speaking
-
-    :param inputFile: The file we want to run our voice detection algorithm on
-    :param outputFile: The file that if we did find speaking contains only the speaking parts
-
-    :return: Whether or not the VAD detected speaking in the given input file
-    """
-    def detectSpeaking(self, inputFile, outputFile) -> bool:
-        logging.info("Detecting speaking....")
-        wav = self.read_audio(inputFile, sampling_rate=self.sampling_rate)
-        speech_timestamps = self.get_speech_timestamps(wav, self.model, sampling_rate=self.sampling_rate, speech_pad_ms=500)
-        if(len(speech_timestamps) > 0):
-            self.save_audio(outputFile, self.collect_chunks(speech_timestamps, wav), sampling_rate=self.sampling_rate) 
-            return True
-        return False
-    
-    """
-    Utilize the whisper model to transcribe a given input file into the text
-
-    :param inputFile: File to transcribe
-    """
-    def transcribe(self, inputFile) -> str:
-        logging.info("Transcribing audio....")
-        audio = whisper.load_audio(inputFile)
-        results = whisper.transcribe(model=self.asrModel, audio=audio, fp16=False)
-        return results["text"]
-
-    def proccess_audio_whispercpp(self, inputFile):
-        full_command = f"../whisper.cpp/main -m {self.modelPath} -f {inputFile} -np -nt"
-        process = subprocess.Popen(full_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        # Get the output and error (if any)
-        output, error = process.communicate()
-
-        if error:
-            logging.error(f"Error proccessing audio: {error.decode('utf-8')}")
-
-        # Process and return the output string
-        decoded_str = output.decode('utf-8').strip()
-        processed_str = decoded_str.replace('[BLANK_AUDIO]', '').strip()
-
-        return processed_str
-
+        return outputFile
 
     """
     Record a clip from the microphone
@@ -172,22 +105,7 @@ class Microphone():
     def record(self):
         if self.initialized:
             # Record and downsample the audio to 16khz
-            self._record("../data/downsampledAudio.wav")
-            
-            # if(self.detectSpeaking("../data/downsampledAudio.wav", "../data/only_speech.wav")):
-            #     transcribedText = self.transcribe('../data/only_speech.wav')
-            #     transcribedText = re.sub("[.,:;]", "", transcribedText).strip()
-            #     os.remove('../data/only_speech.wav')
-            #     return transcribedText
-            # else:
-            #     logging.warning("No speaking detected in clip!")
-            #     return ""
-
-            startTime = time.time()
-            transcribedText = self.proccess_audio_whispercpp("../data/downsampledAudio.wav")
-            logging.info(f"Transcription Time: {time.time() - startTime}")
-            return transcribedText
-
+            return self._record("downsampledAudio.wav")
         else:
             logging.warning("Microphone not initialized!")
             return ""

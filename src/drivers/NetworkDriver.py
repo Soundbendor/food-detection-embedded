@@ -1,9 +1,9 @@
 """
-Will Richards, Daniel Lau, Oregon State University, 2023
+Will Richards, Daniel Lau, Oregon State University, 2024
 
 WiFi/Bluetooh driver for handling device-to-device communication with the bucket
 """
-from bluez_peripheral.gatt.service import Service
+from bluez_peripheral.gatt.service import Service, ServiceCollection
 from bluez_peripheral.gatt.characteristic import characteristic, CharacteristicFlags as CharFlags
 from bluez_peripheral.util import get_message_bus, Adapter
 from bluez_peripheral.advert import Advertisement
@@ -14,6 +14,7 @@ import logging
 from time import time, sleep
 import asyncio
 import json
+import uuid
 
 from helpers import RequestHandler
 
@@ -70,6 +71,18 @@ class WiFiManager():
             return False
 
     """
+    Get the results from the last WiFi scan
+    """
+    def getLastScanResults(self):
+        return self.lastWiFiScan
+    
+    """
+    Get the results from the last attempted connection
+    """
+    def getLastConnectionResults(self):
+        return self.lastConnectionResult
+    
+    """
     Connect to a specified network
 
     :param ssid: The network name to connect to
@@ -92,7 +105,7 @@ class WiFiManager():
             logging.error(f"Failed to connect to network: {ssid}")
             self.lastConnectionResult = {
                 "message": "Wi-Fi configuration failed",
-                "log": process.stderr.decode("utf-8"),
+                "log": process.stderr.decode("utf-8").strip(),
                 "success": False,
                 "timestamp": time()
             }
@@ -132,67 +145,140 @@ class BluetoothDriver():
     """
     class WiFiSetupSerivce(Service):
 
-        # Start the bluetooth service with the unique indentifier from the hardware address
+        """
+        Start the bluetooth service with the unique indentifier 
+        """
         def __init__(self):
-            super().__init__("BEEF", True)
+            super().__init__(str(31415924535897932384626433832790), True)
             self.wifi = WiFiManager()
 
-        @characteristic("BEF0", CharFlags.ENCRYPT_READ)
+        """
+        Return the current status of our connection, are we connected to a network and if so are we also connected to the internet
+        """
+        @characteristic(str(31415924535897932384626433832790+1), CharFlags.ENCRYPT_READ)
         def getConnectionStatus(self, options):
             return json.dumps(self.wifi.checkConnection()).encode('utf-8')
         
-        @characteristic("BEF1", CharFlags.ENCRYPT_WRITE | CharFlags.ENCRYPT_READ | CharFlags.WRITE_WITHOUT_RESPONSE)
+        """
+        Returns the result of the last Wi-Fi connection attempt
+        """
+        @characteristic(str(31415924535897932384626433832790+2), CharFlags.ENCRYPT_WRITE | CharFlags.ENCRYPT_READ | CharFlags.WRITE_WITHOUT_RESPONSE)
         def setWIFiArgs(self, options):
             return json.dumps(self.wifi.lastConnectionResult).encode('utf-8')
         
+        """
+        Takes the Wi-Fi credentials recieved from a remote device and attempts to connect to the network provided in the request
+        """
         @setWIFiArgs.setter
         def setWIFIArgs(self, value, options):
             ssid = ""
             password = ""
+            decodedValue = str(value.decode('utf-8'))
 
             try:
-                data = json.loads(value.decode('utf-8'))
+                data = json.loads(decodedValue)
                 ssid = data["ssid"]
                 password = data["password"]
 
-                print(f"SSID: {ssid}, Password: {password}")
             except Exception as e:
                 logging.error(f"An error occurred when setting WiFi credentials: {e}")
+                self.lastConnectionResult = {"success": False, "message": e, "timestamp": time()}
 
-            self.wifi.lastConnectionResult = self.wifi.connectToNetwork(ssid, password)
+            self.wifi.connectToNetwork(ssid, password)
             return json.dumps(self.wifi.lastConnectionResult).encode('utf-8')
         
-        @characteristic("BEF2", CharFlags.NOTIFY | CharFlags.ENCRYPT_READ)
+        """
+        Returns a JSON document with the list of in range access points, their strength and security type
+        """
+        @characteristic(str(31415924535897932384626433832790+3), CharFlags.NOTIFY | CharFlags.ENCRYPT_READ)
         def getScannedNetworks(self, options):
             return json.dumps(self.wifi.lastWiFiScan).encode('utf-8')
     
+    """
+    Handles the transmission and valididation of API keys
+    """
+    class APISetupService(Service):
+        def __init__(self):
+            super().__init__("ABC0", True)
+            self.requests = RequestHandler()
+        
+        def checkAPIConnection(self):
+            pass
+            
+        @characteristic("ABC1", CharFlags.ENCRYPT_WRITE | CharFlags.ENCRYPT_READ | CharFlags.WRITE_WITHOUT_RESPONSE)
+        def setAPIKey(self, options):
+            self.requests.sendSecureHeartbeat()
+            return str(self.requests.sendSecureHeartbeat()).encode('utf-8')
+
+        @setAPIKey.setter
+        def setAPIKey(self, value, options):
+            try:
+                decodedValue = str(value.decode('utf-8')).strip()
+                data = json.loads(decodedValue)
+                print("Decoded JSON!")
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return False
+
+            # Formulate new FastAPI credentials based on the incoming data
+            creds = {
+                "FASTAPI_CREDS": {
+                    "apiKey": data["apiKey"],
+                    "endpoint": data["endpoint"],
+                    "port": int(data["port"])
+                }
+            }
+            print(creds)
+            jsonString = json.dumps(creds)
+            # Write the new credentials to the config.secret file
+            with open("config.secret", "w") as file:
+                file.write(jsonString)
+
+            # Then have the requests library update the credentials currently loaded into the system
+            self.requests.updateAPICreds()
+            print("Written to file and updated credentials!")
     """
     Construct a new instance of the bluetooth driver
     """
     def __init__(self):
         self.loop = asyncio.get_event_loop()
+        self.running = True
         self.loop.run_until_complete(self.setupBus())
-        while True:
-            try:
-                sleep(0.1)
-            except KeyboardInterrupt:
-                break
+        self.loop.run_until_complete(self.controlLoop())
+
+    """
+    Get the number of connections to the device
+    """
+    def checkConnections():
+        pass
+
+    async def controlLoop(self):
+        while self.running:
+            await asyncio.sleep(0.5)
     
     async def setupBus(self):
         bus = await get_message_bus()
-        service = self.WiFiSetupSerivce()
-        await service.register(bus)
+        wifiService = self.WiFiSetupSerivce()
+        apiService = self.APISetupService()
 
+        serviceCollection = ServiceCollection()
+        serviceCollection.add_service(wifiService)
+        serviceCollection.add_service(apiService)
+      
+        await serviceCollection.register(bus)
+        print("Registered WiFi service")
+        
         agent = NoIoAgent()
         await agent.register(bus)
 
         adapter = await Adapter.get_first(bus)
-        await adapter.set_alias("Binsight Compost Bin")
+        bluetoothName = "Binsight Compost Bin"
+        await adapter.set_alias(bluetoothName)
         advert = Advertisement(
-            "B.AI.CB#12345678901",
-            ["BEEF"],
+            bluetoothName,
+            [str(31415924535897932384626433832790), "ABC0"],
             0x0,
-            30
+            360
         )
 
         try:
@@ -200,3 +286,16 @@ class BluetoothDriver():
             print("Advertised!")
         except:
             pass
+
+    """
+    Run a given command as a complete string like "ping 8.8.8.8"
+
+    :param cmd: The command to run as one contigious string
+    """
+    def _runCommand(self, cmd: str):
+        process = subprocess.run(
+            cmd.split(" "),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        return process.returncode, process

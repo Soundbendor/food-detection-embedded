@@ -14,13 +14,11 @@ if __name__ == "__main__":
     logger = Logging()
     calibration = CalibrationLoader("../CalibrationDetails.json")
     manager = DriverManager(NAU7802(calibration.get("NAU7802_CALIBRATION_FACTOR")))
-    i = 0
     
     while True:
         try:
-            print(manager.getJSON()["NAU7802"]["data"]["weight"])
-            sleep(0.1)
-            i+=1
+            print(manager.getJSON())
+            sleep(1)
         except KeyboardInterrupt:
             manager.kill()
             break

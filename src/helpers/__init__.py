@@ -82,6 +82,7 @@ Handles requests to remote APIs (S3 and FastAPI)
 """
 class RequestHandler():
     def __init__(self, dataDir = "../data", secret_file="config.secret"):
+        self.secret_file = secret_file
         self.dataDir = dataDir
         self.apiKey, self.endpoint, self.port = self.loadFastAPICredentials(secret_file)
         self.endpoint = f"http://{self.endpoint}:{self.port}"
@@ -131,7 +132,31 @@ class RequestHandler():
         endpoint = self.endpoint + "/api/health/heartbeat"
         response = httpx.get(endpoint).json()
        
-        if response["is_alive"] == True:
+        if 'is_alive' in response and response["is_alive"] == True:
+            logging.info("Succsessfully recieved hearbeat!")
+            return True
+        else:
+            logging.error("Failed to recieive heartbeat from server!")
+            return False
+    
+    """
+    Request that the API credentials be updated to the most recent ones stored in the file
+    """
+    def updateAPICreds(self):
+        self.apiKey, self.endpoint, self.port = self.loadFastAPICredentials(self.secret_file)
+        self.endpoint = f"http://{self.endpoint}:{self.port}"
+    
+    """
+    Send a secure heartbeat request to the API
+    """
+    def sendSecureHeartbeat(self):
+        endpoint = self.endpoint + "/api/health/secure_heartbeat"
+        headers = {
+            "token": self.apiKey,
+        }
+        response = httpx.get(endpoint, headers=headers).json()
+       
+        if 'is_alive' in response and response["is_alive"] == True:
             logging.info("Succsessfully recieved hearbeat!")
             return True
         else:
@@ -182,9 +207,7 @@ class RequestHandler():
                 return False
         else:
             logging.error("No file names supplied from file upload!")
-            return False
-            
-        
+            return False  
     
     """
     Load and return our Fast API credentials

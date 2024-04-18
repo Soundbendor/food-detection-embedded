@@ -55,7 +55,6 @@ class NAU7802(DriverBase):
             return False
 
         logging.info("Taring scale...")
-        #self.nau.reset()
         self.nau.setSampleRate(PyNAU7802.NAU7802_SPS_40)
         self.nau.setGain(PyNAU7802.NAU7802_GAIN_16)
         self.nau.setLDO(PyNAU7802.NAU7802_LDO_4V5)

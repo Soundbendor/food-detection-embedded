@@ -4,35 +4,35 @@ Will Richards, Oregon State University, 2024
 Provides the top level of the whole system so individual components can be utilized individually without needing to give them their own thread via the DriverManager
 """
 
-from multiprocessing import Pipe, Queue
-import time
 import os
+import time
+from multiprocessing import Pipe, Queue
 
 from drivers.DriverManager import DriverManager
+from drivers.sensors.AsyncPublisher import AsyncPublisher
+from drivers.sensors.BME688 import BME688
+from drivers.sensors.LEDDriver import LEDDriver
+from drivers.sensors.LidSwitch import LidSwitch
+from drivers.sensors.MLX90640 import MLX90640
 
 # Sensor Drivers
 from drivers.sensors.NAU7802 import NAU7802
 from drivers.sensors.RealsenseCamera import RealsenseCam
-from drivers.sensors.BME688 import BME688
-from drivers.sensors.MLX90640 import MLX90640
-from drivers.sensors.LidSwitch import LidSwitch
-from drivers.sensors.LEDDriver import LEDDriver
 from drivers.sensors.SoundController import SoundController
-from drivers.sensors.AsyncPublisher import AsyncPublisher
 
 # Additional Helper Methods
-from helpers import Logging, CalibrationLoader
+from helpers import CalibrationLoader, Logging
 
 
-class MainController():
+class MainController:
 
     """
     Create a new instance of our main controlller
     """
+
     def __init__(self) -> None:
-        
         calibration = CalibrationLoader("CalibrationDetails.json")
-        
+
         if not os.path.exists("../data/"):
             os.mkdir("../data/")
 
@@ -45,7 +45,16 @@ class MainController():
         self.publisherQueue = Queue()
 
         # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers
-        self.manager = DriverManager(LEDDriver(), NAU7802(calibration.get("NAU7802_CALIBRATION_FACTOR")), BME688(), MLX90640(mlxControllerConenction), LidSwitch(), RealsenseCam(realsenseControllerConenction), SoundController(soundControllerConnection), AsyncPublisher(self.publisherQueue))
+        self.manager = DriverManager(
+            LEDDriver(),
+            NAU7802(calibration.get("NAU7802_CALIBRATION_FACTOR")),
+            BME688(),
+            MLX90640(mlxControllerConenction),
+            LidSwitch(),
+            RealsenseCam(realsenseControllerConenction),
+            SoundController(soundControllerConnection),
+            AsyncPublisher(self.publisherQueue),
+        )
 
         # After we have initialzied all the proccesses we want to flash green to signifiy we are done
         if self.manager.allProcsInitialized:
@@ -62,22 +71,26 @@ class MainController():
     """
     Handles events that need to be checked quickly in the main loop
     """
+
     def handleCallbacks(self):
         # Check the state of the LidSwitch
-        if(self.manager.getEvent("LidSwitch.LID_CLOSED")):
+        if self.manager.getEvent("LidSwitch.LID_CLOSED"):
             self.collectData(triggeredByLid=True)
             self.manager.clearEvent("LidSwitch.LID_CLOSED")
 
         # If the Lid is opened we want to record the current weight
-        elif(self.manager.getEvent("LidSwitch.LID_OPENED")):
-            self.startingWeight = self.manager.getData()["NAU7802"]["data"]["weight"].value
+        elif self.manager.getEvent("LidSwitch.LID_OPENED"):
+            self.startingWeight = self.manager.getData()["NAU7802"]["data"][
+                "weight"
+            ].value
             self.manager.clearEvent("LidSwitch.LID_OPENED")
-            
+
     """
     Collect a sample from all of the sensors on the device
 
     :param triggeredByLid: Whether or not our current sample was triggered by the lid opening or just the "cron job"
     """
+
     def collectData(self, triggeredByLid=True) -> bool:
         # When collect data is called we want to set the trigger type
         data = self.manager.getData()
@@ -85,35 +98,39 @@ class MainController():
         data["DriverManager"]["data"]["userTrigger"] = triggeredByLid
 
         # We want to tell the "cameras" we would like to capture the latest frames
+        # Delay the camera capture for a moment.
         self.manager.setEvent("LEDDriver.CAMERA")
+        time.sleep(0.4)
         self.manager.setEvent("Realsense.CAPTURE")
         self.manager.setEvent("MLX90640.CAPTURE")
-        
 
         # While the capture events are still set we should just wait until they are cleared meaning they succeeded
-        while self.manager.getEvent("Realsense.CAPTURE") or self.manager.getEvent("MLX90640.CAPTURE"):
+        while self.manager.getEvent("Realsense.CAPTURE") or self.manager.getEvent(
+            "MLX90640.CAPTURE"
+        ):
             time.sleep(0.2)
-        
+
         # Grab dictionaries of the file paths generated from the Realsense module and the MLX90640 module
         fileNames.update(self.realsenseControllerConenction.recv())
         fileNames.update(self.mlxControllerConenction.recv())
 
-        # Set the light to yellow before recording the 
+        # Set the light to yellow before recording the
         self.manager.setEvent("LEDDriver.PROCESSING")
 
         # If we actaully want to prompt for entry or it is part of the "cron job"
-        if(triggeredByLid):
+        if triggeredByLid:
             self.manager.setEvent("SoundController.RECORD")
             while self.manager.getEvent("SoundController.RECORD"):
                 time.sleep(0.2)
-            
+
             # Get the resulting file path from the sound controller
             fileNames.update(self.soundControllerConnection.recv())
 
-            data["NAU7802"]["data"]["weight_delta"].value = data["NAU7802"]["data"]["weight"].value - self.startingWeight
+            data["NAU7802"]["data"]["weight_delta"].value = (
+                data["NAU7802"]["data"]["weight"].value - self.startingWeight
+            )
 
-
-        # Add the most recent batch of data to the transcription and publishing queue 
+        # Add the most recent batch of data to the transcription and publishing queue
         self.publisherQueue.put((fileNames, self.manager.getJSON()))
         print("Done!")
 
@@ -125,5 +142,7 @@ class MainController():
     """
     Shutdown device connected via the DriverManager
     """
+
     def kill(self):
         self.manager.kill()
+

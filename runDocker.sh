@@ -1,6 +1,6 @@
 #!/bin/bash
 
-docker run -d --privileged \
+docker run --rm --privileged \
     -v "$(pwd)"/data:/firmware/data \
     -v /dev/bus/usb:/dev/bus/usb \
     -v "$(pwd)"/src/config.secret:/firmware/src/config.secret \
@@ -11,7 +11,5 @@ docker run -d --privileged \
     --device /dev/spidev0.0:/dev/spidev0.0 \
     --name binsight-firmware \
     --net host \
-    --restart unless-stopped \
     -it binsight-firmware \
-    python main.py
-
+    bash

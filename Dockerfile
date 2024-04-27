@@ -34,5 +34,3 @@ RUN mv /firmware/dependencies/librealsense2.so /usr/local/lib/python3.9/site-pac
 RUN mv /firmware/dependencies/pyrealsense2.cpython-39-aarch64-linux-gnu.so /usr/local/lib/python3.9/site-packages/pyrealsense2.cpython-39-aarch64-linux-gnu.so
 
 COPY src /firmware/src
-
-WORKDIR  /firmware/src

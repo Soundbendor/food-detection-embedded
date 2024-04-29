@@ -155,14 +155,14 @@ class BluetoothDriver():
         """
         Return the current status of our connection, are we connected to a network and if so are we also connected to the internet
         """
-        @characteristic(str(31415924535897932384626433832790+1), CharFlags.ENCRYPT_READ)
+        @characteristic(str(31415924535897932384626433832790+1), CharFlags.READ)
         def getConnectionStatus(self, options):
             return json.dumps(self.wifi.checkConnection()).encode('utf-8')
         
         """
         Returns the result of the last Wi-Fi connection attempt
         """
-        @characteristic(str(31415924535897932384626433832790+2), CharFlags.ENCRYPT_WRITE | CharFlags.ENCRYPT_READ | CharFlags.WRITE_WITHOUT_RESPONSE)
+        @characteristic(str(31415924535897932384626433832790+2), CharFlags.WRITE | CharFlags.READ | CharFlags.WRITE_WITHOUT_RESPONSE)
         def setWIFiArgs(self, options):
             return json.dumps(self.wifi.lastConnectionResult).encode('utf-8')
         
@@ -190,8 +190,9 @@ class BluetoothDriver():
         """
         Returns a JSON document with the list of in range access points, their strength and security type
         """
-        @characteristic(str(31415924535897932384626433832790+3), CharFlags.NOTIFY | CharFlags.ENCRYPT_READ)
+        @characteristic(str(31415924535897932384626433832790+3), CharFlags.NOTIFY | CharFlags.READ)
         def getScannedNetworks(self, options):
+            self.wifi.scanNetworks()
             return json.dumps(self.wifi.lastWiFiScan).encode('utf-8')
     
     """
@@ -203,12 +204,11 @@ class BluetoothDriver():
             self.requests = RequestHandler()
         
         def checkAPIConnection(self):
-            pass
+            return self.requests.sendSecureHeartbeat()
             
-        @characteristic("ABC1", CharFlags.ENCRYPT_WRITE | CharFlags.ENCRYPT_READ | CharFlags.WRITE_WITHOUT_RESPONSE)
+        @characteristic("ABC1", CharFlags.WRITE | CharFlags.READ | CharFlags.WRITE_WITHOUT_RESPONSE)
         def setAPIKey(self, options):
-            self.requests.sendSecureHeartbeat()
-            return str(self.requests.sendSecureHeartbeat()).encode('utf-8')
+            return str(self.checkAPIConnection()).encode('utf-8')
 
         @setAPIKey.setter
         def setAPIKey(self, value, options):
@@ -219,7 +219,7 @@ class BluetoothDriver():
             except Exception as e:
                 print(f"An error occurred: {e}")
                 return False
-
+            print(type(data))
             # Formulate new FastAPI credentials based on the incoming data
             creds = {
                 "FASTAPI_CREDS": {
@@ -228,7 +228,7 @@ class BluetoothDriver():
                     "port": int(data["port"])
                 }
             }
-            print(creds)
+
             jsonString = json.dumps(creds)
             # Write the new credentials to the config.secret file
             with open("config.secret", "w") as file:
@@ -237,6 +237,22 @@ class BluetoothDriver():
             # Then have the requests library update the credentials currently loaded into the system
             self.requests.updateAPICreds()
             print("Written to file and updated credentials!")
+    
+        @characteristic("ABC2", CharFlags.READ)
+        def getAPIKey(self, options):
+            response = {
+                "apiKey": self.requests.getAPIKey(),
+                "deviceID": uuid.getnode()
+            }
+            
+            return json.dumps(response).encode('utf-8')
+
+    """
+    Handles requests to test specific components 
+    """
+    class DebugService(Service):
+        def __init__(self):
+            super().__init__("BEEF", True)
     """
     Construct a new instance of the bluetooth driver
     """
@@ -266,7 +282,7 @@ class BluetoothDriver():
         serviceCollection.add_service(apiService)
       
         await serviceCollection.register(bus)
-        print("Registered WiFi service")
+        logging.info("Registered services.")
         
         agent = NoIoAgent()
         await agent.register(bus)
@@ -283,7 +299,8 @@ class BluetoothDriver():
 
         try:
             await advert.register(bus, adapter)
-            print("Advertised!")
+            logging.info("Advertising Bluetooth Device")
+
         except:
             pass
 

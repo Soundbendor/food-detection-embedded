@@ -106,11 +106,16 @@ class RequestHandler:
         self.endpoint = f"http://{self.endpoint}:{self.port}"
 
     """
+    Get the currently set API key
+    """
+    def getAPIKey(self):
+        return self.apiKey
+
+    """
     Upload the most recent files in the 'data' folder to our remote server for storage
 
     :return: Dictionary of base file names (ie. "colorImage") mapped to the stored location in our S3 bucket
     """
-
     def uploadFiles(self, fileNames: dict):
         endpoint = self.endpoint + "/api/upload_files"
 

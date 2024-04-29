@@ -260,17 +260,9 @@ class BluetoothDriver():
         self.loop = asyncio.get_event_loop()
         self.running = True
         self.loop.run_until_complete(self.setupBus())
-        self.loop.run_until_complete(self.controlLoop())
-
-    """
-    Get the number of connections to the device
-    """
-    def checkConnections():
-        pass
 
     async def controlLoop(self):
-        while self.running:
-            await asyncio.sleep(0.5)
+        await asyncio.sleep(300)
     
     async def setupBus(self):
         bus = await get_message_bus()
@@ -294,7 +286,7 @@ class BluetoothDriver():
             bluetoothName,
             [str(31415924535897932384626433832790), "ABC0"],
             0x0,
-            360
+            300
         )
 
         try:

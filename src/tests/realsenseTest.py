@@ -1,6 +1,8 @@
 """
 Individual component test of the realsense camera
 """
+from multiprocessing import Pipe
+
 import os
 from pathlib import Path
 
@@ -21,7 +23,8 @@ if __name__ == "__main__":
             os.mkdir("../data/")
 
     logger = Logging()
-    manager = DriverManager(RealsenseCam())
+    _, realsenseControllerConenction = Pipe()
+    manager = DriverManager(RealsenseCam(realsenseControllerConenction))
 
     while True:
         try:

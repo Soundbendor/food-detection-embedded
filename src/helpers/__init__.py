@@ -152,9 +152,13 @@ class RequestHandler:
 
         params = {"deviceID": int(uuid.getnode())}
 
-        response = httpx.post(
-            endpoint, params=params, headers=headers, files=filesToUpload
-        ).json()
+        client = httpx.Client()
+        try:
+            response = client.post(
+                endpoint, params=params, headers=headers, files=filesToUpload
+            ).json()
+        finally:
+            client.close()
 
         if response["status"] == True:
             del response["status"]
@@ -201,7 +205,11 @@ class RequestHandler:
         headers = {
             "token": self.apiKey,
         }
-        response = httpx.get(endpoint, headers=headers).json()
+        client = httpx.Client()
+        try:
+            response = client.get(endpoint, headers=headers).json()
+        finally:
+            client.close()
 
         if "is_alive" in response and response["is_alive"] == True:
             logging.info("Succsessfully recieved hearbeat!")
@@ -250,7 +258,12 @@ class RequestHandler:
                 "deviceID": int(uuid.getnode()),
             }
 
-            response = httpx.post(endpoint, headers=headers, json=payload).json()
+            client = httpx.Client()
+            try:
+                response = client.post(endpoint, headers=headers, json=payload).json()
+            finally:
+                client.close()
+            
             if "status" in response and response["status"] == True:
                 logging.info("Data successfully uploaded!")
                 return True

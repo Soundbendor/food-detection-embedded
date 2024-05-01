@@ -84,16 +84,17 @@ class SoundController(DriverBase):
             self.speaker.playClip("../media/itemRequest.wav")
             self.muteSpeaker()
 
-            # If we heard silence then we want to prompt the user to say something again 
+            # Check if we actually saved the audio to the file or not if not we want to ask the user for another transcription
             gotRecording = False
-            while not gotRecording:
+            retries = 0
+            while not gotRecording and retries < 3:
 
-                # Record the microphone and pass the result through voice activation detection and then whisper to get the transcription
+                # Record the microphone and return the file name that it was saved at
                 self.unmuteMic()
                 fileName = self.microphone.record()
                 self.muteMic()
 
-                # If the result was good send it back to the main thread, if not we want to prompt the user to say the items again
+                # If the file was saved succsessfully send it and move on but if not TELL the user that we are re-recording
                 if(len(fileName) != 0):
                     gotRecording = True
                     self.soundControllerConnection.send({"voiceRecording": fileName})
@@ -101,6 +102,7 @@ class SoundController(DriverBase):
                     self.unmuteSpeaker()
                     self.speaker.playClip("../media/didntCatch.wav")
                     self.muteSpeaker()
+                    retries += 1
             self.events["RECORD"][0].clear()
         
     """

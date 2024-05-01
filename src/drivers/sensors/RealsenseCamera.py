@@ -18,7 +18,7 @@ class RealsenseCam(DriverBase):
     """
     Construct a new instance of the camera
     """
-    def __init__(self, controllerPipe, width = 640, height = 480, fps = 30):
+    def __init__(self, controllerPipe, width = 1280, height = 720, fps = 30):
         super().__init__("Realsense")
 
         # Set loop time to be 0 because it will block automatically
@@ -31,7 +31,14 @@ class RealsenseCam(DriverBase):
         self.realsense_pipeline = rs.pipeline()
         self.realsense_config = rs.config()
         self.realsense_colorizer = rs.colorizer()
+        self.realsense_pointcloud = rs.pointcloud()
+        self.realsense_align = rs.align(rs.stream.color)
         self.controllerConnection = controllerPipe
+
+        # for dev in rs.context().query_devices():
+        #     dev.hardware_reset()
+
+
         
 
         # List of events to hold
@@ -49,6 +56,20 @@ class RealsenseCam(DriverBase):
 
         try:
             self.realsense_profile = self.realsense_pipeline.start(self.realsense_config)
+    
+            print(self.realsense_profile.get_device().query_sensors()[0].get_option_range(rs.option.exposure))
+            for option in self.realsense_profile.get_device().query_sensors()[0].get_supported_options():
+                print(option)
+                print(self.realsense_profile.get_device().query_sensors()[0].get_option_range(option))
+                print("")
+    
+            self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.enable_auto_exposure, True)
+            self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.brightness, 0)
+            #self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.contrast, 50)
+            self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.gain, 64)
+            self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.hdr_enabled, False)
+            self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.visual_preset, 5)
+            #self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.exposure, 165000)
         except RuntimeError as e:
             logging.error(f"An Error occurred: {e}")
             self.initialized = False
@@ -80,8 +101,12 @@ class RealsenseCam(DriverBase):
             if capSuccsess:
 
                 # Actually pull the frames out of our wait attempt and verify they are valid
-                depth_frame = frames.get_depth_frame()
-                color_frame = frames.get_color_frame()
+                
+                aligned_frames = self.realsense_align.process(frames)
+
+                depth_frame = aligned_frames.get_depth_frame()
+                color_frame = aligned_frames.get_color_frame()
+
                 if depth_frame and color_frame:
                     # Create the names for each of the files that will be saved
                     currentTime = time()
@@ -98,10 +123,10 @@ class RealsenseCam(DriverBase):
                     depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
                     
                     # Generate our .ply file and save our images to the disk
-                    realsense_ply = rs.save_to_ply(fileNames["topologyMap"])
-                    realsense_ply.set_option(rs.save_to_ply.option_ply_binary, True)
-                    realsense_ply.set_option(rs.save_to_ply.option_ply_normals, True)
-                    realsense_ply.process(colorized)
+                    self.realsense_pointcloud.map_to(color_frame)
+                    points = self.realsense_pointcloud.calculate(depth_frame)
+                    points.export_to_ply(fileNames["topologyMap"], color_frame)
+
                     cv2.imwrite(fileNames["depthImage"], depth_colormap)
                     cv2.imwrite(fileNames["colorImage"], color_image)
                     self.controllerConnection.send(fileNames)

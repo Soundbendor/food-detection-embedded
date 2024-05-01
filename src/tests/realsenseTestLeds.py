@@ -2,6 +2,7 @@
 Individual component test of the realsense camera
 """
 import os
+from multiprocessing import Pipe
 from pathlib import Path
 
 from helpers import Logging
@@ -21,17 +22,19 @@ if __name__ == "__main__":
     if not os.path.exists("../data/"):
             os.mkdir("../data/")
 
+    _, realsenseControllerConenction = Pipe()
     logger = Logging()
-    manager = DriverManager(RealsenseCam(), LEDDriver())
+    manager = DriverManager(RealsenseCam(realsenseControllerConenction), LEDDriver())
 
     while True:
         try:
             print("Sending capture request!")
             manager.setEvent("LEDDriver.CAMERA")
-            sleep(0.1)
+            sleep(0.4)
             manager.setEvent("Realsense.CAPTURE")
             while manager.getEvent("Realsense.CAPTURE"):
                 sleep(0.1)
+            sleep(0.4)
             manager.setEvent("LEDDriver.NONE")
             sleep(5)
             print("Capture complete!")

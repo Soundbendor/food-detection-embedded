@@ -52,14 +52,19 @@ class WiFiManager():
             network = network.strip()
             splitNetworkName = network.split(":")
             if len(splitNetworkName[0]) > 0 and (splitNetworkName[0] not in resultNetworks):
-                resultNetworks[splitNetworkName[0]] = {"strength": int(splitNetworkName[1]), "security": splitNetworkName[2]}
+                resultNetworks[splitNetworkName[0]] = {"strength": int(splitNetworkName[1]), "security": splitNetworkName[2] if len(splitNetworkName[2]) > 1 else "Open"}
 
+        # Prune network list down to less than 512 characters
+        while len(str(resultNetworks)) > 512:
+            networks = list(resultNetworks.keys())
+            del resultNetworks[networks[len(networks)-1]]
         return resultNetworks
     
     """
     Scan for available networks
     """
     def scanNetworks(self):
+        _, _ = self._runCommand("iwlist wlan0 scan")
         returnCode, process = self._runCommand("nmcli -g SSID,SIGNAL,SECURITY device wifi list")
         if returnCode == 0:
             # Create a dict of network names to signals to avoid duplicate networks
@@ -139,7 +144,6 @@ Provides interfaces for communicating with bluetooth devices such as phones or l
 """
 class BluetoothDriver():
     
-   
     """
     Provides bluetooth service descriptor for the WiFi setup procedure
     """
@@ -258,8 +262,8 @@ class BluetoothDriver():
     """
     def __init__(self):
         self.loop = asyncio.get_event_loop()
-        self.running = True
         self.loop.run_until_complete(self.setupBus())
+        self.loop.run_until_complete(self.controlLoop())
 
     async def controlLoop(self):
         await asyncio.sleep(300)
@@ -269,6 +273,7 @@ class BluetoothDriver():
         wifiService = self.WiFiSetupSerivce()
         apiService = self.APISetupService()
 
+        # Register our services with a service collection so we can run several at the same time
         serviceCollection = ServiceCollection()
         serviceCollection.add_service(wifiService)
         serviceCollection.add_service(apiService)

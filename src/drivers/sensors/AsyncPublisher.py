@@ -22,6 +22,7 @@ class AsyncPublisher(DriverBase):
          self.requests = RequestHandler()
          self.transcriber = AudioTranscriber()
          self.dataQueue = dataQueue
+         self.lastTranscription = ""
 
     """
     Initialize the asynchoronous transcription and request handler
@@ -32,7 +33,12 @@ class AsyncPublisher(DriverBase):
     def measure(self) -> None:
         if not self.dataQueue.empty():
             fileNames, data = self.dataQueue.get_nowait()
-            data["SoundController"]["data"]["TranscribedText"] = self.transcriber.transcribe(fileNames["voiceRecording"])
+            
+            # Check if the data collection was triggered by the user or the 2 hour 
+            if(bool(data["DriverManager"]["data"]["userTrigger"]) == True):
+                self.lastTranscription = self.transcriber.transcribe(fileNames["voiceRecording"])
+
+            data["SoundController"]["data"]["TranscribedText"] = self.lastTranscription
 
             # If our request succeeded  we don't need the files on device anymore
             if self.requests.sendAPIRequest(fileNames, data):

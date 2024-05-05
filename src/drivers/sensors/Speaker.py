@@ -7,6 +7,8 @@ Provides a functionality to interface with a standard USB speaker using PyAudio 
 import logging
 import pyaudio
 import wave
+import subprocess
+import os
 
 
 class Speaker():
@@ -54,6 +56,20 @@ class Speaker():
 
     def kill(self):
         self.pAudio.terminate()
+
+    """
+    Mute the speaker attatched to the waveshare adapter
+    """
+    def muteSpeaker(self, alsaSoundCardNum):
+        with open(os.devnull, 'wb') as devnull:
+            subprocess.check_call(['/usr/bin/amixer', '-c', str(alsaSoundCardNum), 'sset', 'Speaker', 'mute'], stdout=devnull, stderr=subprocess.STDOUT)
+
+    """
+    Unmute the speaker attatched to the waveshare adapter
+    """
+    def unmuteSpeaker(self, alsaSoundCardNum):
+        with open(os.devnull, 'wb') as devnull:
+            subprocess.check_call(['/usr/bin/amixer', '-c', str(alsaSoundCardNum), 'sset', 'Speaker', 'unmute'], stdout=devnull, stderr=subprocess.STDOUT)
 
 
         

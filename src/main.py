@@ -22,6 +22,7 @@ def main():
     timeHelper = TimeHelper()
     controller = MainController()
     
+    
     # Register a callback for when the lid is closed so we can sample our data00000000
     while(True):
         try:

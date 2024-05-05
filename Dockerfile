@@ -5,7 +5,6 @@ FROM python:3.9-bookworm
 WORKDIR /firmware
 COPY ./requirements.txt /firmware/requirements.txt
 COPY dependencies /firmware/dependencies
-COPY media /firmware/media
 
 # Update apt sources
 RUN apt-get update
@@ -34,6 +33,7 @@ WORKDIR /firmware
 RUN mv /firmware/dependencies/librealsense2.so /usr/local/lib/python3.9/site-packages/librealsense2.so
 RUN mv /firmware/dependencies/pyrealsense2.cpython-39-aarch64-linux-gnu.so /usr/local/lib/python3.9/site-packages/pyrealsense2.cpython-39-aarch64-linux-gnu.so
 
+COPY media /firmware/media
 COPY src /firmware/src
 
 WORKDIR  /firmware/src

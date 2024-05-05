@@ -57,18 +57,18 @@ class RealsenseCam(DriverBase):
         try:
             self.realsense_profile = self.realsense_pipeline.start(self.realsense_config)
     
-            print(self.realsense_profile.get_device().query_sensors()[0].get_option_range(rs.option.exposure))
-            for option in self.realsense_profile.get_device().query_sensors()[0].get_supported_options():
-                print(option)
-                print(self.realsense_profile.get_device().query_sensors()[0].get_option_range(option))
-                print("")
+            # print(self.realsense_profile.get_device().query_sensors()[0].get_option_range(rs.option.exposure))
+            # for option in self.realsense_profile.get_device().query_sensors()[0].get_supported_options():
+            #     print(option)
+            #     print(self.realsense_profile.get_device().query_sensors()[0].get_option_range(option))
+            #     print("")
     
-            self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.enable_auto_exposure, True)
-            self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.brightness, 0)
-            #self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.contrast, 50)
-            self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.gain, 64)
-            self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.hdr_enabled, False)
-            self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.visual_preset, 5)
+            # self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.enable_auto_exposure, True)
+            # self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.brightness, 0)
+            # #self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.contrast, 50)
+            # self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.gain, 64)
+            # self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.hdr_enabled, False)
+            # self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.visual_preset, 5)
             #self.realsense_profile.get_device().query_sensors()[0].set_option(rs.option.exposure, 165000)
         except RuntimeError as e:
             logging.error(f"An Error occurred: {e}")

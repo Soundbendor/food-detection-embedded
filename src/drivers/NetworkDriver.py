@@ -18,6 +18,8 @@ import uuid
 
 from helpers import RequestHandler
 
+from drivers.DriverBase import DriverBase
+
 
 """
 Provides interaction between our device and the network we are connected or attempting to connect to
@@ -142,7 +144,7 @@ class WiFiManager():
 """
 Provides interfaces for communicating with bluetooth devices such as phones or laptops
 """
-class BluetoothDriver():
+class BluetoothDriver(DriverBase):
     
     """
     Provides bluetooth service descriptor for the WiFi setup procedure
@@ -261,12 +263,17 @@ class BluetoothDriver():
     Construct a new instance of the bluetooth driver
     """
     def __init__(self):
+        super().__init__("BluetoothDriver")
+       
+
+    def initialize(self):
         self.loop = asyncio.get_event_loop()
         self.loop.run_until_complete(self.setupBus())
         self.loop.run_until_complete(self.controlLoop())
 
     async def controlLoop(self):
         await asyncio.sleep(300)
+        logging.info("Bluetooth server terminated")
     
     async def setupBus(self):
         bus = await get_message_bus()
@@ -296,6 +303,8 @@ class BluetoothDriver():
 
         try:
             await advert.register(bus, adapter)
+            self.initialized = True
+            self.data["initialized"].value = 1
             logging.info("Advertising Bluetooth Device")
 
         except:

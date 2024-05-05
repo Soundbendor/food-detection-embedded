@@ -20,7 +20,7 @@ class SoundController(DriverBase):
     :param soundControllerConnection: This is a reference to a multiproccessing.Pipe to send our transcription back to the main thread
     :param record_duration: The lenght of time the microphone should be recording for
     """
-    def __init__(self, soundControllerConnection, record_duration = 10):
+    def __init__(self, soundControllerConnection, record_duration = 4):
         super().__init__("SoundController")
 
         # Create our new mic and speaker instances
@@ -33,7 +33,10 @@ class SoundController(DriverBase):
         self.loopTime = 0.05
         
         self.events = {
-            "RECORD": Event()
+            "RECORD": Event(),
+            "WAIT_FOR_BLUETOOTH": Event(),
+            "NO_WIFI": Event(),
+            "CONNECTED_TO_WIFI": Event()
         }
 
     """
@@ -50,15 +53,13 @@ class SoundController(DriverBase):
     Mute the speaker attatched to the waveshare adapter
     """
     def muteSpeaker(self):
-        with open(os.devnull, 'wb') as devnull:
-            subprocess.check_call(['/usr/bin/amixer', '-c', str(self.alsaSoundCardNum), 'sset', 'Speaker', 'mute'], stdout=devnull, stderr=subprocess.STDOUT)
+        self.speaker.muteSpeaker(self.alsaSoundCardNum)
 
     """
     Unmute the speaker attatched to the waveshare adapter
     """
     def unmuteSpeaker(self):
-        with open(os.devnull, 'wb') as devnull:
-            subprocess.check_call(['/usr/bin/amixer', '-c', str(self.alsaSoundCardNum), 'sset', 'Speaker', 'unmute'], stdout=devnull, stderr=subprocess.STDOUT)
+        self.speaker.unmuteSpeaker(self.alsaSoundCardNum)
 
     """
     Mute the mic attatched to the waveshare adapter
@@ -74,35 +75,56 @@ class SoundController(DriverBase):
         with open(os.devnull, 'wb') as devnull:
             subprocess.check_call(['/usr/bin/amixer', '-c', str(self.alsaSoundCardNum), 'sset', 'Mic', 'unmute'], stdout=devnull, stderr=subprocess.STDOUT)
 
+    """ 
+    Unmutes the speaker plays a sound and then mutes it again
+    NOTE: We must mute and unmute the speaker and micophpone channels otherwise the cause huge amounts of deafening feedback
+
+    :param clip: File path to the clip we want to play
+    """
+    def playClip(self, clip):
+        self.unmuteSpeaker()
+        self.speaker.playClip(clip)
+        self.muteSpeaker()
+
     """
     If a capture request was recieved we want to play the audio and then record a clip until a non-silent clip is recieved
     """
     def measure(self):
-        if(self.events["RECORD"][0].is_set()):
-            # NOTE: We must mute and unmute the speaker and micophpone channels otherwise the cause huge amounts of deafening feedback
-            self.unmuteSpeaker()
-            self.speaker.playClip("../media/itemRequest.wav")
-            self.muteSpeaker()
+        if self.events["CONNECTED_TO_WIFI"][0].is_set():
+            self.playClip("../media/connectionSuccessful.wav")
+            self.events["CONNECTED_TO_WIFI"][0].clear()
+        elif self.events["NO_WIFI"][0].is_set():
+            self.playClip("../media/noWifi.wav")
+            self.events["NO_WIFI"][0].clear()
+        elif self.events["WAIT_FOR_BLUETOOTH"][0].is_set():
+            self.playClip("../media/bluetoothEnabled.wav")
+            self.events["WAIT_FOR_BLUETOOTH"][0].clear()
+        elif self.events["RECORD"][0].is_set():
+            self.playClip("../media/itemRequest.wav")
+            
 
             # Check if we actually saved the audio to the file or not if not we want to ask the user for another transcription
             gotRecording = False
             retries = 0
+
             while not gotRecording and retries < 3:
 
+                self.playClip("../media/startRecording.wav")
                 # Record the microphone and return the file name that it was saved at
                 self.unmuteMic()
                 fileName = self.microphone.record()
                 self.muteMic()
+                self.playClip("../media/stopRecording.wav")
 
                 # If the file was saved succsessfully send it and move on but if not TELL the user that we are re-recording
                 if(len(fileName) != 0):
                     gotRecording = True
                     self.soundControllerConnection.send({"voiceRecording": fileName})
                 else:
-                    self.unmuteSpeaker()
-                    self.speaker.playClip("../media/didntCatch.wav")
-                    self.muteSpeaker()
+                    self.playClip("../media/itemRequest.wav")
                     retries += 1
+
+            
             self.events["RECORD"][0].clear()
         
     """

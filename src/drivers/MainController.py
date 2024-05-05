@@ -6,8 +6,10 @@ Provides the top level of the whole system so individual components can be utili
 
 import os
 import time
+import uuid
 from multiprocessing import Pipe, Queue
 
+from drivers.NetworkDriver import WiFiManager, BluetoothDriver
 from drivers.DriverManager import DriverManager
 from drivers.sensors.AsyncPublisher import AsyncPublisher
 from drivers.sensors.BME688 import BME688
@@ -54,7 +56,14 @@ class MainController:
             RealsenseCam(realsenseControllerConenction),
             SoundController(soundControllerConnection),
             AsyncPublisher(self.publisherQueue),
+            BluetoothDriver()
         )
+
+        self.wifiManager = WiFiManager()
+        self.lastRecording = ""
+
+        # Preform the device setup
+        self.initialSetup()
 
         # After we have initialzied all the proccesses we want to flash green to signifiy we are done
         if self.manager.allProcsInitialized:
@@ -67,11 +76,40 @@ class MainController:
             self.manager.setEvent("LEDDriver.NONE")
 
         self.startingWeight = self.manager.getData()["NAU7802"]["data"]["weight"].value
+ 
+
+    """
+    Handles the initial power on setup ensuring WiFi is connected and the bluetooth controller is running
+    """
+    def initialSetup(self):
+        # Tell the user that bluetooth services have been enabled for the next 5 minutes
+        self.manager.setEvent("SoundController.WAIT_FOR_BLUETOOTH")
+        while self.manager.getEvent("SoundController.WAIT_FOR_BLUETOOTH"):
+            time.sleep(0.1)
+
+        # Inform the user the WiFi is not connected and check once every 20 seconds, wait until we are connected to WiFi
+        wifiState = self.wifiManager.checkConnection()
+        if not bool(wifiState["success"]):
+            self.manager.setEvent("SoundController.NO_WIFI")
+            while self.manager.getEvent("SoundController.NO_WIFI"):
+                time.sleep(0.1)
+
+        try:
+            while True:
+                wifiState =  self.wifiManager.checkConnection()
+                if bool(wifiState["success"]):
+                    break
+                time.sleep(20)
+        except KeyboardInterrupt:
+            pass
+            
+        self.manager.setEvent("SoundController.CONNECTED_TO_WIFI")
+        while self.manager.getEvent("SoundController.CONNECTED_TO_WIFI"):
+            time.sleep(0.1)
 
     """
     Handles events that need to be checked quickly in the main loop
     """
-
     def handleCallbacks(self):
         # Check the state of the LidSwitch
         if self.manager.getEvent("LidSwitch.LID_CLOSED"):
@@ -123,16 +161,18 @@ class MainController:
             while self.manager.getEvent("SoundController.RECORD"):
                 time.sleep(0.2)
 
-            # Get the resulting file path from the sound controller
-            fileNames.update(self.soundControllerConnection.recv())
+            # Get the resulting file path from the sound controller, store in variable so we have reading for when the 2 hour sample triggers 
+            self.lastRecording = self.soundControllerConnection.recv()
 
             data["NAU7802"]["data"]["weight_delta"].value = (
                 data["NAU7802"]["data"]["weight"].value - self.startingWeight
             )
 
+        fileNames.update(self.lastRecording)
+        
         # Add the most recent batch of data to the transcription and publishing queue
-        self.publisherQueue.put((fileNames, self.manager.getJSON()))
-        print("Done!")
+        uid = str(uuid.uuid4())
+        self.publisherQueue.put((uid, fileNames, self.manager.getJSON()))
 
         # After we have sent all the stuff and are done, set the leds to green for a few seconds and then turn them off
         self.manager.setEvent("LEDDriver.DONE")

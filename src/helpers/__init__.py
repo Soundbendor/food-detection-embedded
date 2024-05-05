@@ -157,6 +157,10 @@ class RequestHandler:
             response = client.post(
                 endpoint, params=params, headers=headers, files=filesToUpload
             ).json()
+        except Exception as e:
+            logging.error(f"Exception occurred while sending hearbeat: {e}")
+            response = {"status": False}
+            client.close()
         finally:
             client.close()
 
@@ -177,7 +181,19 @@ class RequestHandler:
 
     def sendHeartbeat(self):
         endpoint = self.endpoint + "/api/health/heartbeat"
-        response = httpx.get(endpoint).json()
+        client = httpx.Client()
+       
+        # Attempt to send the packet
+        failed = False
+        try:
+            response = client.get(endpoint).json()
+        except Exception as e:
+            logging.error(f"Exception occurred while sending hearbeat: {e}")
+            return False
+            client.close()
+        finally:
+            client.close()
+        
 
         if "is_alive" in response and response["is_alive"] == True:
             logging.info("Succsessfully recieved hearbeat!")
@@ -208,6 +224,10 @@ class RequestHandler:
         client = httpx.Client()
         try:
             response = client.get(endpoint, headers=headers).json()
+        except Exception as e:
+            logging.error(f"Exception occurred while sending hearbeat: {e}")
+            client.close()
+            return False
         finally:
             client.close()
 
@@ -240,8 +260,8 @@ class RequestHandler:
                 "depthImage": str(fileLocations["depthImage"]),
                 "heatmapImage": str(fileLocations["heatmapImage"]),
                 "topologyMap": str(fileLocations["topologyMap"]),
-                "segmentImage": str(fileLocations["segmentImage"]),
-                "segmentResults": str(fileLocations["segmentResults"]),
+                #"segmentImage": str(fileLocations["segmentImage"]),
+                #"segmentResults": str(fileLocations["segmentResults"]),
                 "voiceRecording": str(fileLocations["voiceRecording"]),
                 "total_weight": float(data["NAU7802"]["data"]["weight"]),
                 "weight_delta": float(data["NAU7802"]["data"]["weight_delta"]),
@@ -258,9 +278,14 @@ class RequestHandler:
                 "deviceID": int(uuid.getnode()),
             }
 
+            logging.info("Sending API Request...")
             client = httpx.Client()
             try:
-                response = client.post(endpoint, headers=headers, json=payload).json()
+                response = client.post(endpoint, headers=headers, json=payload, timeout=20.0).json()
+            except Exception as e:
+                logging.error(f"Exception occurred while sending hearbeat: {e}")
+                client.close()
+                return False
             finally:
                 client.close()
             

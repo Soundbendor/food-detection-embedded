@@ -32,11 +32,11 @@ class WiFiManager():
         self.scanNetworks()
 
     """
-    Run a given command as a complete string like "ping 8.8.8.8"
+    Run a given command as a list of arguments ["ping", "8.8.8.8"]
     """
-    def _runCommand(self, cmd: str):
+    def _runCommand(self, cmd: list[str]):
         process = subprocess.run(
-            cmd.split(" "),
+            cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
@@ -66,8 +66,8 @@ class WiFiManager():
     Scan for available networks
     """
     def scanNetworks(self):
-        _, _ = self._runCommand("iwlist wlan0 scan")
-        returnCode, process = self._runCommand("nmcli -g SSID,SIGNAL,SECURITY device wifi list")
+        _, _ = self._runCommand(["iwlist", "wlan0",  "scan"])
+        returnCode, process = self._runCommand(["nmcli", "-g", "SSID,SIGNAL,SECURITY", "device", "wifi", "list"])
         if returnCode == 0:
             # Create a dict of network names to signals to avoid duplicate networks
             discoveredNetworks = self._parseNetworkList(process.stdout.decode('utf-8'))
@@ -96,7 +96,7 @@ class WiFiManager():
     :param password: The password to connect to the network with
     """
     def connectToNetwork(self, ssid, password):
-        returnCode, process = self._runCommand(f"nmcli device wifi connect {ssid} password {password}")
+        returnCode, process = self._runCommand(["nmcli", "device", "wifi", "connect", ssid, "password", password])
 
         # If we succsessfully exited the program that means we were able to connect to the network
         if returnCode == 0:
@@ -122,7 +122,7 @@ class WiFiManager():
     Check if we are actually connected to the internet by sending a heartbeat request to our API
     """
     def checkConnection(self):
-        returnCode, process = self._runCommand(f"nmcli -t -f NAME c show --active")
+        returnCode, process = self._runCommand(["nmcli", "-t", "-f", "NAME", "c", "show", "--active"])
 
         # If we got a 0 return code attempt to parse out the active network name
         if(returnCode == 0):
@@ -145,7 +145,7 @@ class WiFiManager():
     Disconnect from the given network by name
     """
     def disconnectFromNetwork(self, ssid):
-        returnCode, process = self._runCommand(f"nmcli connection delete {ssid}")
+        returnCode, process = self._runCommand(["nmcli", "connection", "delete", ssid])
         print(process.stdout.decode('utf-8'))
 
 """
@@ -326,9 +326,10 @@ class BluetoothDriver(DriverBase):
 
     :param cmd: The command to run as one contigious string
     """
-    def _runCommand(self, cmd: str):
+    def _runCommand(self, cmd: Union[str, list[str]]):
+        final_cmd = cmd.split(" ") if isinstance(cmd, str) else cmd
         process = subprocess.run(
-            cmd.split(" "),
+            final_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )

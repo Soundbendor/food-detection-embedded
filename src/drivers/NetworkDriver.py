@@ -141,6 +141,13 @@ class WiFiManager():
                 "success": False
             }
 
+    """
+    Disconnect from the given network by name
+    """
+    def disconnectFromNetwork(self, ssid):
+        returnCode, process = self._runCommand(f"nmcli connection delete {ssid}")
+        print(process.stdout.decode('utf-8'))
+
 """
 Provides interfaces for communicating with bluetooth devices such as phones or laptops
 """
@@ -198,7 +205,6 @@ class BluetoothDriver(DriverBase):
         """
         @characteristic(str(31415924535897932384626433832790+3), CharFlags.NOTIFY | CharFlags.READ)
         def getScannedNetworks(self, options):
-            self.wifi.scanNetworks()
             return json.dumps(self.wifi.lastWiFiScan).encode('utf-8')
     
     """
@@ -268,22 +274,27 @@ class BluetoothDriver(DriverBase):
 
     def initialize(self):
         self.loop = asyncio.get_event_loop()
+        self.wifiService = self.WiFiSetupSerivce()
+        self.apiService = self.APISetupService()
+        self.wifi = self.wifiService.wifi
         self.loop.run_until_complete(self.setupBus())
         self.loop.run_until_complete(self.controlLoop())
-
+    
+    # While the server is running we want to refersh the list of WiFi networks every 10 seconds
     async def controlLoop(self):
-        await asyncio.sleep(300)
+        startTime = time()
+        while time() < startTime + 300:
+            self.wifi.scanNetworks()
+            await asyncio.sleep(10)
         logging.info("Bluetooth server terminated")
     
     async def setupBus(self):
         bus = await get_message_bus()
-        wifiService = self.WiFiSetupSerivce()
-        apiService = self.APISetupService()
-
+        
         # Register our services with a service collection so we can run several at the same time
         serviceCollection = ServiceCollection()
-        serviceCollection.add_service(wifiService)
-        serviceCollection.add_service(apiService)
+        serviceCollection.add_service(self.wifiService)
+        serviceCollection.add_service(self.apiService)
       
         await serviceCollection.register(bus)
         logging.info("Registered services.")

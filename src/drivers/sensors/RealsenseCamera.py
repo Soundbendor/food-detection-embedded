@@ -38,9 +38,6 @@ class RealsenseCam(DriverBase):
         # for dev in rs.context().query_devices():
         #     dev.hardware_reset()
 
-
-        
-
         # List of events to hold
         self.events = {
             "CAPTURE" : Event()
@@ -114,6 +111,7 @@ class RealsenseCam(DriverBase):
                         "topologyMap": self._formatFileName("depth.ply", currentTime),
                         "depthImage": self._formatFileName("depthImage.jpg", currentTime),
                         "colorImage": self._formatFileName("colorImage.jpg", currentTime),
+                        "RGBDTensor": self._formatFileName("rgbdTensor.npy", currentTime)
                     }
 
                     # Convert our images into array's and colorize the depth map
@@ -125,6 +123,9 @@ class RealsenseCam(DriverBase):
                     # Generate our .ply file and save our images to the disk
                     self.realsense_pointcloud.map_to(color_frame)
                     points = self.realsense_pointcloud.calculate(depth_frame)
+
+                    # Export RGBD image and .ply file
+                    self._exportRGBD(points, color_image, fileNames)
                     points.export_to_ply(fileNames["topologyMap"], color_frame)
 
                     cv2.imwrite(fileNames["depthImage"], depth_colormap)
@@ -158,3 +159,20 @@ class RealsenseCam(DriverBase):
         fileNameSplit = fileName.split(".")
         outputFile = strftime(f"../data/{fileNameSplit[0]}_%Y-%m-%d--%H-%M-%S.{fileNameSplit[1]}",gmtime(currentTime))
         return outputFile
+
+    def _exportRGBD(self, points, color_image, fileNames):
+        vtx = np.asanyarray(points.get_vertices())
+        rgbd_tensor = np.zeros((self.camera_height, self.camera_width, 4), np.int32)
+
+        r, g, b = cv2.split(color_image)
+        # For each line in the
+        totalIndex = 0
+        for vertical in range(self.camera_height):
+            for horizontal in range(self.camera_width):
+                rgbd_tensor[vertical][horizontal][0] = int(r[vertical][horizontal])
+                rgbd_tensor[vertical][horizontal][1] = int(g[vertical][horizontal])
+                rgbd_tensor[vertical][horizontal][2] = int(b[vertical][horizontal])
+                rgbd_tensor[vertical][horizontal][3] = int((vtx[totalIndex][2] * 1000))
+                totalIndex += 1
+        with open(fileNames["RGBDTensor"], 'wb') as f:
+            np.save(f, rgbd_tensor)

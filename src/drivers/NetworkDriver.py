@@ -11,6 +11,7 @@ from bluez_peripheral.agent import NoIoAgent
 
 import subprocess
 import logging
+from typing import Union
 from time import time, sleep
 import asyncio
 import json
@@ -34,9 +35,10 @@ class WiFiManager():
     """
     Run a given command as a complete string like "ping 8.8.8.8"
     """
-    def _runCommand(self, cmd: str):
+    def _runCommand(self, cmd: Union[str, list[str]]):
+        final_cmd = cmd.split(" ") if isinstance(cmd, str) else cmd
         process = subprocess.run(
-            cmd.split(" "),
+            final_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
@@ -96,7 +98,7 @@ class WiFiManager():
     :param password: The password to connect to the network with
     """
     def connectToNetwork(self, ssid, password):
-        returnCode, process = self._runCommand(f"nmcli device wifi connect {ssid} password {password}")
+        returnCode, process = self._runCommand("nmcli", "device", "wifi", "connect", ssid, "password", password)
 
         # If we succsessfully exited the program that means we were able to connect to the network
         if returnCode == 0:
@@ -315,9 +317,10 @@ class BluetoothDriver(DriverBase):
 
     :param cmd: The command to run as one contigious string
     """
-    def _runCommand(self, cmd: str):
+    def _runCommand(self, cmd: Union[str, list[str]]):
+        final_cmd = cmd.split(" ") if isinstance(cmd, str) else cmd
         process = subprocess.run(
-            cmd.split(" "),
+            final_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )

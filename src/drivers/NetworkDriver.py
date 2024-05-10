@@ -352,16 +352,3 @@ class BluetoothDriver(DriverBase):
 
         except:
             pass
-
-    """
-    Run a given command as a complete string like "ping 8.8.8.8"
-
-    :param cmd: The command to run as one contigious string
-    """
-
-    def _runCommand(self, cmd: Union[str, list[str]]):
-        final_cmd = cmd.split(" ") if isinstance(cmd, str) else cmd
-        process = subprocess.run(
-            final_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-        return process.returncode, process

@@ -8,6 +8,7 @@ from multiprocessing import Queue
 from time import sleep
 import uuid
 import json
+import logging
 
 from drivers.DriverBase import DriverBase
 from drivers.sensors.AudioTranscriber import AudioTranscriber
@@ -40,8 +41,18 @@ class AsyncPublisher(DriverBase):
 
         # Load data that was still waiting to be transmitted last round
         if os.path.exists("../data/cachedData.dat"):
-            with open("../data/cachedData.dat", "r") as file:
-                    self.cachedQueue = json.load(file)
+            with open("../data/cachedData.dat", "r+") as file:
+
+                    # Handle JSON files that are malformed and just write and empty dictionary so they are good to go for next time
+                    try:
+                        loadedData = json.load(file)
+                    except json.JSONDecodeError as e:
+                        logging.error("Failed to load cached data file.")
+                        file.seek(0)
+                        json.dump({}, file)
+                        loadedData = {}
+                        
+                    self.cachedQueue = loadedData
                     for uid in self.cachedQueue:
                         self.dataQueue.put((uid, self.cachedQueue[uid]["fileNames"], self.cachedQueue[uid]["data"]))
     

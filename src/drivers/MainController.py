@@ -155,20 +155,18 @@ class MainController:
         # Set the light to yellow before recording the
         self.manager.setEvent("LEDDriver.PROCESSING")
 
-        # If we actaully want to prompt for entry or it is part of the "cron job"
-        if triggeredByLid:
-            self.manager.setEvent("SoundController.RECORD")
-            while self.manager.getEvent("SoundController.RECORD"):
-                time.sleep(0.2)
+        self.manager.setEvent("SoundController.RECORD")
+        while self.manager.getEvent("SoundController.RECORD"):
+            time.sleep(0.2)
 
-            # Get the resulting file path from the sound controller, store in variable so we have reading for when the 2 hour sample triggers 
-            self.lastRecording = self.soundControllerConnection.recv()
+        # Update the list of filenames
+        fileNames.update(self.soundControllerConnection.recv())
 
-            data["NAU7802"]["data"]["weight_delta"].value = (
-                data["NAU7802"]["data"]["weight"].value - self.startingWeight
-            )
+        data["NAU7802"]["data"]["weight_delta"].value = (
+            data["NAU7802"]["data"]["weight"].value - self.startingWeight
+        )
 
-        fileNames.update(self.lastRecording)
+        
         
         # Add the most recent batch of data to the transcription and publishing queue
         uid = str(uuid.uuid4())

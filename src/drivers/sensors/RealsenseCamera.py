@@ -111,7 +111,6 @@ class RealsenseCam(DriverBase):
                         "topologyMap": self._formatFileName("depth.ply", currentTime),
                         "depthImage": self._formatFileName("depthImage.jpg", currentTime),
                         "colorImage": self._formatFileName("colorImage.jpg", currentTime),
-                        "RGBDTensor": self._formatFileName("rgbdTensor.npy", currentTime)
                     }
 
                     # Convert our images into array's and colorize the depth map
@@ -124,8 +123,7 @@ class RealsenseCam(DriverBase):
                     self.realsense_pointcloud.map_to(color_frame)
                     points = self.realsense_pointcloud.calculate(depth_frame)
 
-                    # Export RGBD image and .ply file
-                    self._exportRGBD(points, color_image, fileNames)
+                    # Export .ply file
                     points.export_to_ply(fileNames["topologyMap"], color_frame)
 
                     cv2.imwrite(fileNames["depthImage"], depth_colormap)

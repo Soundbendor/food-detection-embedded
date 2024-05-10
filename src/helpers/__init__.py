@@ -152,13 +152,13 @@ class RequestHandler:
             ),
         }
 
-        params = {"deviceID": int(uuid.getnode())}
+        params = {"deviceID": str(self._getSerial())}
 
         logging.info("Uploading filed to database...")
         client = httpx.Client()
         try:
             response = client.post(
-                endpoint, params=params, headers=headers, files=filesToUpload
+                endpoint, params=params, headers=headers, files=filesToUpload, timeout=20
             ).json()
         except Exception as e:
             logging.error(f"Exception occurred while sending hearbeat: {e}")
@@ -262,8 +262,8 @@ class RequestHandler:
                 "depthImage": str(fileLocations["depthImage"]),
                 "heatmapImage": str(fileLocations["heatmapImage"]),
                 "topologyMap": str(fileLocations["topologyMap"]),
-                # "segmentImage": str(fileLocations["segmentImage"]),
-                # "segmentResults": str(fileLocations["segmentResults"]),
+                "segmentImage": str(fileLocations["segmentImage"]),
+                "segmentResults": str(fileLocations["segmentResults"]),
                 "voiceRecording": str(fileLocations["voiceRecording"]),
                 "total_weight": float(data["NAU7802"]["data"]["weight"]),
                 "weight_delta": float(data["NAU7802"]["data"]["weight_delta"]),
@@ -277,7 +277,8 @@ class RequestHandler:
                     data["SoundController"]["data"]["TranscribedText"]
                 ),
                 "userTrigger": bool(data["DriverManager"]["data"]["userTrigger"]),
-                "deviceID": int(uuid.getnode()),
+                "deviceID": str(self._getSerial()),
+                #"deviceID": int(uuid.getnode())
             }
 
             logging.info("Sending API Request...")
@@ -318,3 +319,17 @@ class RequestHandler:
             credsJson["FASTAPI_CREDS"]["endpoint"],
             credsJson["FASTAPI_CREDS"]["port"],
         )
+    
+    def _getSerial(self):
+        # Extract serial from cpuinfo file
+        cpuserial = "0000000000000000"
+        try:
+            f = open('/proc/cpuinfo','r')
+            for line in f:
+                if line[0:6]=='Serial':
+                    cpuserial = line[10:26]
+            f.close()
+        except:
+            cpuserial = "ERROR000000000"
+
+        return cpuserial

@@ -18,18 +18,14 @@ def main():
     # Change our current working directory to this file so our relative paths still work no matter where this file was called from
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    # Read calibration parameters in and setup our debug logging, additionally setup our time tracker
-    timeHelper = TimeHelper()
+    # Create the instance of our controller
     controller = MainController()
     
     
-    # Register a callback for when the lid is closed so we can sample our data00000000
+    # Register a callback for when the lid is closed so we can sample our data
     while(True):
         try:
             controller.handleCallbacks()
-            if timeHelper.twoHourInterval():
-                controller.collectData(triggeredByLid=False)
-
             sleep(0.001)
            
         # On keyboard interrupt we want to cleanly exit

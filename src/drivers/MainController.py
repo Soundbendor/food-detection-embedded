@@ -89,7 +89,7 @@ class MainController:
 
         # Inform the user the WiFi is not connected and check once every 20 seconds, wait until we are connected to WiFi
         wifiState = self.wifiManager.checkConnection()
-        if not bool(wifiState["success"]):
+        if not bool(wifiState["internet_access"]):
             self.manager.setEvent("SoundController.NO_WIFI")
             while self.manager.getEvent("SoundController.NO_WIFI"):
                 time.sleep(0.1)
@@ -97,7 +97,7 @@ class MainController:
         try:
             while True:
                 wifiState =  self.wifiManager.checkConnection()
-                if bool(wifiState["success"]):
+                if bool(wifiState["internet_access"]):
                     break
                 time.sleep(20)
         except KeyboardInterrupt:

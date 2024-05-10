@@ -108,6 +108,7 @@ class RequestHandler:
     """
     Get the currently set API key
     """
+
     def getAPIKey(self):
         return self.apiKey
 
@@ -116,6 +117,7 @@ class RequestHandler:
 
     :return: Dictionary of base file names (ie. "colorImage") mapped to the stored location in our S3 bucket
     """
+
     def uploadFiles(self, fileNames: dict):
         endpoint = self.endpoint + "/api/upload_files"
 
@@ -152,6 +154,7 @@ class RequestHandler:
 
         params = {"deviceID": int(uuid.getnode())}
 
+        logging.info("Uploading filed to database...")
         client = httpx.Client()
         try:
             response = client.post(
@@ -182,7 +185,7 @@ class RequestHandler:
     def sendHeartbeat(self):
         endpoint = self.endpoint + "/api/health/heartbeat"
         client = httpx.Client()
-       
+
         # Attempt to send the packet
         failed = False
         try:
@@ -193,7 +196,6 @@ class RequestHandler:
             client.close()
         finally:
             client.close()
-        
 
         if "is_alive" in response and response["is_alive"] == True:
             logging.info("Succsessfully recieved hearbeat!")
@@ -260,8 +262,8 @@ class RequestHandler:
                 "depthImage": str(fileLocations["depthImage"]),
                 "heatmapImage": str(fileLocations["heatmapImage"]),
                 "topologyMap": str(fileLocations["topologyMap"]),
-                #"segmentImage": str(fileLocations["segmentImage"]),
-                #"segmentResults": str(fileLocations["segmentResults"]),
+                # "segmentImage": str(fileLocations["segmentImage"]),
+                # "segmentResults": str(fileLocations["segmentResults"]),
                 "voiceRecording": str(fileLocations["voiceRecording"]),
                 "total_weight": float(data["NAU7802"]["data"]["weight"]),
                 "weight_delta": float(data["NAU7802"]["data"]["weight_delta"]),
@@ -281,14 +283,16 @@ class RequestHandler:
             logging.info("Sending API Request...")
             client = httpx.Client()
             try:
-                response = client.post(endpoint, headers=headers, json=payload, timeout=20.0).json()
+                response = client.post(
+                    endpoint, headers=headers, json=payload, timeout=20.0
+                ).json()
             except Exception as e:
                 logging.error(f"Exception occurred while sending hearbeat: {e}")
                 client.close()
                 return False
             finally:
                 client.close()
-            
+
             if "status" in response and response["status"] == True:
                 logging.info("Data successfully uploaded!")
                 return True

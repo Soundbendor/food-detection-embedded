@@ -248,6 +248,7 @@ class BluetoothDriver(DriverBase):
         def __init__(self):
             super().__init__("ABC0", True)
             self.requests = RequestHandler()
+            
 
         def checkAPIConnection(self):
             return self.requests.sendSecureHeartbeat()
@@ -267,7 +268,7 @@ class BluetoothDriver(DriverBase):
             except Exception as e:
                 print(f"An error occurred: {e}")
                 return False
-            print(type(data))
+           
             # Formulate new FastAPI credentials based on the incoming data
             creds = {
                 "FASTAPI_CREDS": {
@@ -288,7 +289,7 @@ class BluetoothDriver(DriverBase):
 
         @characteristic("ABC2", CharFlags.READ)
         def getAPIKey(self, options):
-            response = {"apiKey": self.requests.getAPIKey(), "deviceID": uuid.getnode()}
+            response = {"apiKey": self.requests.getAPIKey(), "deviceID": self.requests.serial}
 
             return json.dumps(response).encode("utf-8")
 

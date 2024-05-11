@@ -104,6 +104,7 @@ class RequestHandler:
         self.dataDir = dataDir
         self.apiKey, self.endpoint, self.port = self.loadFastAPICredentials(secret_file)
         self.endpoint = f"http://{self.endpoint}:{self.port}"
+        self.serial = self._getSerial()
 
     """
     Get the currently set API key
@@ -152,7 +153,7 @@ class RequestHandler:
             ),
         }
 
-        params = {"deviceID": str(self._getSerial())}
+        params = {"deviceID": str(self.serial)}
 
         logging.info("Uploading filed to database...")
         client = httpx.Client()
@@ -277,8 +278,7 @@ class RequestHandler:
                     data["SoundController"]["data"]["TranscribedText"]
                 ),
                 "userTrigger": bool(data["DriverManager"]["data"]["userTrigger"]),
-                "deviceID": str(self._getSerial()),
-                #"deviceID": int(uuid.getnode())
+                "deviceID": str(self.serial),
             }
 
             logging.info("Sending API Request...")

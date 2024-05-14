@@ -123,7 +123,7 @@ class WiFiManager:
                 "success": True,
                 "timestamp": time(),
             }
-            return
+            return True
         else:
             logging.error(f"Failed to connect to network: {ssid}")
             self.lastConnectionResult = {

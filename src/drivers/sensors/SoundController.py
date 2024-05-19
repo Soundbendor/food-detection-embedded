@@ -36,7 +36,8 @@ class SoundController(DriverBase):
             "RECORD": Event(),
             "WAIT_FOR_BLUETOOTH": Event(),
             "NO_WIFI": Event(),
-            "CONNECTED_TO_WIFI": Event()
+            "CONNECTED_TO_WIFI": Event(),
+            "BLUETOOTH_STOPPED": Event()
         }
 
     """
@@ -99,10 +100,12 @@ class SoundController(DriverBase):
         elif self.events["WAIT_FOR_BLUETOOTH"][0].is_set():
             self.playClip("../media/bluetoothEnabled.wav")
             self.events["WAIT_FOR_BLUETOOTH"][0].clear()
+        elif self.events["BLUETOOTH_STOPPED"][0].is_set():
+            self.playClip("../media/bluetoothTerminated.wav")
+            self.events["BLUETOOTH_STOPPED"][0].clear()
         elif self.events["RECORD"][0].is_set():
             self.playClip("../media/itemRequest.wav")
             
-
             # Check if we actually saved the audio to the file or not if not we want to ask the user for another transcription
             gotRecording = False
             retries = 0

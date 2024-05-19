@@ -3,6 +3,7 @@ Individual component test of the realsense camera
 """
 import os
 from pathlib import Path
+from multiprocessing import Pipe
 
 from helpers import Logging
 from time import sleep
@@ -21,7 +22,9 @@ if __name__ == "__main__":
             os.mkdir("../../data/")
 
     logger = Logging()
-    manager = DriverManager(MLX90640())
+
+    _, mlxController = Pipe()
+    manager = DriverManager(MLX90640(mlxController))
 
     while True:
         try:

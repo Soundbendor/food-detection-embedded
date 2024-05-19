@@ -11,6 +11,7 @@ import subprocess
 import uuid
 from time import sleep, time
 from typing import Union
+from multiprocessing import Event, Value
 
 from bluez_peripheral.advert import Advertisement
 from bluez_peripheral.agent import NoIoAgent
@@ -33,6 +34,7 @@ class WiFiManager:
         self.lastConnectionResult = {"success": False, "message": "", "timestamp": 0}
         self.lastWiFiScan = {}
         self.scanNetworks()
+        self.isConnectedBool = False
 
     """
     Run a given command as a list of arguments ["ping", "8.8.8.8"]
@@ -123,7 +125,7 @@ class WiFiManager:
                 "success": True,
                 "timestamp": time(),
             }
-            return
+            return True
         else:
             logging.error(f"Failed to connect to network: {ssid}")
             self.lastConnectionResult = {
@@ -149,21 +151,33 @@ class WiFiManager:
 
             # If we do show up as being connected to an actual network we want to send a heartbeat to see if we have an actual internet connection
             hasInternet = self.requests.sendHeartbeat()
+
+            # If we have internet we want to set is connected equal to true
+            if hasInternet:
+                self.isConnectedBool = True
             return {
                 "message": f"Connected to {activeNetwork}",
                 "success": True,
                 "internet_access": hasInternet,
             }
         else:
+            self.isConnectedBool = False
             return {"message": "Not connected to Wi-Fi", "success": False}
+        
 
     """
     Disconnect from the given network by name
     """
-
     def disconnectFromNetwork(self, ssid):
         returnCode, process = self._runCommand(["nmcli", "connection", "delete", ssid])
-        print(process.stdout.decode("utf-8"))
+        if returnCode == 0:
+            self.isConnectedBool = False
+            return True
+        else:
+            return False
+        
+    def isConnected(self):
+        return self.isConnectedBool
 
 
 """
@@ -240,6 +254,32 @@ class BluetoothDriver(DriverBase):
         def getScannedNetworks(self, options):
             return json.dumps(self.wifi.lastWiFiScan).encode("utf-8")
 
+
+        """
+        Disconnects from a given WiFi network
+        """
+        @characteristic(
+            str(31415924535897932384626433832790 + 4),
+            CharFlags.WRITE | CharFlags.WRITE_WITHOUT_RESPONSE
+        ).setter
+        def disconnectFromNetwork(self,value, options):
+            decodedValue = str(value.decode('utf-8'))
+            try:
+                data = json.loads(decodedValue)
+            except Exception as e:
+                logging.error(f"An error occurred when disconnecting from WiFi network: {e}")
+    
+            if "ssid" in data:
+                if self.wifi.disconnectFromNetwork(data["ssid"]):
+                   logging.info("Succsessfully disconnected from WiFi network!")
+                else:
+                    logging.error(f"Failed to disconnect from WiFi netowrk: {data['ssid']}")
+            else:
+                logging.error("SSID not supplied in request!")
+                
+            
+            
+
     """
     Handles the transmission and valididation of API keys
     """
@@ -308,21 +348,68 @@ class BluetoothDriver(DriverBase):
     def __init__(self):
         super().__init__("BluetoothDriver")
 
+        self.events = {
+            "LOST_WIFI_CONNECTION": Event(),
+            "GOT_WIFI_CONNECTION": Event(),
+            "BLUETOOTH_STOPPED": Event(),
+            "BLUETOOTH_RESTARTED": Event()
+        }
+
+    """
+    Start the Bluetooth server
+    """
+    def startServer(self):
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.setupBus())
+        loop.run_until_complete(self.controlLoop())
+
     def initialize(self):
-        self.loop = asyncio.get_event_loop()
         self.wifiService = self.WiFiSetupSerivce()
         self.apiService = self.APISetupService()
+        self.isServerRunning = False
         self.wifi = self.wifiService.wifi
-        self.loop.run_until_complete(self.setupBus())
-        self.loop.run_until_complete(self.controlLoop())
+        self.lastConnectionStatus = bool(self.wifi.checkConnection()["internet_access"])
 
+        self.loopTime = 20
+        self.startServer()
+        
+
+    """
+    Check once every 20 seconds to see if our connection is still alive and if not we want to inform the controller that we have lost connection
+    """
+    def updateConnectionState(self):
+        connectionStatus =  bool(self.wifi.checkConnection()["internet_access"])
+
+        # Check if in between the current sample and now we have lost the connection
+        if connectionStatus == False and self.lastConnectionStatus == True:
+            self.getEvent()
+            self.getEvent("LOST_WIFI_CONNECTION").set()
+            self.startServer()
+        elif connectionStatus == True and self.lastConnectionStatus == False:
+            self.getEvent("GOT_WIFI_CONNECTION").set()
+
+        self.lastConnectionStatus = connectionStatus
+   
+    """
+    Handle updating our connection state
+    """
+    def measure(self):
+       self.updateConnectionState()
+    
     # While the server is running we want to refersh the list of WiFi networks every 10 seconds
     async def controlLoop(self):
         startTime = time()
-        while time() < startTime + 300:
-            self.wifi.scanNetworks()
+        while time() < startTime + 30:
+            self.updateConnectionState()
+
+            if not self.wifi.isConnected():
+                self.wifi.scanNetworks()
+                self.lastConnectionStatus = False
+                
             await asyncio.sleep(10)
         logging.info("Bluetooth server terminated")
+        self.getEvent("BLUETOOTH_STOPPED").set()
+        self.isServerRunning = False
 
     async def setupBus(self):
         bus = await get_message_bus()
@@ -350,6 +437,7 @@ class BluetoothDriver(DriverBase):
             self.initialized = True
             self.data["initialized"].value = 1
             logging.info("Advertising Bluetooth Device")
+            self.isServerRunning = True
 
         except:
             pass

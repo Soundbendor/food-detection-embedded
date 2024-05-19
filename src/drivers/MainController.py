@@ -114,14 +114,26 @@ class MainController:
         # Check the state of the LidSwitch
         if self.manager.getEvent("LidSwitch.LID_CLOSED"):
             self.collectData(triggeredByLid=True)
-            self.manager.clearEvent("LidSwitch.LID_CLOSED")
 
-        # If the Lid is opened we want to record the current weight
-        elif self.manager.getEvent("LidSwitch.LID_OPENED"):
+            # After the last sample is done being collected we want to get the current weight
             self.startingWeight = self.manager.getData()["NAU7802"]["data"][
                 "weight"
             ].value
-            self.manager.clearEvent("LidSwitch.LID_OPENED")
+            self.manager.clearEvent("LidSwitch.LID_CLOSED")
+        
+        # If at any point we have lost our WiFi connection we want to tell the user that
+        if self.manager.getEvent("BluetoothDriver.LOST_WIFI_CONNECTION"):
+            self.manager.setEvent("SoundController.NO_WIFI")
+            self.manager.clearEvent("BluetoothDriver.LOST_WIFI_CONNECTION")
+
+        # If at any point we have lost our WiFi connection we want to tell the user that
+        if self.manager.getEvent("BluetoothDriver.GOT_WIFI_CONNECTION"):
+            self.manager.setEvent("SoundController.CONNECTED_TO_WIFI")
+            self.manager.clearEvent("BluetoothDriver.GOT_WIFI_CONNECTION")
+
+        if self.manager.getEvent("BluetoothDriver.BLUETOOTH_STOPPED"):
+            self.manager.setEvent("SoundController.BLUETOOTH_STOPPED")
+            self.manager.clearEvent("BluetoothDriver.BLUETOOTH_STOPPED")
 
     """
     Collect a sample from all of the sensors on the device
@@ -166,8 +178,6 @@ class MainController:
             data["NAU7802"]["data"]["weight"].value - self.startingWeight
         )
 
-        
-        
         # Add the most recent batch of data to the transcription and publishing queue
         uid = str(uuid.uuid4())
         self.publisherQueue.put((uid, fileNames, self.manager.getJSON()))

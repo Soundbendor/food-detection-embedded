@@ -155,7 +155,7 @@ class RequestHandler:
 
         params = {"deviceID": str(self.serial)}
 
-        logging.info("Uploading filed to database...")
+        logging.info("Uploading file to database...")
         client = httpx.Client()
         try:
             response = client.post(

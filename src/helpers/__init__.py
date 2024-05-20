@@ -168,7 +168,7 @@ class RequestHandler:
         finally:
             client.close()
 
-        if response["status"] == True:
+        if "status" in response and response["status"] == True:
             del response["status"]
             # Upload files to FastAPI and return the resu
             logging.info(f"Successfully uploaded files to server!")

@@ -399,7 +399,7 @@ class BluetoothDriver(DriverBase):
     # While the server is running we want to refersh the list of WiFi networks every 10 seconds
     async def controlLoop(self):
         startTime = time()
-        while time() < startTime + 30:
+        while time() < startTime + 300:
             self.updateConnectionState()
 
             if not self.wifi.isConnected():

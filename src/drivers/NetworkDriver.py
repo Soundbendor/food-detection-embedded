@@ -11,6 +11,7 @@ import subprocess
 import uuid
 from time import sleep, time
 from typing import Union
+import re
 from multiprocessing import Event, Value
 
 from bluez_peripheral.advert import Advertisement
@@ -56,7 +57,11 @@ class WiFiManager:
         for network in output:
             try:
                 network = network.strip()
-                splitNetworkName = network.split(":")
+
+                # Allow for networks with ":" in them
+                splitNetworkName = re.split(r'(?<!\\):', network)
+                splitNetworkName[0] = splitNetworkName[0].replace("\\:", ":")
+
                 if len(splitNetworkName[0]) > 0 and (
                     splitNetworkName[0] not in resultNetworks
                 ):

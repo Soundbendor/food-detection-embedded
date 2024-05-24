@@ -54,17 +54,22 @@ class WiFiManager:
 
         # For each network that we discovered during our scan we want to split and remove all duplicates so we have a list of network names mapped to signal strengths
         for network in output:
-            network = network.strip()
-            splitNetworkName = network.split(":")
-            if len(splitNetworkName[0]) > 0 and (
-                splitNetworkName[0] not in resultNetworks
-            ):
-                resultNetworks[splitNetworkName[0]] = {
-                    "strength": int(splitNetworkName[1]),
-                    "security": (
-                        splitNetworkName[2] if len(splitNetworkName[2]) > 1 else "Open"
-                    ),
-                }
+            try:
+                network = network.strip()
+                splitNetworkName = network.split(":")
+                if len(splitNetworkName[0]) > 0 and (
+                    splitNetworkName[0] not in resultNetworks
+                ):
+                    resultNetworks[splitNetworkName[0]] = {
+                        "strength": int(splitNetworkName[1]),
+                        "security": (
+                            splitNetworkName[2]
+                            if len(splitNetworkName[2]) > 1
+                            else "Open"
+                        ),
+                    }
+            except ValueError as e:
+                continue
 
         # Prune network list down to less than 512 characters
         while len(str(resultNetworks)) > 512:

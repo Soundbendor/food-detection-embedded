@@ -9,7 +9,7 @@ case $1 in
         python3 -m tests.nauTest
 
         echo "Testing Realsense Depth Camera..."
-        python3 -m tests.realsenseTest
+        python3 -m tests.realsenseTestLeds
 
         echo "Testing LEDs..."
         python3 -m tests.ledTest
@@ -27,7 +27,7 @@ case $1 in
         python3 -m tests.soundTest
         ;;
     realsense)
-        python3 -m tests.realsenseTest
+        python3 -m tests.realsenseTestLeds
         ;;
     nau)
         python3 -m tests.nauTest

@@ -99,7 +99,7 @@ class MainController:
                 wifiState =  self.wifiManager.checkConnection()
                 if bool(wifiState["internet_access"]):
                     break
-                time.sleep(20)
+                time.sleep(5)
         except KeyboardInterrupt:
             pass
             

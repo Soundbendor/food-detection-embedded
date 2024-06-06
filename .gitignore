@@ -16,3 +16,4 @@ Authentication_details.txt
 *.npy
 *.ply
 *.secret
+lastUpdate.txt

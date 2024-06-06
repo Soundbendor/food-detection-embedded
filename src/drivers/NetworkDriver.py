@@ -392,7 +392,6 @@ class BluetoothDriver(DriverBase):
 
         # Check if in between the current sample and now we have lost the connection
         if connectionStatus == False and self.lastConnectionStatus == True:
-            self.getEvent()
             self.getEvent("LOST_WIFI_CONNECTION").set()
             self.startServer()
         elif connectionStatus == True and self.lastConnectionStatus == False:

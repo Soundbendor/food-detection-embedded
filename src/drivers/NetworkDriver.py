@@ -130,6 +130,11 @@ class WiFiManager:
         if returnCode == 0:
             logging.info(f"Successfully connected to network: {ssid}")
 
+            # Enable unlimited reconnection attempts for the given network
+            _, process = self._runCommand(
+                ["nmcli", "c", "modify", ssid, "connection.autoconnect-retries", "0"]
+            )
+
             self.lastConnectionResult = {
                 "message": "Wi-Fi configuration successful",
                 "success": True,
@@ -393,7 +398,7 @@ class BluetoothDriver(DriverBase):
         # Check if in between the current sample and now we have lost the connection
         if connectionStatus == False and self.lastConnectionStatus == True:
             self.getEvent("LOST_WIFI_CONNECTION").set()
-            self.startServer()
+
         elif connectionStatus == True and self.lastConnectionStatus == False:
             self.getEvent("GOT_WIFI_CONNECTION").set()
 
@@ -407,8 +412,7 @@ class BluetoothDriver(DriverBase):
     
     # While the server is running we want to refersh the list of WiFi networks every 10 seconds
     async def controlLoop(self):
-        startTime = time()
-        while time() < startTime + 300:
+        while True:
             self.updateConnectionState()
 
             if not self.wifi.isConnected():
@@ -416,7 +420,6 @@ class BluetoothDriver(DriverBase):
                 self.lastConnectionStatus = False
                 
             await asyncio.sleep(10)
-        logging.info("Bluetooth server terminated")
         self.getEvent("BLUETOOTH_STOPPED").set()
         self.isServerRunning = False
 
@@ -438,7 +441,7 @@ class BluetoothDriver(DriverBase):
         bluetoothName = "Binsight Compost Bin"
         await adapter.set_alias(bluetoothName)
         advert = Advertisement(
-            bluetoothName, [str(31415924535897932384626433832790), "ABC0"], 0x0, 300
+            bluetoothName, [str(31415924535897932384626433832790), "ABC0"], 0x0, 0
         )
 
         try:
@@ -446,7 +449,6 @@ class BluetoothDriver(DriverBase):
             self.initialized = True
             self.data["initialized"].value = 1
             logging.info("Advertising Bluetooth Device")
-            self.isServerRunning = True
 
         except:
             pass

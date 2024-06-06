@@ -2,7 +2,7 @@
 # Script to be run by cronjob every 12hrs (specified by the period variable, cronjob should match)
 # Author: Will Richards
 
-period='12h'
+period='24h'
 name='binsight-firmware'
 server='sb-binsight.dri.oregonstate.edu:30080'
 

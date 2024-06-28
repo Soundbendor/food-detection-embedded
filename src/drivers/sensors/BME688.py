@@ -24,7 +24,13 @@ class BME688(DriverBase):
     """
     def __init__(self, i2c_address = 0x77):
         super().__init__("BME688")
-        self.sensor = bme680.BME680(i2c_address)
+
+        failedToInit = False
+        try:
+            self.sensor = bme680.BME680(i2c_address)
+        except RuntimeError as e:
+            logging.error(f"An error occured intializing BME680: {e}")
+            failedToInit = True
 
         script_dir = os.path.abspath(os.path.dirname(__file__))
         lib_path = os.path.join(script_dir, "bsec_python.so")
@@ -44,22 +50,27 @@ class BME688(DriverBase):
     Initialize the BME688 to begin taking sensor readings
     """
     def initialize(self):
-        # Set oversampling amounts
-        self.sensor.set_humidity_oversample(bme680.OS_2X)
-        self.sensor.set_pressure_oversample(bme680.OS_4X)
-        self.sensor.set_temperature_oversample(bme680.OS_8X)
+        if not failedToInit:
+            # Set oversampling amounts
+            self.sensor.set_humidity_oversample(bme680.OS_2X)
+            self.sensor.set_pressure_oversample(bme680.OS_4X)
+            self.sensor.set_temperature_oversample(bme680.OS_8X)
 
-        # Set IIR Filter size and whether or not we should be measuring gas
-        self.sensor.set_filter(bme680.FILTER_SIZE_3)
-        self.sensor.set_gas_status(bme680.ENABLE_GAS_MEAS)
+            # Set IIR Filter size and whether or not we should be measuring gas
+            self.sensor.set_filter(bme680.FILTER_SIZE_3)
+            self.sensor.set_gas_status(bme680.ENABLE_GAS_MEAS)
 
-        # Set heater temperature and duration and finally select the profile
-        self.sensor.set_gas_heater_temperature(320)
-        self.sensor.set_gas_heater_duration(150)
-        self.sensor.select_gas_heater_profile(0)
-        logging.info("Initialization complete!")
-        self.initialized = True
-        self.data["initialized"].value = 1
+            # Set heater temperature and duration and finally select the profile
+            self.sensor.set_gas_heater_temperature(320)
+            self.sensor.set_gas_heater_duration(150)
+            self.sensor.select_gas_heater_profile(0)
+            logging.info("Initialization complete!")
+            self.initialized = True
+            self.data["initialized"].value = 1
+        else:
+            logging.error("Failed to initialize sensor!")
+            self.initialized = False
+            self.data["initialized"].value = 0
        
 
     """

@@ -35,8 +35,8 @@ class DriverManager():
             # Format a new sensor objecti in the dectionary
             self._formatNewSensor(sensor)
             
-            # Spawn the sensor into a proccess passing the data object along to be manipulated
-            proccess = ThreadedDriver(sensor, self.data[sensor.moduleName]["data"])
+            # Spawn the sensor into a proccess passing the data object along to be manipulated, if our procces is the async publisher we want to pass the whole data object to it
+            proccess = ThreadedDriver(sensor, self.data[sensor.moduleName]["data"] if sensors.moduleName != "AsyncPublisher" else self.data)
 
             # Start the proccess
             proccess.start()

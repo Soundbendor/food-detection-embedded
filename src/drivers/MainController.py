@@ -182,11 +182,6 @@ class MainController:
         uid = str(uuid.uuid4())
         self.publisherQueue.put((uid, fileNames, self.manager.getJSON()))
 
-        # After we have sent all the stuff and are done, set the leds to green for a few seconds and then turn them off
-        self.manager.setEvent("LEDDriver.DONE")
-        time.sleep(2)
-        self.manager.setEvent("LEDDriver.NONE")
-
     """
     Shutdown device connected via the DriverManager
     """

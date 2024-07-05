@@ -82,7 +82,8 @@ class AsyncPublisher(DriverBase):
                 data["SoundController"]["data"]["TranscribedText"] = self.lastTranscription
 
                 # If our request succeeded  we don't need the files on device anymore
-                if self.requests.sendAPIRequest(fileNames, data):
+                requestSuccess, responseCode = self.requests.sendAPIRequest(fileNames, data)
+                if requestSuccess:
                     # Delete the transmitted files
                     for key in fileNames.keys():
                         os.remove(fileNames[key])
@@ -99,9 +100,17 @@ class AsyncPublisher(DriverBase):
                         time.sleep(2)
                         self.data["LEDDriver"]["events"]["NONE"][0].set()
                 else:
+
+                    # Determine what happened sorta, if device side failed to upload (-1 is returnd then we say something was wrong with the device) any other non 200 error is a internal server error
+                    clipPath = "../media/"
+                    if responseCode != -1:
+                        clipPath += "failedToUpload.wav"
+                    else:
+                        clipPath += "internalServerError.wav"
+
                     self.speaker.unmuteSpeaker(2)
                     try:
-                        self.speaker.playClip("../media/failedToUpload.wav")
+                        self.speaker.playClip(clip)
                     except:
                         pass
                     self.speaker.muteSpeaker(2)

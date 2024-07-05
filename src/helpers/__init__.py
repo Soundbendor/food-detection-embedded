@@ -303,21 +303,21 @@ class RequestHandler:
                     endpoint, headers=headers, json=payload, timeout=20.0
                 ).json()
             except Exception as e:
-                logging.error(f"Exception occurred while sending hearbeat: {e}")
+                logging.error(f"Exception occurred while sending API request: {e}")
                 client.close()
-                return False
+                return (False, -1)
             finally:
                 client.close()
 
             if "status" in response and response["status"] == True:
                 logging.info("Data successfully uploaded!")
-                return True
+                return (True, response.status_code)
             else:
                 logging.error("Failed to upload data to API.")
-                return False
+                return (False, response.status_code)
         else:
             logging.error("No file names supplied from file upload!")
-            return False
+            return (False, -1)
 
     """
     Load and return our Fast API credentials

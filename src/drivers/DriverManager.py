@@ -36,7 +36,9 @@ class DriverManager():
             self._formatNewSensor(sensor)
             
             # Spawn the sensor into a proccess passing the data object along to be manipulated, if our procces is the async publisher we want to pass the whole data object to it
-            proccess = ThreadedDriver(sensor, self.data[sensor.moduleName]["data"] if sensors.moduleName != "AsyncPublisher" else self.data)
+            if sensor.moduleName == "AsyncPublisher":
+                sensor.data = self.data
+            proccess = ThreadedDriver(sensor, self.data[sensor.moduleName]["data"])
 
             # Start the proccess
             proccess.start()
@@ -127,6 +129,14 @@ class DriverManager():
         except KeyError:
             logging.error(f"Specified event/sensor doesn't exist: {event}")
 
+    """
+    Clears all the events on every sensor
+    """
+    def clearAllEvents(self):
+        for sensor in self.data:
+            for name in self.data[sensor]["events"]:
+                self.data[sensor]["events"][name][0].clear()
+            
     
     """
     Check what callbacks need to be called per loop, and execute them as needed

@@ -113,7 +113,7 @@ class RequestHandler:
     """
 
     def checkNetworkConnection(self, host="8.8.8.8", port=53, timeout=3) -> bool:
-       try:
+        try:
             socket.setdefaulttimeout(timeout)
             socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
             return True
@@ -301,7 +301,8 @@ class RequestHandler:
             try:
                 response = client.post(
                     endpoint, headers=headers, json=payload, timeout=20.0
-                ).json()
+                )
+                jsonResponse = response.json()
             except Exception as e:
                 logging.error(f"Exception occurred while sending API request: {e}")
                 client.close()
@@ -309,7 +310,7 @@ class RequestHandler:
             finally:
                 client.close()
 
-            if "status" in response and response["status"] == True:
+            if "status" in jsonResponse and jsonResponse["status"] == True:
                 logging.info("Data successfully uploaded!")
                 return (True, response.status_code)
             else:

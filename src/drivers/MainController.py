@@ -107,6 +107,8 @@ class MainController:
         while self.manager.getEvent("SoundController.CONNECTED_TO_WIFI"):
             time.sleep(0.1)
 
+        self.manager.clearAllEvents()
+
     """
     Handles events that need to be checked quickly in the main loop
     """

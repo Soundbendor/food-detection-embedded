@@ -93,11 +93,11 @@ class AsyncPublisher(DriverBase):
                     with open("../data/cachedData.dat", "w") as file:
                         json.dump(self.cachedQueue, file)
                     
-                    # If our LEDDriver exists in the entry and it has been initialized then we want to flash green
-                    if "LEDDriver" in self.data and self.data["LEDDriver"]["data"]["initialized"] == 1:
+                    # If our LEDDriver exists in the entry and it has been initialized then we want to flash green, but not if it is in camera mode
+                    if "LEDDriver" in self.data and self.data["LEDDriver"]["data"]["initialized"].value == 1 and not self.data["LEDDriver"]["events"]["CAMERA"][0].is_set():
                         # If we succsessffully published we want to flash green and then off again
                         self.data["LEDDriver"]["events"]["DONE"][0].set()
-                        time.sleep(2)
+                        sleep(2)
                         self.data["LEDDriver"]["events"]["NONE"][0].set()
                 else:
 
@@ -116,11 +116,10 @@ class AsyncPublisher(DriverBase):
                     self.speaker.muteSpeaker(2)
 
                     # We failed to upload so we want to flash red on and offf
-                    # If our LEDDriver exists in the entry and it has been initialized then we want to flash green
-                    if "LEDDriver" in self.data and self.data["LEDDriver"]["data"]["initialized"] == 1:
+                    if "LEDDriver" in self.data and self.data["LEDDriver"]["data"]["initialized"] == 1 and not self.data["LEDDriver"]["events"]["CAMERA"][0].is_set():
                         # If we succsessffully published we want to flash green and then off again
                         self.data["LEDDriver"]["events"]["ERROR"][0].set()
-                        time.sleep(2)
+                        sleep(2)
                         self.data["LEDDriver"]["events"]["NONE"][0].set()
 
                     # Since we failed to upload our data we want to check if we can access the API at all if not then we know we have disconnected and as such 

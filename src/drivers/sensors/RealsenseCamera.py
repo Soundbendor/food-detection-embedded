@@ -18,7 +18,7 @@ class RealsenseCam(DriverBase):
     """
     Construct a new instance of the camera
     """
-    def __init__(self, controllerPipe, width = 1280, height = 720, fps = 30):
+    def __init__(self, controllerPipe, width = 640, height = 480, fps = 30):
         super().__init__("Realsense")
 
         # Set loop time to be 0 because it will block automatically

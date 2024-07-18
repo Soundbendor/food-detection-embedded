@@ -353,21 +353,40 @@ class BluetoothDriver(DriverBase):
     """
 
     class DebugService(Service):
-        def __init__(self):
+        def __init__(self, muted):
             super().__init__("BEEF", True)
+            self.isMuted = muted
+        
+        @characteristic(
+            "BEF0", CharFlags.WRITE | CharFlags.READ | CharFlags.WRITE_WITHOUT_RESPONSE
+        )
+        def setMuted(self, options):
+            return str(self.isMuted).encode("utf-8")
+
+        @setMuted.setter
+        def setMuted(self, value, options):
+            try:
+                decodedValue = str(value.decode('utf-8'))
+                if decodedValue == "True":
+                    self.isMuted = True
+                else:
+                    self.isMuted = False
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return False
 
     """
     Construct a new instance of the bluetooth driver
     """
 
-    def __init__(self):
+    def __init__(self, muted):
         super().__init__("BluetoothDriver")
-
+        self.muted = muted
         self.events = {
             "LOST_WIFI_CONNECTION": Event(),
             "GOT_WIFI_CONNECTION": Event(),
             "BLUETOOTH_STOPPED": Event(),
-            "BLUETOOTH_RESTARTED": Event()
+            "BLUETOOTH_RESTARTED": Event(),
         }
 
     """
@@ -381,10 +400,11 @@ class BluetoothDriver(DriverBase):
     def initialize(self):
         self.wifiService = self.WiFiSetupSerivce()
         self.apiService = self.APISetupService()
+        self.debugService = self.DebugService(self.muted)
         self.isServerRunning = False
         self.wifi = self.wifiService.wifi
         self.lastConnectionStatus = bool(self.wifi.checkConnection()["internet_access"])
-
+        self.data["muted"].value = self.muted
         self.loopTime = 20
         self.startServer()
         
@@ -409,19 +429,25 @@ class BluetoothDriver(DriverBase):
     """
     def measure(self):
        self.updateConnectionState()
+
+    def createDataDict(self):
+        self.data = {
+            "initialized": Value('i', 0),
+            "muted": Value('i', 0)
+        }
+        return self.data
     
     # While the server is running we want to refersh the list of WiFi networks every 10 seconds
     async def controlLoop(self):
         while True:
             self.updateConnectionState()
+            self.data["muted"].value = int(self.debugService.isMuted)
 
             if not self.wifi.isConnected():
                 self.wifi.scanNetworks()
                 self.lastConnectionStatus = False
                 
             await asyncio.sleep(10)
-        self.getEvent("BLUETOOTH_STOPPED").set()
-        self.isServerRunning = False
 
     async def setupBus(self):
         bus = await get_message_bus()
@@ -430,6 +456,7 @@ class BluetoothDriver(DriverBase):
         serviceCollection = ServiceCollection()
         serviceCollection.add_service(self.wifiService)
         serviceCollection.add_service(self.apiService)
+        serviceCollection.add_service(self.debugService)
 
         await serviceCollection.register(bus)
         logging.info("Registered services.")

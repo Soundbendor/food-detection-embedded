@@ -12,9 +12,7 @@ import logging
 
 from drivers.DriverBase import DriverBase
 from drivers.sensors.AudioTranscriber import AudioTranscriber
-from drivers.sensors.Speaker import Speaker
 from helpers import RequestHandler
-
 
 class AsyncPublisher(DriverBase):
 
@@ -27,7 +25,6 @@ class AsyncPublisher(DriverBase):
          super().__init__("AsyncPublisher")
          self.requests = RequestHandler()
          self.transcriber = AudioTranscriber()
-         self.speaker = Speaker()
          self.dataQueue = dataQueue
          self.lastTranscription = ""
          self.isConnected = True
@@ -104,17 +101,14 @@ class AsyncPublisher(DriverBase):
                     # Determine what happened sorta, if device side failed to upload (-1 is returnd then we say something was wrong with the device) any other non 200 error is a internal server error
                     clipPath = "../media/"
                     if responseCode != -1:
-                        clipPath += "failedToUpload.wav"
+                        self.data["SoundController"]["events"]["FAILED_TO_UPLOAD"][0].set()
                     else:
-                        clipPath += "internalServerError.wav"
+                        self.data["SoundController"]["events"]["SERVER_ERROR"][0].set()
 
-                    self.speaker.unmuteSpeaker(2)
-                    try:
-                        self.speaker.playClip(clip)
-                    except:
-                        pass
-                    self.speaker.muteSpeaker(2)
-
+                    # Wait for the events to execute before continuing
+                    while self.data["SoundController"]["events"]["SERVER_ERROR"][0].is_set() or self.data["SoundController"]["events"]["FAILED_TO_UPLOAD"][0].is_set():
+                        sleep(0.1)
+                  
                     # We failed to upload so we want to flash red on and offf
                     if "LEDDriver" in self.data and self.data["LEDDriver"]["data"]["initialized"] == 1 and not self.data["LEDDriver"]["events"]["CAMERA"][0].is_set():
                         # If we succsessffully published we want to flash green and then off again

@@ -28,4 +28,8 @@ sudo apt-get -y install portaudio19-dev
 sudo apt-get -y install python3-pyaudio
 sudo apt-get -y install ffmpeg
 
+# Move cronjobs to correct directories
+sudo cp diagnostics/autoUpdate.sh /etc/cron.daily/autoUpdate.sh
+sudo cp diagnostics/getLogs.sh /etc/cron.hourly/getLogs.sh
+
 echo "Setup complete!"

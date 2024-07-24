@@ -7,6 +7,7 @@ Provides the top level of the whole system so individual components can be utili
 import os
 import time
 import uuid
+import json
 from multiprocessing import Pipe, Queue
 
 from drivers.NetworkDriver import WiFiManager, BluetoothDriver
@@ -38,6 +39,8 @@ class MainController:
         if not os.path.exists("../data/"):
             os.mkdir("../data/")
 
+
+
         # Create pipes to all proccesses that create files so we can retrieve the file name that they save the most recent data as
         self.soundControllerConnection, soundControllerConnection = Pipe()
         self.realsenseControllerConenction, realsenseControllerConenction = Pipe()
@@ -45,6 +48,9 @@ class MainController:
 
         # Queue of data that needs to be published to the server
         self.publisherQueue = Queue()
+
+        self.isMuted = False
+        self.loadConfig()
 
         # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers
         self.manager = DriverManager(
@@ -54,13 +60,15 @@ class MainController:
             MLX90640(mlxControllerConenction),
             LidSwitch(),
             RealsenseCam(realsenseControllerConenction),
-            SoundController(soundControllerConnection),
+            SoundController(soundControllerConnection, self.isMuted),
             AsyncPublisher(self.publisherQueue),
-            BluetoothDriver()
+            BluetoothDriver(self.isMuted)
         )
 
         self.wifiManager = WiFiManager()
         self.lastRecording = ""
+
+        
 
         # Preform the device setup
         self.initialSetup()
@@ -83,13 +91,14 @@ class MainController:
     """
     def initialSetup(self):
         # Tell the user that bluetooth services have been enabled for the next 5 minutes
-        self.manager.setEvent("SoundController.WAIT_FOR_BLUETOOTH")
-        while self.manager.getEvent("SoundController.WAIT_FOR_BLUETOOTH"):
-            time.sleep(0.1)
+        if not self.isMuted:
+            self.manager.setEvent("SoundController.WAIT_FOR_BLUETOOTH")
+            while self.manager.getEvent("SoundController.WAIT_FOR_BLUETOOTH"):
+                time.sleep(0.1)
 
         # Inform the user the WiFi is not connected and check once every 20 seconds, wait until we are connected to WiFi
         wifiState = self.wifiManager.checkConnection()
-        if not bool(wifiState["internet_access"]):
+        if not bool(wifiState["internet_access"]) and not self.isMuted:
             self.manager.setEvent("SoundController.NO_WIFI")
             while self.manager.getEvent("SoundController.NO_WIFI"):
                 time.sleep(0.1)
@@ -102,10 +111,11 @@ class MainController:
                 time.sleep(5)
         except KeyboardInterrupt:
             pass
-            
-        self.manager.setEvent("SoundController.CONNECTED_TO_WIFI")
-        while self.manager.getEvent("SoundController.CONNECTED_TO_WIFI"):
-            time.sleep(0.1)
+
+        if not self.isMuted:
+            self.manager.setEvent("SoundController.CONNECTED_TO_WIFI")
+            while self.manager.getEvent("SoundController.CONNECTED_TO_WIFI"):
+                time.sleep(0.1)
 
         self.manager.clearAllEvents()
 
@@ -124,18 +134,28 @@ class MainController:
             self.manager.clearEvent("LidSwitch.LID_CLOSED")
         
         # If at any point we have lost our WiFi connection we want to tell the user that
-        if self.manager.getEvent("BluetoothDriver.LOST_WIFI_CONNECTION"):
+        if self.manager.getEvent("BluetoothDriver.LOST_WIFI_CONNECTION") and not self.isMuted:
             self.manager.setEvent("SoundController.NO_WIFI")
             self.manager.clearEvent("BluetoothDriver.LOST_WIFI_CONNECTION")
 
         # If at any point we have lost our WiFi connection we want to tell the user that
-        if self.manager.getEvent("BluetoothDriver.GOT_WIFI_CONNECTION"):
+        if self.manager.getEvent("BluetoothDriver.GOT_WIFI_CONNECTION") and not self.isMuted:
             self.manager.setEvent("SoundController.CONNECTED_TO_WIFI")
             self.manager.clearEvent("BluetoothDriver.GOT_WIFI_CONNECTION")
 
-        if self.manager.getEvent("BluetoothDriver.BLUETOOTH_STOPPED"):
+        if self.manager.getEvent("BluetoothDriver.BLUETOOTH_STOPPED") and not self.isMuted:
             self.manager.setEvent("SoundController.BLUETOOTH_STOPPED")
             self.manager.clearEvent("BluetoothDriver.BLUETOOTH_STOPPED")
+
+        # If our bluetooth driver is requesting a mute than we want to check the last muted state to see if we should play the audio
+        if bool(self.manager.getData()["BluetoothDriver"]["data"]["muted"].value) and not self.isMuted:
+            self.manager.setEvent("SoundController.MUTED")
+            self.isMuted = True
+            self.updateConfig()
+        elif not bool(self.manager.getData()["BluetoothDriver"]["data"]["muted"].value) and self.isMuted:
+            self.manager.setEvent("SoundController.UNMUTED")
+            self.isMuted = False
+            self.updateConfig()
 
     """
     Collect a sample from all of the sensors on the device
@@ -190,4 +210,16 @@ class MainController:
 
     def kill(self):
         self.manager.kill()
+
+    def updateConfig(self):
+        with open("../data/config.json", 'w') as outFile:
+            output = {"muted": self.isMuted}
+            json.dump(output, outFile)
+    
+    def loadConfig(self):
+         if os.path.exists("../data/config.json"):
+            with open("../data/config.json", 'r') as inFile:
+                data = json.load(inFile)
+                self.isMuted = bool(data["muted"])
+      
 

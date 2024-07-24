@@ -16,7 +16,7 @@ checkAPIForUpdates () {
 
 getAPIKey
 
-cd /home/$HOME/food-detection-embedded
+cd $HOME/food-detection-embedded
 
 # If lastUpdated file doesn't exist we should write a 0 to it to start
 if [ ! -f "$lastUpdateFile" ]; then

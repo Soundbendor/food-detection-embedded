@@ -25,12 +25,12 @@ class BME688(DriverBase):
     def __init__(self, i2c_address = 0x77):
         super().__init__("BME688")
 
-        failedToInit = False
+        self.failedToInit = False
         try:
             self.sensor = bme680.BME680(i2c_address)
         except RuntimeError as e:
             logging.error(f"An error occured intializing BME680: {e}")
-            failedToInit = True
+            self.failedToInit = True
 
         script_dir = os.path.abspath(os.path.dirname(__file__))
         lib_path = os.path.join(script_dir, "bsec_python.so")
@@ -50,7 +50,7 @@ class BME688(DriverBase):
     Initialize the BME688 to begin taking sensor readings
     """
     def initialize(self):
-        if not failedToInit:
+        if not self.failedToInit:
             # Set oversampling amounts
             self.sensor.set_humidity_oversample(bme680.OS_2X)
             self.sensor.set_pressure_oversample(bme680.OS_4X)

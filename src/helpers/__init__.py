@@ -6,6 +6,7 @@ import uuid
 from time import time
 
 import httpx
+import socket
 
 TWO_HOURS_SECONDS = 7200
 # TWO_HOURS_SECONDS = 20
@@ -105,6 +106,20 @@ class RequestHandler:
         self.apiKey, self.endpoint, self.port = self.loadFastAPICredentials(secret_file)
         self.endpoint = f"http://{self.endpoint}:{self.port}"
         self.serial = self._getSerial()
+
+
+    """
+    Check to see if our bucket can communicate with the internet at all, effictvely ping 8.8.8.8
+    """
+
+    def checkNetworkConnection(self, host="8.8.8.8", port=53, timeout=3) -> bool:
+        try:
+            socket.setdefaulttimeout(timeout)
+            socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+            return True
+        except socket.error as ex:
+            logging.error(f"Failed to connect to {host}: {ex}")
+            return False
 
     """
     Get the currently set API key
@@ -286,23 +301,24 @@ class RequestHandler:
             try:
                 response = client.post(
                     endpoint, headers=headers, json=payload, timeout=20.0
-                ).json()
+                )
+                jsonResponse = response.json()
             except Exception as e:
-                logging.error(f"Exception occurred while sending hearbeat: {e}")
+                logging.error(f"Exception occurred while sending API request: {e}")
                 client.close()
-                return False
+                return (False, -1)
             finally:
                 client.close()
 
-            if "status" in response and response["status"] == True:
+            if "status" in jsonResponse and jsonResponse["status"] == True:
                 logging.info("Data successfully uploaded!")
-                return True
+                return (True, response.status_code)
             else:
                 logging.error("Failed to upload data to API.")
-                return False
+                return (False, response.status_code)
         else:
             logging.error("No file names supplied from file upload!")
-            return False
+            return (False, -1)
 
     """
     Load and return our Fast API credentials
@@ -320,6 +336,11 @@ class RequestHandler:
             credsJson["FASTAPI_CREDS"]["port"],
         )
     
+
+    """
+    Get the serial number of this specific raspberry Pi by querying /proc/cpuinfo
+    """
+
     def _getSerial(self):
         # Extract serial from cpuinfo file
         cpuserial = "0000000000000000"

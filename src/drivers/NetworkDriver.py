@@ -165,7 +165,7 @@ class WiFiManager:
             activeNetwork = process.stdout.decode("utf-8").split("\n")[0].strip()
 
             # If we do show up as being connected to an actual network we want to send a heartbeat to see if we have an actual internet connection
-            hasInternet = self.requests.sendHeartbeat()
+            hasInternet = self.requests.checkNetworkConnection()
 
             # If we have internet we want to set is connected equal to true
             if hasInternet:

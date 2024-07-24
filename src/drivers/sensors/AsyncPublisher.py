@@ -37,7 +37,7 @@ class AsyncPublisher(DriverBase):
     Initialize the asynchoronous transcription and request handler
     """
     def initialize(self):
-        self.data["initialized"].value = 1
+        self.data[self.moduleName]["data"]["initialized"].value = 1
 
         # Load data that was still waiting to be transmitted last round
         if os.path.exists("../data/cachedData.dat"):
@@ -82,7 +82,8 @@ class AsyncPublisher(DriverBase):
                 data["SoundController"]["data"]["TranscribedText"] = self.lastTranscription
 
                 # If our request succeeded  we don't need the files on device anymore
-                if self.requests.sendAPIRequest(fileNames, data):
+                requestSuccess, responseCode = self.requests.sendAPIRequest(fileNames, data)
+                if requestSuccess:
                     # Delete the transmitted files
                     for key in fileNames.keys():
                         os.remove(fileNames[key])
@@ -91,13 +92,35 @@ class AsyncPublisher(DriverBase):
                     del self.cachedQueue[uid]
                     with open("../data/cachedData.dat", "w") as file:
                         json.dump(self.cachedQueue, file)
+                    
+                    # If our LEDDriver exists in the entry and it has been initialized then we want to flash green, but not if it is in camera mode
+                    if "LEDDriver" in self.data and self.data["LEDDriver"]["data"]["initialized"].value == 1 and not self.data["LEDDriver"]["events"]["CAMERA"][0].is_set():
+                        # If we succsessffully published we want to flash green and then off again
+                        self.data["LEDDriver"]["events"]["DONE"][0].set()
+                        sleep(2)
+                        self.data["LEDDriver"]["events"]["NONE"][0].set()
                 else:
+
+                    # Determine what happened sorta, if device side failed to upload (-1 is returnd then we say something was wrong with the device) any other non 200 error is a internal server error
+                    clipPath = "../media/"
+                    if responseCode != -1:
+                        clipPath += "failedToUpload.wav"
+                    else:
+                        clipPath += "internalServerError.wav"
+
                     self.speaker.unmuteSpeaker(2)
                     try:
-                        self.speaker.playClip("../media/failedToUpload.wav")
+                        self.speaker.playClip(clip)
                     except:
                         pass
                     self.speaker.muteSpeaker(2)
+
+                    # We failed to upload so we want to flash red on and offf
+                    if "LEDDriver" in self.data and self.data["LEDDriver"]["data"]["initialized"] == 1 and not self.data["LEDDriver"]["events"]["CAMERA"][0].is_set():
+                        # If we succsessffully published we want to flash green and then off again
+                        self.data["LEDDriver"]["events"]["ERROR"][0].set()
+                        sleep(2)
+                        self.data["LEDDriver"]["events"]["NONE"][0].set()
 
                     # Since we failed to upload our data we want to check if we can access the API at all if not then we know we have disconnected and as such 
                     self.isConnected = self.requests.sendHeartbeat()

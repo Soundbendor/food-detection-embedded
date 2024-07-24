@@ -33,4 +33,5 @@ sudo cp diagnostics/autoUpdate.sh /etc/cron.daily/autoUpdate.sh
 sudo cp diagnostics/getLogs.sh /etc/cron.hourly/getLogs.sh
 
 echo "ur mom"
+echo "ur dad"
 echo "Setup complete!"

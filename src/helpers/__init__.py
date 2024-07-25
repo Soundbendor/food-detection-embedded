@@ -1,12 +1,12 @@
 import json
 import logging
 import os
+import socket
 import sys
 import uuid
 from time import time
 
 import httpx
-import socket
 
 TWO_HOURS_SECONDS = 7200
 # TWO_HOURS_SECONDS = 20
@@ -104,9 +104,8 @@ class RequestHandler:
         self.secret_file = secret_file
         self.dataDir = dataDir
         self.apiKey, self.endpoint, self.port = self.loadFastAPICredentials(secret_file)
-        self.endpoint = f"http://{self.endpoint}:{self.port}"
+        self.endpoint = f"https://{self.endpoint}:{self.port}"
         self.serial = self._getSerial()
-
 
     """
     Check to see if our bucket can communicate with the internet at all, effictvely ping 8.8.8.8
@@ -171,10 +170,14 @@ class RequestHandler:
         params = {"deviceID": str(self.serial)}
 
         logging.info("Uploading file to database...")
-        client = httpx.Client()
+        client = httpx.Client(verify=False)
         try:
             response = client.post(
-                endpoint, params=params, headers=headers, files=filesToUpload, timeout=20
+                endpoint,
+                params=params,
+                headers=headers,
+                files=filesToUpload,
+                timeout=20,
             ).json()
         except Exception as e:
             logging.error(f"Exception occurred while sending hearbeat: {e}")
@@ -200,7 +203,7 @@ class RequestHandler:
 
     def sendHeartbeat(self):
         endpoint = self.endpoint + "/api/health/heartbeat"
-        client = httpx.Client()
+        client = httpx.Client(verify=False)
 
         # Attempt to send the packet
         failed = False
@@ -228,7 +231,7 @@ class RequestHandler:
         self.apiKey, self.endpoint, self.port = self.loadFastAPICredentials(
             self.secret_file
         )
-        self.endpoint = f"http://{self.endpoint}:{self.port}"
+        self.endpoint = f"https://{self.endpoint}:{self.port}"
 
     """
     Send a secure heartbeat request to the API
@@ -239,7 +242,7 @@ class RequestHandler:
         headers = {
             "token": self.apiKey,
         }
-        client = httpx.Client()
+        client = httpx.Client(verify=False)
         try:
             response = client.get(endpoint, headers=headers).json()
         except Exception as e:
@@ -297,7 +300,7 @@ class RequestHandler:
             }
 
             logging.info("Sending API Request...")
-            client = httpx.Client()
+            client = httpx.Client(verify=False)
             try:
                 response = client.post(
                     endpoint, headers=headers, json=payload, timeout=20.0
@@ -335,7 +338,6 @@ class RequestHandler:
             credsJson["FASTAPI_CREDS"]["endpoint"],
             credsJson["FASTAPI_CREDS"]["port"],
         )
-    
 
     """
     Get the serial number of this specific raspberry Pi by querying /proc/cpuinfo
@@ -345,9 +347,9 @@ class RequestHandler:
         # Extract serial from cpuinfo file
         cpuserial = "0000000000000000"
         try:
-            f = open('/proc/cpuinfo','r')
+            f = open("/proc/cpuinfo", "r")
             for line in f:
-                if line[0:6]=='Serial':
+                if line[0:6] == "Serial":
                     cpuserial = line[10:26]
             f.close()
         except:

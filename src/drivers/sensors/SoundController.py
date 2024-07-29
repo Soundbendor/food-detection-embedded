@@ -31,7 +31,7 @@ class SoundController(DriverBase):
         self.isMuted = muted
 
         # Set our loop time to 0.05 cause we dont need super fast looping
-        self.loopTime = 0.05
+        self.loopTime = 0.001
         
         self.events = {
             "RECORD": Event(),
@@ -43,6 +43,7 @@ class SoundController(DriverBase):
             "UNMUTED": Event(),
             "FAILED_TO_UPLOAD": Event(),
             "SERVER_ERROR": Event(),
+            "STOP_RECORDING": Event()
         }
 
     """
@@ -123,6 +124,9 @@ class SoundController(DriverBase):
         elif self.events["SERVER_ERROR"][0].is_set() and not self.isMuted:
             self.playClip("../media/internalServerError.wav")
             self.events["SERVER_ERROR"][0].clear()
+        elif self.events["STOP_RECORDING"][0].is_set() and not self.isMuted:
+            self.playClip("../media/stopRecording.wav")
+            self.events["STOP_RECORDING"][0].clear()
         elif self.events["RECORD"][0].is_set():
 
             if not self.isMuted:
@@ -139,7 +143,7 @@ class SoundController(DriverBase):
                 self.unmuteMic()
                 fileName = self.microphone.record()
                 self.muteMic()
-                self.playClip("../media/stopRecording.wav")
+                
 
                 # If the file was saved succsessfully send it and move on but if not TELL the user that we are re-recording
                 if(len(fileName) != 0):

@@ -204,6 +204,8 @@ class MainController:
         uid = str(uuid.uuid4())
         self.publisherQueue.put((uid, fileNames, self.manager.getJSON(), False))
 
+        self.manager.setEvent("SoundController.STOP_RECORDING")
+
     """
     Shutdown device connected via the DriverManager
     """

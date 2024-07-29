@@ -202,7 +202,7 @@ class MainController:
 
         # Add the most recent batch of data to the transcription and publishing queue
         uid = str(uuid.uuid4())
-        self.publisherQueue.put((uid, fileNames, self.manager.getJSON()))
+        self.publisherQueue.put((uid, fileNames, self.manager.getJSON(), False))
 
     """
     Shutdown device connected via the DriverManager

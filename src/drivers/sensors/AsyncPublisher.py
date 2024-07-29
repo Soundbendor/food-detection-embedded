@@ -6,6 +6,7 @@ Handles the asynchronous trascription of audio data and the subsequent API reque
 import os
 from multiprocessing import Queue
 from time import sleep
+from urllib import response
 import uuid
 import json
 import logging
@@ -51,12 +52,12 @@ class AsyncPublisher(DriverBase):
                         
                     self.cachedQueue = loadedData
                     for uid in self.cachedQueue:
-                        self.dataQueue.put((uid, self.cachedQueue[uid]["fileNames"], self.cachedQueue[uid]["data"]))
-    
+                        self.dataQueue.put((uid, self.cachedQueue[uid]["fileNames"], self.cachedQueue[uid]["data"], False))
+     
     def measure(self) -> None:
         if not self.dataQueue.empty():
             # Get the uid for this packet, the file names associated with it and the data itself
-            uid, fileNames, data = self.dataQueue.get_nowait()
+            uid, fileNames, data, failedOnce = self.dataQueue.get_nowait()
             
 
             # Update our runtime dictionary of all the data packets that need to be sent
@@ -100,9 +101,9 @@ class AsyncPublisher(DriverBase):
 
                     # Determine what happened sorta, if device side failed to upload (-1 is returnd then we say something was wrong with the device) any other non 200 error is a internal server error
                     clipPath = "../media/"
-                    if responseCode != -1:
+                    if responseCode == -1 and not failedOnce:
                         self.data["SoundController"]["events"]["FAILED_TO_UPLOAD"][0].set()
-                    else:
+                    elif responseCode != 200 and not failedOnce:
                         self.data["SoundController"]["events"]["SERVER_ERROR"][0].set()
 
                     # Wait for the events to execute before continuing
@@ -120,7 +121,7 @@ class AsyncPublisher(DriverBase):
                     self.isConnected = self.requests.sendHeartbeat()
 
                     # Since our connection failed we want to put the data we popped from the queue back in so that it will be retransmitted at some point
-                    self.dataQueue.put((uid, fileNames, data))
+                    self.dataQueue.put((uid, fileNames, data, True))
 
             # If we aren't connected we want to push the data back into the queue that we popped off last and then attempt to ping the server for a connection
             elif not self.isConnected:

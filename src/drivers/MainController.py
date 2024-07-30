@@ -125,6 +125,7 @@ class MainController:
     def handleCallbacks(self):
         # Check the state of the LidSwitch
         if self.manager.getEvent("LidSwitch.LID_CLOSED"):
+            time.sleep(0.25)
             self.collectData(triggeredByLid=True)
 
             # After the last sample is done being collected we want to get the current weight
@@ -164,10 +165,16 @@ class MainController:
     """
 
     def collectData(self, triggeredByLid=True) -> bool:
+        
         # When collect data is called we want to set the trigger type
         data = self.manager.getData()
         fileNames = {}
         data["DriverManager"]["data"]["userTrigger"] = triggeredByLid
+
+        # Start recording the user annotation
+        self.manager.setEvent("SoundController.RECORD")
+      
+       
 
         # We want to tell the "cameras" we would like to capture the latest frames
         # Delay the camera capture for a moment.
@@ -177,24 +184,16 @@ class MainController:
         self.manager.setEvent("MLX90640.CAPTURE")
 
         # While the capture events are still set we should just wait until they are cleared meaning they succeeded
-        while self.manager.getEvent("Realsense.CAPTURE") or self.manager.getEvent(
-            "MLX90640.CAPTURE"
-        ):
+        while self.manager.getEvent("Realsense.CAPTURE") or self.manager.getEvent("MLX90640.CAPTURE") or self.manager.getEvent("SoundController.RECORD"):
             time.sleep(0.2)
 
-        # Grab dictionaries of the file paths generated from the Realsense module and the MLX90640 module
+        # Grab dictionaries of the file paths generated from the Realsense module and the MLX90640 module and microphone
+        fileNames.update(self.soundControllerConnection.recv())
         fileNames.update(self.realsenseControllerConenction.recv())
         fileNames.update(self.mlxControllerConenction.recv())
 
         # Set the light to yellow before recording the
         self.manager.setEvent("LEDDriver.PROCESSING")
-
-        self.manager.setEvent("SoundController.RECORD")
-        while self.manager.getEvent("SoundController.RECORD"):
-            time.sleep(0.2)
-
-        # Update the list of filenames
-        fileNames.update(self.soundControllerConnection.recv())
 
         data["NAU7802"]["data"]["weight_delta"].value = (
             data["NAU7802"]["data"]["weight"].value - self.startingWeight

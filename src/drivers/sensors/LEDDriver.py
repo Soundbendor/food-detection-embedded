@@ -32,16 +32,18 @@ class LEDDriver(DriverBase):
     """
     LED Driver constructor
 
+    :param isBootFromUpdaate: If the current initialization loop is caused by an update
     :param pixel_count: The number of LED "pixels" that are connected to the controller
     """
-    def __init__(self, pixel_count = 16):
+    def __init__(self, isBootFromUpdate, pixel_count = 16):
         super().__init__("LEDDriver")
 
         spi = board.SPI()
         self.pixels = neopixel.NeoPixel_SPI(
             spi, pixel_count, brightness=1, auto_write=True, pixel_order=neopixel.GRBW, bit0=0b10000000
         )   
-        self.mode = LEDMode.PROCESSING
+
+        self.mode = LEDMode.PROCESSING if not isBootFromUpdate else LEDMode.NONE
         self.initialized = False
         self.events = {
             "CAMERA": Event(),

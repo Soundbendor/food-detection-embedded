@@ -7,6 +7,7 @@ Wrapper for Microphone and Audio output to be threadified to avoid truly blockin
 from multiprocessing import Event, Value
 import subprocess
 import os
+import time
 
 from drivers.DriverBase import DriverBase
 from drivers.sensors.Microphone import Microphone
@@ -139,6 +140,7 @@ class SoundController(DriverBase):
             while not gotRecording and retries < 3:
 
                 self.playClip("../media/startRecording.wav")
+
                 # Record the microphone and return the file name that it was saved at
                 self.unmuteMic()
                 fileName = self.microphone.record()

@@ -51,10 +51,13 @@ class MainController:
 
         self.isMuted = False
         self.loadConfig()
-
+        self.isBootFromUpdate = os.path.exists("../data/updated.txt")
+        if self.isBootFromUpdate:
+            os.remove("../data/updated.txt")
+        print(self.isBootFromUpdate)
         # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers
         self.manager = DriverManager(
-            LEDDriver(),
+            LEDDriver(self.isBootFromUpdate),
             NAU7802(calibration.get("NAU7802_CALIBRATION_FACTOR")),
             BME688(),
             MLX90640(mlxControllerConenction),
@@ -67,18 +70,19 @@ class MainController:
 
         self.wifiManager = WiFiManager()
         self.lastRecording = ""
-
         
+        
+
 
         # Preform the device setup
         self.initialSetup()
 
         # After we have initialzied all the proccesses we want to flash green to signifiy we are done
-        if self.manager.allProcsInitialized:
+        if self.manager.allProcsInitialized and not self.isBootFromUpdate:
             self.manager.setEvent("LEDDriver.DONE")
             time.sleep(2)
             self.manager.setEvent("LEDDriver.NONE")
-        else:
+        elif not self.isBootFromUpdate:
             self.manager.setEvent("LEDDriver.ERROR")
             time.sleep(2)
             self.manager.setEvent("LEDDriver.NONE")
@@ -91,14 +95,14 @@ class MainController:
     """
     def initialSetup(self):
         # Tell the user that bluetooth services have been enabled for the next 5 minutes
-        if not self.isMuted:
+        if not self.isMuted and not self.isBootFromUpdate:
             self.manager.setEvent("SoundController.WAIT_FOR_BLUETOOTH")
             while self.manager.getEvent("SoundController.WAIT_FOR_BLUETOOTH"):
                 time.sleep(0.1)
 
         # Inform the user the WiFi is not connected and check once every 20 seconds, wait until we are connected to WiFi
         wifiState = self.wifiManager.checkConnection()
-        if not bool(wifiState["internet_access"]) and not self.isMuted:
+        if not bool(wifiState["internet_access"]) and not self.isMuted and not self.isBootFromUpdate:
             self.manager.setEvent("SoundController.NO_WIFI")
             while self.manager.getEvent("SoundController.NO_WIFI"):
                 time.sleep(0.1)
@@ -112,7 +116,7 @@ class MainController:
         except KeyboardInterrupt:
             pass
 
-        if not self.isMuted:
+        if not self.isMuted and not self.isBootFromUpdate:
             self.manager.setEvent("SoundController.CONNECTED_TO_WIFI")
             while self.manager.getEvent("SoundController.CONNECTED_TO_WIFI"):
                 time.sleep(0.1)
@@ -173,8 +177,6 @@ class MainController:
 
         # Start recording the user annotation
         self.manager.setEvent("SoundController.RECORD")
-      
-       
 
         # We want to tell the "cameras" we would like to capture the latest frames
         # Delay the camera capture for a moment.

@@ -31,6 +31,9 @@ class AsyncPublisher(DriverBase):
          self.isConnected = True
          self.cachedQueue = {}
 
+         # Initialize to impossible response code
+         self.lastResponseCode = -255
+
     """
     Initialize the asynchoronous transcription and request handler
     """
@@ -80,7 +83,7 @@ class AsyncPublisher(DriverBase):
                 data["SoundController"]["data"]["TranscribedText"] = self.lastTranscription
 
                 # If our request succeeded  we don't need the files on device anymore
-                requestSuccess, responseCode = self.requests.sendAPIRequest(fileNames, data)
+                requestSuccess, responseCode, responseStr = self.requests.sendAPIRequest(fileNames, data)
                 if requestSuccess:
                     # Delete the transmitted files
                     for key in fileNames.keys():
@@ -99,16 +102,11 @@ class AsyncPublisher(DriverBase):
                         self.data["LEDDriver"]["events"]["NONE"][0].set()
                 else:
 
-                    # Determine what happened sorta, if device side failed to upload (-1 is returnd then we say something was wrong with the device) any other non 200 error is a internal server error
-                    clipPath = "../media/"
-                    if responseCode == -1 and not failedOnce:
-                        self.data["SoundController"]["events"]["FAILED_TO_UPLOAD"][0].set()
-                    elif responseCode != 200 and not failedOnce:
-                        self.data["SoundController"]["events"]["SERVER_ERROR"][0].set()
-
-                    # Wait for the events to execute before continuing
-                    while self.data["SoundController"]["events"]["SERVER_ERROR"][0].is_set() or self.data["SoundController"]["events"]["FAILED_TO_UPLOAD"][0].is_set():
-                        sleep(0.1)
+                    # Determine what part of the upload failed and then if so send and email to alert the support team, we only want to send one email per error
+                    if not requestSuccess and  responseCode != self.lastResponseCode:
+                        self.requests.sendErrorEmail(responseCode, responseStr)
+                        logging.warn("Unsuccessful upload request and email has been sent to the support server")
+                    
                   
                     # We failed to upload so we want to flash red on and offf
                     if "LEDDriver" in self.data and self.data["LEDDriver"]["data"]["initialized"] == 1 and not self.data["LEDDriver"]["events"]["CAMERA"][0].is_set():
@@ -122,6 +120,9 @@ class AsyncPublisher(DriverBase):
 
                     # Since our connection failed we want to put the data we popped from the queue back in so that it will be retransmitted at some point
                     self.dataQueue.put((uid, fileNames, data, True))
+
+                # Set the response code that came through last
+                self.lastResponseCode = responseCode
 
             # If we aren't connected we want to push the data back into the queue that we popped off last and then attempt to ping the server for a connection
             elif not self.isConnected:

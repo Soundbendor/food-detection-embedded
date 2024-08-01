@@ -1,3 +1,4 @@
+from csv import excel_tab
 import json
 import logging
 import os
@@ -7,6 +8,9 @@ from time import time
 
 import httpx
 import socket
+import smtplib
+
+from email.mime.text import MIMEText
 
 TWO_HOURS_SECONDS = 7200
 # TWO_HOURS_SECONDS = 20
@@ -104,6 +108,7 @@ class RequestHandler:
         self.secret_file = secret_file
         self.dataDir = dataDir
         self.apiKey, self.endpoint, self.port = self.loadFastAPICredentials(secret_file)
+        self.appPassword, self.emailAddress = self.loadEmailCredentials(secret_file)
         self.endpoint = f"http://{self.endpoint}:{self.port}"
         self.serial = self._getSerial()
 
@@ -306,19 +311,44 @@ class RequestHandler:
             except Exception as e:
                 logging.error(f"Exception occurred while sending API request: {e}")
                 client.close()
-                return (False, -1)
+                return (False, -1, str(e))
             finally:
                 client.close()
 
             if "status" in jsonResponse and jsonResponse["status"] == True:
                 logging.info("Data successfully uploaded!")
-                return (True, response.status_code)
+                return (True, response.status_code, response.text)
             else:
                 logging.error("Failed to upload data to API.")
-                return (False, response.status_code)
+                return (False, response.status_code, response.text)
         else:
             logging.error("No file names supplied from file upload!")
-            return (False, -1)
+            return (False, -1, "No file names supplied from file upload!")
+
+    """
+    Sends an email to our support server when an error occurs when attempting to upload a packer
+
+    :param error_code: The code that was returned from the request
+    :param error_message: The exception or the error that was returned by the request
+    """
+    def sendErrorEmail(self, error_code, error_message):
+        subject = f"[Bucket Upload Error] Device: {self.serial} encountered a {error_code} error code."
+        body = f"The following was returned as the error in question:\t{error_message}"
+
+        msg = MIMEText(body)
+        msg['Subject'] = subject
+        msg['From'] = self.emailAddress
+        msg['To'] = self.emailAddress
+
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp_server:
+            smtp_server.login(self.emailAddress, self.appPassword)
+            try:
+                smtp_server.sendmail(self.emailAddress, self.emailAddress, msg.as_string())
+                return True
+            except Exception as e:
+                logging.error("Error occurred sending email: {e}")
+                return False
+        
 
     """
     Load and return our Fast API credentials
@@ -336,6 +366,16 @@ class RequestHandler:
             credsJson["FASTAPI_CREDS"]["port"],
         )
     
+    """
+    Load a Gmail app password from a file
+
+    :param file: The file the credentials are stored in
+    """
+    def loadEmailCredentials(self, file):
+        secretFile = open(file, "r")
+        credsJson = json.load(secretFile)
+        secretFile.close()
+        return (credsJson["EMAIL_LOGGING"]["appCode"], credsJson["EMAIL_LOGGING"]["email"])
 
     """
     Get the serial number of this specific raspberry Pi by querying /proc/cpuinfo

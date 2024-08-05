@@ -107,16 +107,19 @@ class MainController:
             while self.manager.getEvent("SoundController.NO_WIFI"):
                 time.sleep(0.1)
 
+        # Retry to connect to wifi 4 times
+        wifiRetries = 0
         try:
-            while True:
+            while wifiRetries < 4:
                 wifiState =  self.wifiManager.checkConnection()
                 if bool(wifiState["internet_access"]):
                     break
                 time.sleep(5)
+                wifiRetries += 1
         except KeyboardInterrupt:
             pass
 
-        if not self.isMuted and not self.isBootFromUpdate:
+        if not self.isMuted and not self.isBootFromUpdate and bool(wifiState["internet_access"]):
             self.manager.setEvent("SoundController.CONNECTED_TO_WIFI")
             while self.manager.getEvent("SoundController.CONNECTED_TO_WIFI"):
                 time.sleep(0.1)

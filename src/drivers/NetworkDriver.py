@@ -5,6 +5,7 @@ WiFi/Bluetooh driver for handling device-to-device communication with the bucket
 """
 
 import asyncio
+from genericpath import isfile
 import json
 import logging
 import subprocess
@@ -12,6 +13,7 @@ import uuid
 from time import sleep, time
 from typing import Union
 import re
+import os
 from multiprocessing import Event, Value
 
 from bluez_peripheral.advert import Advertisement
@@ -357,6 +359,19 @@ class BluetoothDriver(DriverBase):
             super().__init__("BEEF", True)
             self.isMuted = muted
         
+        def _clearCache(self):
+            try:
+                filesInDir = os.listdir("../data")
+                for file in filesInDir:
+                    file_path = os.path.join("../data", file)
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+
+                return True
+            except OSError as e:
+                logging.error(f"Failed to clear cache: {e}")
+                return False
+                
         @characteristic(
             "BEF0", CharFlags.WRITE | CharFlags.READ | CharFlags.WRITE_WITHOUT_RESPONSE
         )
@@ -373,6 +388,19 @@ class BluetoothDriver(DriverBase):
                     self.isMuted = False
             except Exception as e:
                 print(f"An error occurred: {e}")
+                return False
+            
+        @characteristic(
+            "BEF1",
+            CharFlags.WRITE | CharFlags.WRITE_WITHOUT_RESPONSE
+        ).setter
+        def clearCache(self, value, options):
+            try:
+                decodedValue = str(value.decode('utf-8'))
+                if decodedValue == "True":
+                    self._clearCache()
+            except Exception as e:
+                logging.error(f"An error occurred: {e}")
                 return False
 
     """

@@ -1,16 +1,18 @@
-from csv import excel_tab
 import json
 import logging
 import os
+import smtplib
+import socket
 import sys
 import uuid
+from csv import excel_tab
+from email.mime.text import MIMEText
 from time import time
 
+import boto3
 import httpx
-import socket
-import smtplib
-
-from email.mime.text import MIMEText
+from aws_secretsmanager_caching import SecretCache, SecretCacheConfig
+from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 
 TWO_HOURS_SECONDS = 7200
 # TWO_HOURS_SECONDS = 20
@@ -112,7 +114,6 @@ class RequestHandler:
         self.endpoint = f"http://{self.endpoint}:{self.port}"
         self.serial = self._getSerial()
 
-
     """
     Check to see if our bucket can communicate with the internet at all, effictvely ping 8.8.8.8
     """
@@ -179,7 +180,11 @@ class RequestHandler:
         client = httpx.Client()
         try:
             response = client.post(
-                endpoint, params=params, headers=headers, files=filesToUpload, timeout=20
+                endpoint,
+                params=params,
+                headers=headers,
+                files=filesToUpload,
+                timeout=20,
             ).json()
         except Exception as e:
             logging.error(f"Exception occurred while sending hearbeat: {e}")
@@ -331,24 +336,26 @@ class RequestHandler:
     :param error_code: The code that was returned from the request
     :param error_message: The exception or the error that was returned by the request
     """
+
     def sendErrorEmail(self, error_code, error_message):
         subject = f"[Bucket Upload Error] Device: {self.serial} encountered a {error_code} error code."
         body = f"The following was returned as the error in question:\t{error_message}"
 
         msg = MIMEText(body)
-        msg['Subject'] = subject
-        msg['From'] = self.emailAddress
-        msg['To'] = self.emailAddress
+        msg["Subject"] = subject
+        msg["From"] = self.emailAddress
+        msg["To"] = self.emailAddress
 
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp_server:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp_server:
             smtp_server.login(self.emailAddress, self.appPassword)
             try:
-                smtp_server.sendmail(self.emailAddress, self.emailAddress, msg.as_string())
+                smtp_server.sendmail(
+                    self.emailAddress, self.emailAddress, msg.as_string()
+                )
                 return True
             except Exception as e:
                 logging.error("Error occurred sending email: {e}")
                 return False
-        
 
     """
     Load and return our Fast API credentials
@@ -365,17 +372,28 @@ class RequestHandler:
             credsJson["FASTAPI_CREDS"]["endpoint"],
             credsJson["FASTAPI_CREDS"]["port"],
         )
-    
+
     """
     Load a Gmail app password from a file
 
     :param file: The file the credentials are stored in
     """
-    def loadEmailCredentials(self, file):
-        secretFile = open(file, "r")
-        credsJson = json.load(secretFile)
-        secretFile.close()
-        return (credsJson["EMAIL_LOGGING"]["appCode"], credsJson["EMAIL_LOGGING"]["email"])
+
+    def loadEmailCredentials(self):
+        client = boto3.session.get_session().create_client("secretsmanager")
+        cache_config = SecretCacheConfig()
+        cache = SecretCache(config=cache_config, client=client)
+        email = cache.get_secret_string("notif_email")
+        pword = cache.get_secret_string("notif_pword")
+        return email, pword
+
+        # secretFile = open(file, "r")
+        # credsJson = json.load(secretFile)
+        # secretFile.close()
+        # return (
+        #     credsJson["EMAIL_LOGGING"]["appCode"],
+        #     credsJson["EMAIL_LOGGING"]["email"],
+        # )
 
     """
     Get the serial number of this specific raspberry Pi by querying /proc/cpuinfo
@@ -385,9 +403,9 @@ class RequestHandler:
         # Extract serial from cpuinfo file
         cpuserial = "0000000000000000"
         try:
-            f = open('/proc/cpuinfo','r')
+            f = open("/proc/cpuinfo", "r")
             for line in f:
-                if line[0:6]=='Serial':
+                if line[0:6] == "Serial":
                     cpuserial = line[10:26]
             f.close()
         except:

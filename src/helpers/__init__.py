@@ -387,7 +387,7 @@ class RequestHandler:
         cache = SecretCache(config=cache_config, client=client)
         email = cache.get_secret_string("sb_notification_email")
         pword = cache.get_secret_string("sb_notification_password")
-        return email, pword
+        return pword, email
 
         # secretFile = open(file, "r")
         # credsJson = json.load(secretFile)

@@ -36,6 +36,6 @@ RUN mv /firmware/dependencies/pyrealsense2.cpython-39-aarch64-linux-gnu.so /usr/
 COPY media /firmware/media
 COPY src /firmware/src
 
-COPY ../.aws /firmware/.aws
+COPY .aws /root/.aws
 
 WORKDIR  /firmware/src

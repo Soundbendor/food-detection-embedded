@@ -1,5 +1,5 @@
 #!/bin/bash
 
-cp $HOME/.aws .aws
+cp -r $HOME/.aws .aws
 docker build . -t binsight-firmware
 

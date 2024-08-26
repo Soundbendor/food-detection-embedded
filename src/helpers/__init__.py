@@ -380,7 +380,9 @@ class RequestHandler:
     """
 
     def loadEmailCredentials(self):
-        client = botocore.session.get_session().create_client("secretsmanager")
+        client = botocore.session.get_session().create_client(
+            "secretsmanager", region_name="us-west-2"
+        )
         cache_config = SecretCacheConfig()
         cache = SecretCache(config=cache_config, client=client)
         email = cache.get_secret_string("sb_notification_email")

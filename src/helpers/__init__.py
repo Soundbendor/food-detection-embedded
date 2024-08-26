@@ -383,8 +383,8 @@ class RequestHandler:
         client = botocore.session.get_session().create_client("secretsmanager")
         cache_config = SecretCacheConfig()
         cache = SecretCache(config=cache_config, client=client)
-        email = cache.get_secret_string("notif_email")
-        pword = cache.get_secret_string("notif_pword")
+        email = cache.get_secret_string("notif_email")["notif_email"]
+        pword = cache.get_secret_string("notif_pword")["notif_pword"]
         return email, pword
 
         # secretFile = open(file, "r")

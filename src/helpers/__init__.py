@@ -9,7 +9,7 @@ from csv import excel_tab
 from email.mime.text import MIMEText
 from time import time
 
-import boto3
+import botocore
 import httpx
 from aws_secretsmanager_caching import SecretCache, SecretCacheConfig
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
@@ -380,7 +380,7 @@ class RequestHandler:
     """
 
     def loadEmailCredentials(self):
-        client = boto3.session.get_session().create_client("secretsmanager")
+        client = botocore.session.get_session().create_client("secretsmanager")
         cache_config = SecretCacheConfig()
         cache = SecretCache(config=cache_config, client=client)
         email = cache.get_secret_string("notif_email")

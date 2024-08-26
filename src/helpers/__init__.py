@@ -110,7 +110,7 @@ class RequestHandler:
         self.secret_file = secret_file
         self.dataDir = dataDir
         self.apiKey, self.endpoint, self.port = self.loadFastAPICredentials(secret_file)
-        self.appPassword, self.emailAddress = self.loadEmailCredentials(secret_file)
+        self.appPassword, self.emailAddress = self.loadEmailCredentials()
         self.endpoint = f"http://{self.endpoint}:{self.port}"
         self.serial = self._getSerial()
 

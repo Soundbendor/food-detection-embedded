@@ -51,10 +51,13 @@ class MainController:
 
         self.isMuted = False
         self.loadConfig()
-
+        self.isBootFromUpdate = os.path.exists("../data/updated.txt")
+        if self.isBootFromUpdate:
+            os.remove("../data/updated.txt")
+        print(self.isBootFromUpdate)
         # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers
         self.manager = DriverManager(
-            LEDDriver(),
+            LEDDriver(self.isBootFromUpdate),
             NAU7802(calibration.get("NAU7802_CALIBRATION_FACTOR")),
             BME688(),
             MLX90640(mlxControllerConenction),
@@ -67,18 +70,19 @@ class MainController:
 
         self.wifiManager = WiFiManager()
         self.lastRecording = ""
-
         
+        
+
 
         # Preform the device setup
         self.initialSetup()
 
         # After we have initialzied all the proccesses we want to flash green to signifiy we are done
-        if self.manager.allProcsInitialized:
+        if self.manager.allProcsInitialized and not self.isBootFromUpdate:
             self.manager.setEvent("LEDDriver.DONE")
             time.sleep(2)
             self.manager.setEvent("LEDDriver.NONE")
-        else:
+        elif not self.isBootFromUpdate:
             self.manager.setEvent("LEDDriver.ERROR")
             time.sleep(2)
             self.manager.setEvent("LEDDriver.NONE")
@@ -91,28 +95,31 @@ class MainController:
     """
     def initialSetup(self):
         # Tell the user that bluetooth services have been enabled for the next 5 minutes
-        if not self.isMuted:
+        if not self.isMuted and not self.isBootFromUpdate:
             self.manager.setEvent("SoundController.WAIT_FOR_BLUETOOTH")
             while self.manager.getEvent("SoundController.WAIT_FOR_BLUETOOTH"):
                 time.sleep(0.1)
 
         # Inform the user the WiFi is not connected and check once every 20 seconds, wait until we are connected to WiFi
         wifiState = self.wifiManager.checkConnection()
-        if not bool(wifiState["internet_access"]) and not self.isMuted:
+        if not bool(wifiState["internet_access"]) and not self.isMuted and not self.isBootFromUpdate:
             self.manager.setEvent("SoundController.NO_WIFI")
             while self.manager.getEvent("SoundController.NO_WIFI"):
                 time.sleep(0.1)
 
+        # Retry to connect to wifi 4 times
+        wifiRetries = 0
         try:
-            while True:
+            while wifiRetries < 4:
                 wifiState =  self.wifiManager.checkConnection()
                 if bool(wifiState["internet_access"]):
                     break
                 time.sleep(5)
+                wifiRetries += 1
         except KeyboardInterrupt:
             pass
 
-        if not self.isMuted:
+        if not self.isMuted and not self.isBootFromUpdate and bool(wifiState["internet_access"]):
             self.manager.setEvent("SoundController.CONNECTED_TO_WIFI")
             while self.manager.getEvent("SoundController.CONNECTED_TO_WIFI"):
                 time.sleep(0.1)
@@ -125,6 +132,7 @@ class MainController:
     def handleCallbacks(self):
         # Check the state of the LidSwitch
         if self.manager.getEvent("LidSwitch.LID_CLOSED"):
+            time.sleep(0.25)
             self.collectData(triggeredByLid=True)
 
             # After the last sample is done being collected we want to get the current weight
@@ -164,10 +172,14 @@ class MainController:
     """
 
     def collectData(self, triggeredByLid=True) -> bool:
+        
         # When collect data is called we want to set the trigger type
         data = self.manager.getData()
         fileNames = {}
         data["DriverManager"]["data"]["userTrigger"] = triggeredByLid
+
+        # Start recording the user annotation
+        self.manager.setEvent("SoundController.RECORD")
 
         # We want to tell the "cameras" we would like to capture the latest frames
         # Delay the camera capture for a moment.
@@ -177,24 +189,16 @@ class MainController:
         self.manager.setEvent("MLX90640.CAPTURE")
 
         # While the capture events are still set we should just wait until they are cleared meaning they succeeded
-        while self.manager.getEvent("Realsense.CAPTURE") or self.manager.getEvent(
-            "MLX90640.CAPTURE"
-        ):
+        while self.manager.getEvent("Realsense.CAPTURE") or self.manager.getEvent("MLX90640.CAPTURE") or self.manager.getEvent("SoundController.RECORD"):
             time.sleep(0.2)
 
-        # Grab dictionaries of the file paths generated from the Realsense module and the MLX90640 module
+        # Grab dictionaries of the file paths generated from the Realsense module and the MLX90640 module and microphone
+        fileNames.update(self.soundControllerConnection.recv())
         fileNames.update(self.realsenseControllerConenction.recv())
         fileNames.update(self.mlxControllerConenction.recv())
 
         # Set the light to yellow before recording the
         self.manager.setEvent("LEDDriver.PROCESSING")
-
-        self.manager.setEvent("SoundController.RECORD")
-        while self.manager.getEvent("SoundController.RECORD"):
-            time.sleep(0.2)
-
-        # Update the list of filenames
-        fileNames.update(self.soundControllerConnection.recv())
 
         data["NAU7802"]["data"]["weight_delta"].value = (
             data["NAU7802"]["data"]["weight"].value - self.startingWeight
@@ -202,7 +206,9 @@ class MainController:
 
         # Add the most recent batch of data to the transcription and publishing queue
         uid = str(uuid.uuid4())
-        self.publisherQueue.put((uid, fileNames, self.manager.getJSON()))
+        self.publisherQueue.put((uid, fileNames, self.manager.getJSON(), False))
+
+        self.manager.setEvent("SoundController.STOP_RECORDING")
 
     """
     Shutdown device connected via the DriverManager

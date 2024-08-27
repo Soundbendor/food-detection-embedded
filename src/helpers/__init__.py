@@ -1,12 +1,18 @@
 import json
 import logging
 import os
+import smtplib
+import socket
 import sys
 import uuid
+from csv import excel_tab
+from email.mime.text import MIMEText
 from time import time
 
+import botocore
 import httpx
-import socket
+from aws_secretsmanager_caching import SecretCache, SecretCacheConfig
+from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 
 TWO_HOURS_SECONDS = 7200
 # TWO_HOURS_SECONDS = 20
@@ -104,9 +110,9 @@ class RequestHandler:
         self.secret_file = secret_file
         self.dataDir = dataDir
         self.apiKey, self.endpoint, self.port = self.loadFastAPICredentials(secret_file)
+        self.appPassword, self.emailAddress = self.loadEmailCredentials()
         self.endpoint = f"http://{self.endpoint}:{self.port}"
         self.serial = self._getSerial()
-
 
     """
     Check to see if our bucket can communicate with the internet at all, effictvely ping 8.8.8.8
@@ -174,7 +180,11 @@ class RequestHandler:
         client = httpx.Client()
         try:
             response = client.post(
-                endpoint, params=params, headers=headers, files=filesToUpload, timeout=20
+                endpoint,
+                params=params,
+                headers=headers,
+                files=filesToUpload,
+                timeout=20,
             ).json()
         except Exception as e:
             logging.error(f"Exception occurred while sending hearbeat: {e}")
@@ -306,19 +316,46 @@ class RequestHandler:
             except Exception as e:
                 logging.error(f"Exception occurred while sending API request: {e}")
                 client.close()
-                return (False, -1)
+                return (False, -1, str(e))
             finally:
                 client.close()
 
             if "status" in jsonResponse and jsonResponse["status"] == True:
                 logging.info("Data successfully uploaded!")
-                return (True, response.status_code)
+                return (True, response.status_code, response.text)
             else:
                 logging.error("Failed to upload data to API.")
-                return (False, response.status_code)
+                return (False, response.status_code, response.text)
         else:
             logging.error("No file names supplied from file upload!")
-            return (False, -1)
+            return (False, -1, "No file names supplied from file upload!")
+
+    """
+    Sends an email to our support server when an error occurs when attempting to upload a packer
+
+    :param error_code: The code that was returned from the request
+    :param error_message: The exception or the error that was returned by the request
+    """
+
+    def sendErrorEmail(self, error_code, error_message):
+        subject = f"[Bucket Upload Error] Device: {self.serial} encountered a {error_code} error code."
+        body = f"The following was returned as the error in question:\t{error_message}"
+
+        msg = MIMEText(body)
+        msg["Subject"] = subject
+        msg["From"] = self.emailAddress
+        msg["To"] = self.emailAddress
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp_server:
+            try:
+                smtp_server.login(self.emailAddress, self.appPassword)
+                smtp_server.sendmail(
+                    self.emailAddress, self.emailAddress, msg.as_string()
+                )
+                return True
+            except Exception as e:
+                logging.error("Error occurred sending email: {e}")
+                return False
 
     """
     Load and return our Fast API credentials
@@ -335,7 +372,30 @@ class RequestHandler:
             credsJson["FASTAPI_CREDS"]["endpoint"],
             credsJson["FASTAPI_CREDS"]["port"],
         )
-    
+
+    """
+    Load a Gmail app password from a file
+
+    :param file: The file the credentials are stored in
+    """
+
+    def loadEmailCredentials(self):
+        client = botocore.session.get_session().create_client(
+            "secretsmanager", region_name="us-west-2"
+        )
+        cache_config = SecretCacheConfig()
+        cache = SecretCache(config=cache_config, client=client)
+        email = cache.get_secret_string("sb_notification_email")
+        pword = cache.get_secret_string("sb_notification_password")
+        return pword, email
+
+        # secretFile = open(file, "r")
+        # credsJson = json.load(secretFile)
+        # secretFile.close()
+        # return (
+        #     credsJson["EMAIL_LOGGING"]["appCode"],
+        #     credsJson["EMAIL_LOGGING"]["email"],
+        # )
 
     """
     Get the serial number of this specific raspberry Pi by querying /proc/cpuinfo
@@ -345,9 +405,9 @@ class RequestHandler:
         # Extract serial from cpuinfo file
         cpuserial = "0000000000000000"
         try:
-            f = open('/proc/cpuinfo','r')
+            f = open("/proc/cpuinfo", "r")
             for line in f:
-                if line[0:6]=='Serial':
+                if line[0:6] == "Serial":
                     cpuserial = line[10:26]
             f.close()
         except:

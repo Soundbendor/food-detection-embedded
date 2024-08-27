@@ -5,6 +5,7 @@
 name='binsight-firmware'
 server='sb-binsight.dri.oregonstate.edu:30080'
 lastUpdateFile='./diagnostics/lastUpdate.txt'
+updateOccuredFile='./data/updated.txt'
 
 getAPIKey () {
     apiKey=$(cat ~/food-detection-embedded/src/config.secret | python -c "import sys, json; print(json.load(sys.stdin)['FASTAPI_CREDS']['apiKey'])")
@@ -46,9 +47,13 @@ if (($LAST_UPDATED < $updateResponse)); then
     echo "Rebuilding firmware..."
     echo $updateResponse > $lastUpdateFile
 
+    # Create temp file to signify to the proccess that is restarting that this is a reboot as a result of an update, and should not talk
+    touch $updateOccuredFile
+
     # Rebuild and restart the container
     ./buildDocker.sh
     ./runDocker.sh    
+    
     
 else
     echo "Nothing to update"

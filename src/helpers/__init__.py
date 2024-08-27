@@ -347,8 +347,8 @@ class RequestHandler:
         msg["To"] = self.emailAddress
 
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp_server:
-            smtp_server.login(self.emailAddress, self.appPassword)
             try:
+                smtp_server.login(self.emailAddress, self.appPassword)
                 smtp_server.sendmail(
                     self.emailAddress, self.emailAddress, msg.as_string()
                 )

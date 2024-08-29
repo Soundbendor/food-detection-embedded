@@ -443,13 +443,6 @@ class BluetoothDriver(DriverBase):
     def updateConnectionState(self):
         connectionStatus =  bool(self.wifi.checkConnection()["internet_access"])
 
-        # Check if in between the current sample and now we have lost the connection
-        if connectionStatus == False and self.lastConnectionStatus == True:
-            self.getEvent("LOST_WIFI_CONNECTION").set()
-
-        elif connectionStatus == True and self.lastConnectionStatus == False:
-            self.getEvent("GOT_WIFI_CONNECTION").set()
-
         self.lastConnectionStatus = connectionStatus
    
     """

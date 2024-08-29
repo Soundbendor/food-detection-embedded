@@ -81,7 +81,6 @@ class AsyncPublisher(DriverBase):
 
             # If we think we have internet access attempt to transmit the data
             if self.isConnected:
-
                 # Check if the data collection was triggered by the user or the 2 hour
                 if bool(data["DriverManager"]["data"]["userTrigger"]) == True:
                     self.lastTranscription = self.transcriber.transcribe(
@@ -138,6 +137,11 @@ class AsyncPublisher(DriverBase):
 
                     # Since we failed to upload our data we want to check if we can access the API at all if not then we know we have disconnected and as such
                     self.isConnected = self.requests.sendHeartbeat()
+
+                    # We should only tell the user something is wrong if it affects teh status of the bucekt
+                    if self.isConnected and not failedOnce:
+                        self.data["BluetoothDriver"]["events"]["LOST_WIFI_CONNECTION"][0].set()
+                       
 
                     # Since our connection failed we want to put the data we popped from the queue back in so that it will be retransmitted at some point
                     self.dataQueue.put((uid, fileNames, data, True))

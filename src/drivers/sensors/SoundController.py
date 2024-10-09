@@ -28,7 +28,7 @@ class SoundController(DriverBase):
         self.microphone = Microphone(record_duration)
         self.speaker = Speaker()
         self.soundControllerConnection = soundControllerConnection
-        self.alsaSoundCardNum = 2
+        self.alsaSoundCardNum = 0
         self.isMuted = muted
 
         # Set our loop time to 0.05 cause we dont need super fast looping
@@ -75,7 +75,16 @@ class SoundController(DriverBase):
     """
     def muteMic(self):
         with open(os.devnull, 'wb') as devnull:
-            subprocess.check_call(['/usr/bin/amixer', '-c', str(self.alsaSoundCardNum), 'sset', 'Mic', 'mute'], stdout=devnull, stderr=subprocess.STDOUT)
+            while True:
+                try:
+                    subprocess.check_call(['/usr/bin/amixer', '-c', str(self.alsaSoundCardNum), 'sset', 'Mic', 'mute'], stdout=devnull, stderr=subprocess.STDOUT)
+                    break
+                except subprocess.CalledProcessError as e:
+                    self.alsaSoundCardNum += 1
+                    logging.info(ret)
+                except KeyboardInterrupt:
+                    break
+            
 
     """
     Unmute the mic attatched to the waveshare adapter

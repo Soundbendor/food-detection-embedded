@@ -28,14 +28,21 @@ class Microphone():
         self.frames_per_buffer = 128
         self.format = pyaudio.paInt16
         self.record_duration = record_duration
-        self.alsaSoundCardNum = 2
+        self.alsaSoundCardNum = 0
 
         self.pAudio = pyaudio.PyAudio()
 
         # Enable the microphone capture
         with open(os.devnull, 'wb') as devnull:
-            subprocess.check_call(['/usr/bin/amixer', '-c', str(self.alsaSoundCardNum), 'set', 'Mic', 'cap'], stdout=devnull, stderr=subprocess.STDOUT)
-
+            while True:
+                try:
+                    subprocess.check_call(['/usr/bin/amixer', '-c', str(self.alsaSoundCardNum), 'set', 'Mic', 'cap'], stdout=devnull, stderr=subprocess.STDOUT)
+                    break
+                except subprocess.CalledProcessError as e:
+                    self.alsaSoundCardNum += 1
+                    logging.info(ret)
+                except KeyboardInterrupt:
+                    break
 
     """
     Initialize the whisper model and warm it up by feeding 0s into it

@@ -141,74 +141,6 @@ class RequestHandler:
         return self.apiKey
 
     """
-    Upload the most recent files in the 'data' folder to our remote server for storage
-
-    :return: Dictionary of base file names (ie. "colorImage") mapped to the stored location in our S3 bucket
-    """
-
-    # def uploadFiles(self, fileNames: dict):
-    #     endpoint = self.endpoint + "/api/upload_files"
-    #
-    #     # Format request headers
-    #     headers = {"token": self.apiKey}
-    #
-    #     filesToUpload = {
-    #         "colorImageFile": (
-    #             "colorImage.jpg",
-    #             open(fileNames["colorImage"], "rb"),
-    #             "image/jpg",
-    #         ),
-    #         "depthImageFile": (
-    #             "depthImage.jpg",
-    #             open(fileNames["depthImage"], "rb"),
-    #             "image/jpg",
-    #         ),
-    #         "heatmapImageFile": (
-    #             "heatmap.jpg",
-    #             open(fileNames["heatmapImage"], "rb"),
-    #             "image/jpg",
-    #         ),
-    #         "topologyMapFile": (
-    #             "depth.ply",
-    #             open(fileNames["topologyMap"], "rb"),
-    #             "application/octet-stream",
-    #         ),
-    #         "voiceRecordingFile": (
-    #             "downsampledAudio.wav",
-    #             open(fileNames["voiceRecording"], "rb"),
-    #             "audio/wav",
-    #         ),
-    #     }
-    #
-    #     params = {"deviceID": str(self.serial)}
-    #
-    #     logging.info("Uploading file to database...")
-    #     client = httpx.Client()
-    #     try:
-    #         response = client.post(
-    #             endpoint,
-    #             params=params,
-    #             headers=headers,
-    #             files=filesToUpload,
-    #             timeout=20,
-    #         ).json()
-    #     except Exception as e:
-    #         logging.error(f"Exception occurred while sending hearbeat: {e}")
-    #         response = {"status": False}
-    #         client.close()
-    #     finally:
-    #         client.close()
-    #
-    #     if "status" in response and response["status"] == True:
-    #         del response["status"]
-    #         # Upload files to FastAPI and return the resu
-    #         logging.info(f"Successfully uploaded files to server!")
-    #         return response
-    #     else:
-    #         logging.info(f"Failed to upload files to server!")
-    #         return {}
-    #
-    """
     Test method to verify our API key is functioning
 
     :param apiKey: Our API Key used to authenticate with our API
@@ -271,30 +203,6 @@ class RequestHandler:
         else:
             logging.error("Failed to recieive heartbeat from server!")
             return False
-
-    """
-    Send a request to our API endpoint, this includes our file upload procedure
-
-    :param data: The complete JSON data packet 
-    """
-
-    def pretty_print_POST(self, req):
-        """
-        At this point it is completely built and ready
-        to be fired; it is "prepared".
-
-        However pay attention at the formatting used in
-        this function because it is programmed to be pretty
-        printed and may differ from the actual request.
-        """
-        print(
-            "{}\n{}\r\n{}\r\n\r\n{}".format(
-                "-----------START-----------",
-                req.method + " " + req.url,
-                "\r\n".join("{}: {}".format(k, v) for k, v in req.headers.items()),
-                req.body,
-            )
-        )
 
     def sendAPIRequest(self, fileNames: dict, data: dict):
         endpoint = self.endpoint + "/api/scan"

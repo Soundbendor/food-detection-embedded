@@ -11,7 +11,6 @@ from time import time
 
 import botocore
 import httpx
-import requests
 from aws_secretsmanager_caching import SecretCache, SecretCacheConfig
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 
@@ -307,7 +306,6 @@ class RequestHandler:
         headers = {
             "token": self.apiKey,
             "accept": "application/json",
-            "Content-Type": "multipart/form-data",
         }
 
         payload = {

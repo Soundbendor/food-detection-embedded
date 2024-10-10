@@ -308,7 +308,7 @@ class RequestHandler:
                 # WARN: Not specifying file types explicitly here, might confuse api
                 response = client.post(
                     endpoint,
-                    files={k: open(fname, "rb") for k, fname in fileNames},
+                    files={k: open(fname, "rb") for k, fname in fileNames.items()},
                     data=payload,
                 ).json()
             except Exception as e:

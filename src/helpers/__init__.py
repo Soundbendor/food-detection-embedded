@@ -308,33 +308,33 @@ class RequestHandler:
             "deviceID": str(self.serial),
         }
 
-        files = {
-            "colorImageFile": (
+        files = [
+            (
                 "colorImage.jpg",
                 open(fileNames["colorImage"], "rb"),
                 "image/jpg",
             ),
-            "depthImageFile": (
+            (
                 "depthImage.jpg",
                 open(fileNames["depthImage"], "rb"),
                 "image/jpg",
             ),
-            "heatmapImageFile": (
+            (
                 "heatmap.jpg",
                 open(fileNames["heatmapImage"], "rb"),
                 "image/jpg",
             ),
-            "topologyMapFile": (
+            (
                 "depth.ply",
                 open(fileNames["topologyMap"], "rb"),
                 "application/octet-stream",
             ),
-            "voiceRecordingFile": (
+            (
                 "downsampledAudio.wav",
                 open(fileNames["voiceRecording"], "rb"),
                 "audio/wav",
             ),
-        }
+        ]
 
         logging.info("Sending API Request...")
         with httpx.Client(headers=headers, timeout=60) as client:

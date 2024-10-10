@@ -278,7 +278,7 @@ class RequestHandler:
         # Get current timestamp
         # Create file names for colorImage, depthImage, heatmapImage, topologyMap, and voiceRecording
 
-        basenames = {k: os.path.basename(v) for k, v in fileNames}
+        basenames = {k: os.path.basename(v) for k, v in fileNames.items()}
         headers = {
             "token": self.apiKey,
         }

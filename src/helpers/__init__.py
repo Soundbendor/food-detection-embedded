@@ -361,31 +361,25 @@ class RequestHandler:
             ),
         ]
 
-        logging.info("Sending API Request...")
-        req = requests.Request("POST", endpoint, headers=headers, json=payload)
-        req_p = req.prepare()
-        self.pretty_print_POST(req_p)
-        s = requests.Session()
-        response = s.send(req_p)
-        # with httpx.Client(headers=headers, timeout=60) as client:
-        #     try:
-        #         # WARN: Not specifying file types explicitly here, might confuse api
-        #         response = httpx.post(
-        #             endpoint,
-        #             files=files,
-        #             data=payload,
-        #         ).json()
-        #         print(f"DEBUG: {response}")
-        #     except Exception as e:
-        #         logging.error(f"Exception occurred while sending API request: {e}")
-        #         return (False, -1, str(e))
-        #
-        if "status" in response and response["status"] == True:
-            logging.info("Data successfully uploaded!")
-            return (True, response.status_code, response.text)
-        else:
-            logging.error("Failed to upload data to API.")
-            return (False, response.status_code, response.text)
+        with httpx.Client(headers=headers, timeout=60) as client:
+            try:
+                # WARN: Not specifying file types explicitly here, might confuse api
+                response = client.post(
+                    endpoint,
+                    files=files,
+                    data=payload,
+                ).json()
+                print(f"DEBUG: {response}")
+            except Exception as e:
+                logging.error(f"Exception occurred while sending API request: {e}")
+                return (False, -1, str(e))
+
+            if "status" in response and response["status"] == True:
+                logging.info("Data successfully uploaded!")
+                return (True, response.status_code, response.text)
+            else:
+                logging.error("Failed to upload data to API.")
+                return (False, response.status_code, response.text)
 
     """
     Sends an email to our support server when an error occurs when attempting to upload a packer

@@ -343,18 +343,19 @@ class RequestHandler:
                     endpoint,
                     files=files,
                     data=data,
-                ).json()
+                )
+                response_json = response.json()
                 print(f"DEBUG: {response}")
             except Exception as e:
                 logging.error(f"Exception occurred while sending API request: {e}")
                 return (False, -1, str(e))
 
-            if "status" in response and response["status"] == True:
+            if "status" in response_json and response_json["status"] == True:
                 logging.info("Data successfully uploaded!")
-                return (True, response["status_code"], response["text"])
+                return (True, response.status_code, response.text)
             else:
                 logging.error("Failed to upload data to API.")
-                return (False, response["status_code"], response["text"])
+                return (False, response.status_code, response.text)
 
     """
     Sends an email to our support server when an error occurs when attempting to upload a packer

@@ -339,6 +339,7 @@ class RequestHandler:
                     files=files,
                     data=payload,
                 ).json()
+                print(f"DEBUG: {response}")
             except Exception as e:
                 logging.error(f"Exception occurred while sending API request: {e}")
                 return (False, -1, str(e))

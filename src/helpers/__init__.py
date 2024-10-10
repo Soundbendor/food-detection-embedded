@@ -340,11 +340,13 @@ class RequestHandler:
         with httpx.Client(headers=headers, timeout=60) as client:
             try:
                 # WARN: Not specifying file types explicitly here, might confuse api
-                response = client.post(
+                response = httpx.post(
                     endpoint,
                     files=files,
                     data=payload,
-                ).json()
+                )
+                print(response.text)
+                response = response.json()
                 print(f"DEBUG: {response}")
             except Exception as e:
                 logging.error(f"Exception occurred while sending API request: {e}")

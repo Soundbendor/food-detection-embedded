@@ -284,16 +284,18 @@ class RequestHandler:
         At this point it is completely built and ready
         to be fired; it is "prepared".
 
-        However pay attention at the formatting used in 
-        this function because it is programmed to be pretty 
+        However pay attention at the formatting used in
+        this function because it is programmed to be pretty
         printed and may differ from the actual request.
         """
-        print('{}\n{}\r\n{}\r\n\r\n{}'.format(
-            '-----------START-----------',
-            req.method + ' ' + req.url,
-            '\r\n'.join('{}: {}'.format(k, v) for k, v in req.headers.items()),
-            req.body,
-        ))
+        print(
+            "{}\n{}\r\n{}\r\n\r\n{}".format(
+                "-----------START-----------",
+                req.method + " " + req.url,
+                "\r\n".join("{}: {}".format(k, v) for k, v in req.headers.items()),
+                req.body,
+            )
+        )
 
     def sendAPIRequest(self, fileNames: dict, data: dict):
         endpoint = self.endpoint + "/api/scan"
@@ -358,11 +360,11 @@ class RequestHandler:
         ]
 
         logging.info("Sending API Request...")
-        req = requests.Request('POST', endpoint, headers=headers, data=payload)
+        req = requests.Request("POST", endpoint, headers=headers, data=payload)
         req_p = req.prepare()
         self.pretty_print_POST(req_p)
         s = requests.Session()
-        s.send(req_p)
+        response = s.send(req_p)
         # with httpx.Client(headers=headers, timeout=60) as client:
         #     try:
         #         # WARN: Not specifying file types explicitly here, might confuse api
@@ -376,12 +378,12 @@ class RequestHandler:
         #         logging.error(f"Exception occurred while sending API request: {e}")
         #         return (False, -1, str(e))
         #
-        #     if "status" in response and response["status"] == True:
-                logging.info("Data successfully uploaded!")
-                return (True, response.status_code, response.text)
-            else:
-                logging.error("Failed to upload data to API.")
-                return (False, response.status_code, response.text)
+        if "status" in response and response["status"] == True:
+            logging.info("Data successfully uploaded!")
+            return (True, response.status_code, response.text)
+        else:
+            logging.error("Failed to upload data to API.")
+            return (False, response.status_code, response.text)
 
     """
     Sends an email to our support server when an error occurs when attempting to upload a packer

@@ -114,6 +114,12 @@ class RequestHandler:
         self.endpoint = f"http://{self.endpoint}:{self.port}"
         self.serial = self._getSerial()
 
+        logging.basicConfig(
+            format="%(levelname)s [%(asctime)s] %(name)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+            level=logging.DEBUG,
+        )
+
     """
     Check to see if our bucket can communicate with the internet at all, effictvely ping 8.8.8.8
     """

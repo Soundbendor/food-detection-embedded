@@ -290,22 +290,26 @@ class RequestHandler:
         }
 
         payload = {
-            "colorImage": str(basenames["colorImage"]),
-            "depthImage": str(basenames["depthImage"]),
-            "heatmapImage": str(basenames["heatmapImage"]),
-            "topologyMap": str(basenames["topologyMap"]),
-            "voiceRecording": str(basenames["voiceRecording"]),
-            "total_weight": float(data["NAU7802"]["data"]["weight"]),
-            "weight_delta": float(data["NAU7802"]["data"]["weight_delta"]),
-            "temperature": float(data["BME688"]["data"]["temperature(c)"]),
-            "pressure": float(data["BME688"]["data"]["pressure(kpa)"]),
-            "humidity": float(data["BME688"]["data"]["humidity(%rh)"]),
-            "iaq": float(data["BME688"]["data"]["iaq"]),
-            "co2_eq": float(data["BME688"]["data"]["CO2-eq"]),
-            "tvoc": float(data["BME688"]["data"]["bVOC-eq"]),
-            "transcription": str(data["SoundController"]["data"]["TranscribedText"]),
-            "userTrigger": bool(data["DriverManager"]["data"]["userTrigger"]),
-            "deviceID": str(self.serial),
+            "data": {
+                "colorImage": str(basenames["colorImage"]),
+                "depthImage": str(basenames["depthImage"]),
+                "heatmapImage": str(basenames["heatmapImage"]),
+                "topologyMap": str(basenames["topologyMap"]),
+                "voiceRecording": str(basenames["voiceRecording"]),
+                "total_weight": float(data["NAU7802"]["data"]["weight"]),
+                "weight_delta": float(data["NAU7802"]["data"]["weight_delta"]),
+                "temperature": float(data["BME688"]["data"]["temperature(c)"]),
+                "pressure": float(data["BME688"]["data"]["pressure(kpa)"]),
+                "humidity": float(data["BME688"]["data"]["humidity(%rh)"]),
+                "iaq": float(data["BME688"]["data"]["iaq"]),
+                "co2_eq": float(data["BME688"]["data"]["CO2-eq"]),
+                "tvoc": float(data["BME688"]["data"]["bVOC-eq"]),
+                "transcription": str(
+                    data["SoundController"]["data"]["TranscribedText"]
+                ),
+                "userTrigger": bool(data["DriverManager"]["data"]["userTrigger"]),
+                "deviceID": str(self.serial),
+            }
         }
 
         files = [

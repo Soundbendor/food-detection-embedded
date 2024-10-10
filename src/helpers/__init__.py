@@ -11,6 +11,7 @@ from time import time
 
 import botocore
 import httpx
+import requests
 from aws_secretsmanager_caching import SecretCache, SecretCacheConfig
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 
@@ -278,6 +279,22 @@ class RequestHandler:
     :param data: The complete JSON data packet 
     """
 
+    def pretty_print_POST(self, req):
+        """
+        At this point it is completely built and ready
+        to be fired; it is "prepared".
+
+        However pay attention at the formatting used in 
+        this function because it is programmed to be pretty 
+        printed and may differ from the actual request.
+        """
+        print('{}\n{}\r\n{}\r\n\r\n{}'.format(
+            '-----------START-----------',
+            req.method + ' ' + req.url,
+            '\r\n'.join('{}: {}'.format(k, v) for k, v in req.headers.items()),
+            req.body,
+        ))
+
     def sendAPIRequest(self, fileNames: dict, data: dict):
         endpoint = self.endpoint + "/api/scan"
 
@@ -341,20 +358,25 @@ class RequestHandler:
         ]
 
         logging.info("Sending API Request...")
-        with httpx.Client(headers=headers, timeout=60) as client:
-            try:
-                # WARN: Not specifying file types explicitly here, might confuse api
-                response = httpx.post(
-                    endpoint,
-                    files=files,
-                    data=payload,
-                ).json()
-                print(f"DEBUG: {response}")
-            except Exception as e:
-                logging.error(f"Exception occurred while sending API request: {e}")
-                return (False, -1, str(e))
-
-            if "status" in response and response["status"] == True:
+        req = requests.Request('POST', endpoint, headers=headers, data=payload)
+        req_p = req.prepare()
+        self.pretty_print_POST(req_p)
+        s = requests.Session()
+        s.send(req_p)
+        # with httpx.Client(headers=headers, timeout=60) as client:
+        #     try:
+        #         # WARN: Not specifying file types explicitly here, might confuse api
+        #         response = httpx.post(
+        #             endpoint,
+        #             files=files,
+        #             data=payload,
+        #         ).json()
+        #         print(f"DEBUG: {response}")
+        #     except Exception as e:
+        #         logging.error(f"Exception occurred while sending API request: {e}")
+        #         return (False, -1, str(e))
+        #
+        #     if "status" in response and response["status"] == True:
                 logging.info("Data successfully uploaded!")
                 return (True, response.status_code, response.text)
             else:

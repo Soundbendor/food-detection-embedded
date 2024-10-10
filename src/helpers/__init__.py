@@ -362,7 +362,7 @@ class RequestHandler:
         ]
 
         logging.info("Sending API Request...")
-        req = requests.Request("POST", endpoint, headers=headers, data=payload)
+        req = requests.Request("POST", endpoint, headers=headers, json=payload)
         req_p = req.prepare()
         self.pretty_print_POST(req_p)
         s = requests.Session()

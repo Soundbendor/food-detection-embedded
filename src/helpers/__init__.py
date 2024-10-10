@@ -306,7 +306,8 @@ class RequestHandler:
         basenames = {k: os.path.basename(v) for k, v in fileNames.items()}
         headers = {
             "token": self.apiKey,
-            "accept": "application/json" "Content-Type: multipart/form-data",
+            "accept": "application/json",
+            "Content-Type": "multipart/form-data",
         }
 
         payload = {

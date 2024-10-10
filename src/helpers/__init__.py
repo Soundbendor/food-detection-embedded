@@ -351,10 +351,10 @@ class RequestHandler:
 
             if "status" in response and response["status"] == True:
                 logging.info("Data successfully uploaded!")
-                return (True, response.status_code, response.text)
+                return (True, response["status_code"], response["text"])
             else:
                 logging.error("Failed to upload data to API.")
-                return (False, response.status_code, response.text)
+                return (False, response["status_code"], response["text"])
 
     """
     Sends an email to our support server when an error occurs when attempting to upload a packer

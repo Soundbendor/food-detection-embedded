@@ -328,6 +328,7 @@ class RequestHandler:
             "userTrigger": bool(data["DriverManager"]["data"]["userTrigger"]),
             "deviceID": str(self.serial),
         }
+        data = {"data": json.dumps(payload)}
 
         files = [
             (
@@ -363,7 +364,7 @@ class RequestHandler:
                 response = client.post(
                     endpoint,
                     files=files,
-                    json=payload,
+                    data=data,
                 ).json()
                 print(f"DEBUG: {response}")
             except Exception as e:

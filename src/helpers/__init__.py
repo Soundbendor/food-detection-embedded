@@ -236,13 +236,21 @@ class RequestHandler:
         }
         data = {"data": json.dumps(payload)}
 
-        files = {
-            "colorImage.jpg": open(fileNames["colorImage"], "rb"),
-            "depthImage.jpg": open(fileNames["depthImage"], "rb"),
-            "heatmap.jpg": open(fileNames["heatmapImage"], "rb"),
-            "depth.ply": open(fileNames["topologyMap"], "rb"),
-            "downsampledAudio.wav": open(fileNames["voiceRecording"], "rb"),
-        }
+        # files = {
+        #     "colorImage.jpg": open(fileNames["colorImage"], "rb"),
+        #     "depthImage.jpg": open(fileNames["depthImage"], "rb"),
+        #     "heatmap.jpg": open(fileNames["heatmapImage"], "rb"),
+        #     "depth.ply": open(fileNames["topologyMap"], "rb"),
+        #     "downsampledAudio.wav": open(fileNames["voiceRecording"], "rb"),
+        # }
+        file_keys = [
+            "colorImage",
+            "depthImage",
+            "heatmapImage",
+            "topologyMap",
+            "voiceRecording",
+        ]
+        files = [(basenames[k], open(fileNames[k], "rb")) for k in file_keys]
 
         with httpx.Client(headers=headers, timeout=60) as client:
             try:

@@ -22,7 +22,7 @@ RUN apt-get -y install network-manager
 RUN apt-get -y install wireless-tools
 
 # Install python dependenices
-RUN pip install -r requirements.txt --break-system-packages
+RUN pip install -r requirements.txt --no-cache-dir --break-system-packages
 
 # Compile whisper
 COPY whisper.cpp /firmware/whisper.cpp
@@ -35,5 +35,7 @@ RUN mv /firmware/dependencies/pyrealsense2.cpython-39-aarch64-linux-gnu.so /usr/
 
 COPY media /firmware/media
 COPY src /firmware/src
+
+COPY .aws /root/.aws
 
 WORKDIR  /firmware/src

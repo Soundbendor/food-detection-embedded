@@ -4,35 +4,38 @@ Will Richards, Oregon State University, 2023
 Wrapper for Microphone and Audio output to be threadified to avoid truly blocking the main thread
 """
 
-from multiprocessing import Event, Value
-import subprocess
+import logging
 import os
+import subprocess
+import time
+from multiprocessing import Event, Value
 
 from drivers.DriverBase import DriverBase
 from drivers.sensors.Microphone import Microphone
 from drivers.sensors.Speaker import Speaker
 
-class SoundController(DriverBase):
 
+class SoundController(DriverBase):
     """
     Create a new SoundController device to manage our microphone and speaker
 
     :param soundControllerConnection: This is a reference to a multiproccessing.Pipe to send our transcription back to the main thread
     :param record_duration: The lenght of time the microphone should be recording for
     """
-    def __init__(self, soundControllerConnection, muted, record_duration = 4):
+
+    def __init__(self, soundControllerConnection, muted, record_duration=4):
         super().__init__("SoundController")
 
         # Create our new mic and speaker instances
         self.microphone = Microphone(record_duration)
         self.speaker = Speaker()
         self.soundControllerConnection = soundControllerConnection
-        self.alsaSoundCardNum = 2
+        self.alsaSoundCardNum = 0
         self.isMuted = muted
 
         # Set our loop time to 0.05 cause we dont need super fast looping
-        self.loopTime = 0.05
-        
+        self.loopTime = 0.001
+
         self.events = {
             "RECORD": Event(),
             "WAIT_FOR_BLUETOOTH": Event(),
@@ -43,44 +46,79 @@ class SoundController(DriverBase):
             "UNMUTED": Event(),
             "FAILED_TO_UPLOAD": Event(),
             "SERVER_ERROR": Event(),
+            "STOP_RECORDING": Event(),
         }
 
     """
     Mute both the speaker and microphone to avoid feedback and then initialize our microphone
     """
+
     def initialize(self):
         self.muteMic()
         self.muteSpeaker()
         self.microphone.initialize()
         self.initialized = True
         self.data["initialized"].value = 1
-        
 
     """
     Mute the speaker attatched to the waveshare adapter
     """
+
     def muteSpeaker(self):
         self.speaker.muteSpeaker(self.alsaSoundCardNum)
 
     """
     Unmute the speaker attatched to the waveshare adapter
     """
+
     def unmuteSpeaker(self):
         self.speaker.unmuteSpeaker(self.alsaSoundCardNum)
 
     """
     Mute the mic attatched to the waveshare adapter
     """
+
     def muteMic(self):
-        with open(os.devnull, 'wb') as devnull:
-            subprocess.check_call(['/usr/bin/amixer', '-c', str(self.alsaSoundCardNum), 'sset', 'Mic', 'mute'], stdout=devnull, stderr=subprocess.STDOUT)
+        with open(os.devnull, "wb") as devnull:
+            while True:
+                try:
+                    subprocess.check_call(
+                        [
+                            "/usr/bin/amixer",
+                            "-c",
+                            str(self.alsaSoundCardNum),
+                            "sset",
+                            "Mic",
+                            "mute",
+                        ],
+                        stdout=devnull,
+                        stderr=subprocess.STDOUT,
+                    )
+                    break
+                except subprocess.CalledProcessError as e:
+                    self.alsaSoundCardNum += 1
+                    logging.info(e)
+                except KeyboardInterrupt:
+                    break
 
     """
     Unmute the mic attatched to the waveshare adapter
     """
+
     def unmuteMic(self):
-        with open(os.devnull, 'wb') as devnull:
-            subprocess.check_call(['/usr/bin/amixer', '-c', str(self.alsaSoundCardNum), 'sset', 'Mic', 'unmute'], stdout=devnull, stderr=subprocess.STDOUT)
+        with open(os.devnull, "wb") as devnull:
+            subprocess.check_call(
+                [
+                    "/usr/bin/amixer",
+                    "-c",
+                    str(self.alsaSoundCardNum),
+                    "sset",
+                    "Mic",
+                    "unmute",
+                ],
+                stdout=devnull,
+                stderr=subprocess.STDOUT,
+            )
 
     """ 
     Unmutes the speaker plays a sound and then mutes it again
@@ -88,6 +126,7 @@ class SoundController(DriverBase):
 
     :param clip: File path to the clip we want to play
     """
+
     def playClip(self, clip):
         self.unmuteSpeaker()
         self.speaker.playClip(clip)
@@ -96,6 +135,7 @@ class SoundController(DriverBase):
     """
     If a capture request was recieved we want to play the audio and then record a clip until a non-silent clip is recieved
     """
+
     def measure(self):
         if self.events["CONNECTED_TO_WIFI"][0].is_set() and not self.isMuted:
             self.playClip("../media/connectionSuccessful.wav")
@@ -123,11 +163,14 @@ class SoundController(DriverBase):
         elif self.events["SERVER_ERROR"][0].is_set() and not self.isMuted:
             self.playClip("../media/internalServerError.wav")
             self.events["SERVER_ERROR"][0].clear()
+        elif self.events["STOP_RECORDING"][0].is_set() and not self.isMuted:
+            self.playClip("../media/stopRecording.wav")
+            self.events["STOP_RECORDING"][0].clear()
         elif self.events["RECORD"][0].is_set():
 
             if not self.isMuted:
                 self.playClip("../media/itemRequest.wav")
-            
+
             # Check if we actually saved the audio to the file or not if not we want to ask the user for another transcription
             gotRecording = False
             retries = 0
@@ -135,26 +178,26 @@ class SoundController(DriverBase):
             while not gotRecording and retries < 3:
 
                 self.playClip("../media/startRecording.wav")
+
                 # Record the microphone and return the file name that it was saved at
                 self.unmuteMic()
                 fileName = self.microphone.record()
                 self.muteMic()
-                self.playClip("../media/stopRecording.wav")
 
                 # If the file was saved succsessfully send it and move on but if not TELL the user that we are re-recording
-                if(len(fileName) != 0):
+                if len(fileName) != 0:
                     gotRecording = True
                     self.soundControllerConnection.send({"voiceRecording": fileName})
                 else:
                     self.playClip("../media/itemRequest.wav")
                     retries += 1
 
-            
             self.events["RECORD"][0].clear()
-        
+
     """
     Shutdown our microphone and speaker
     """
+
     def kill(self):
         self.microphone.kill()
         self.speaker.kill()
@@ -162,9 +205,8 @@ class SoundController(DriverBase):
     """
     Add TranscribedText to our data dictionary that will be populated by the main thread
     """
+
     def createDataDict(self):
-        self.data = {
-                "TranscribedText": "",
-                "initialized": Value('i', 0)
-            }
+        self.data = {"TranscribedText": "", "initialized": Value("i", 0)}
         return self.data
+

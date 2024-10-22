@@ -14,6 +14,7 @@ import httpx
 from aws_secretsmanager_caching import SecretCache, SecretCacheConfig
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 
+
 TWO_HOURS_SECONDS = 7200
 # TWO_HOURS_SECONDS = 20
 
@@ -110,8 +111,9 @@ class RequestHandler:
         self.secret_file = secret_file
         self.dataDir = dataDir
         self.apiKey, self.endpoint, self.port = self.loadFastAPICredentials(secret_file)
+
         self.appPassword, self.emailAddress = self.loadEmailCredentials()
-        self.endpoint = f"http://{self.endpoint}:{self.port}"
+        self.endpoint = f"https://{self.endpoint}:{self.port}"
         self.serial = self._getSerial()
 
         logging.basicConfig(
@@ -148,7 +150,7 @@ class RequestHandler:
 
     def sendHeartbeat(self):
         endpoint = self.endpoint + "/api/health/heartbeat"
-        client = httpx.Client()
+        client = httpx.Client(verify=False)
 
         # Attempt to send the packet
         failed = False
@@ -176,7 +178,7 @@ class RequestHandler:
         self.apiKey, self.endpoint, self.port = self.loadFastAPICredentials(
             self.secret_file
         )
-        self.endpoint = f"http://{self.endpoint}:{self.port}"
+        self.endpoint = f"https://{self.endpoint}:{self.port}"
 
     """
     Send a secure heartbeat request to the API
@@ -187,7 +189,7 @@ class RequestHandler:
         headers = {
             "token": self.apiKey,
         }
-        client = httpx.Client()
+        client = httpx.Client(verify=False)
         try:
             response = client.get(endpoint, headers=headers).json()
         except Exception as e:
@@ -245,7 +247,7 @@ class RequestHandler:
         ]
         files = [("files", open(fileNames[k], "rb")) for k in file_keys]
 
-        with httpx.Client(headers=headers, timeout=60) as client:
+        with httpx.Client(headers=headers, timeout=60, verify=False) as client:
             try:
                 response = client.post(
                     endpoint,

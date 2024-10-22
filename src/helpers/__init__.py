@@ -114,6 +114,12 @@ class RequestHandler:
         self.endpoint = f"http://{self.endpoint}:{self.port}"
         self.serial = self._getSerial()
 
+        logging.basicConfig(
+            format="%(levelname)s [%(asctime)s] %(name)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+            level=logging.DEBUG,
+        )
+
     """
     Check to see if our bucket can communicate with the internet at all, effictvely ping 8.8.8.8
     """
@@ -133,74 +139,6 @@ class RequestHandler:
 
     def getAPIKey(self):
         return self.apiKey
-
-    """
-    Upload the most recent files in the 'data' folder to our remote server for storage
-
-    :return: Dictionary of base file names (ie. "colorImage") mapped to the stored location in our S3 bucket
-    """
-
-    def uploadFiles(self, fileNames: dict):
-        endpoint = self.endpoint + "/api/upload_files"
-
-        # Format request headers
-        headers = {"token": self.apiKey}
-
-        filesToUpload = {
-            "colorImageFile": (
-                "colorImage.jpg",
-                open(fileNames["colorImage"], "rb"),
-                "image/jpg",
-            ),
-            "depthImageFile": (
-                "depthImage.jpg",
-                open(fileNames["depthImage"], "rb"),
-                "image/jpg",
-            ),
-            "heatmapImageFile": (
-                "heatmap.jpg",
-                open(fileNames["heatmapImage"], "rb"),
-                "image/jpg",
-            ),
-            "topologyMapFile": (
-                "depth.ply",
-                open(fileNames["topologyMap"], "rb"),
-                "application/octet-stream",
-            ),
-            "voiceRecordingFile": (
-                "downsampledAudio.wav",
-                open(fileNames["voiceRecording"], "rb"),
-                "audio/wav",
-            ),
-        }
-
-        params = {"deviceID": str(self.serial)}
-
-        logging.info("Uploading file to database...")
-        client = httpx.Client()
-        try:
-            response = client.post(
-                endpoint,
-                params=params,
-                headers=headers,
-                files=filesToUpload,
-                timeout=20,
-            ).json()
-        except Exception as e:
-            logging.error(f"Exception occurred while sending hearbeat: {e}")
-            response = {"status": False}
-            client.close()
-        finally:
-            client.close()
-
-        if "status" in response and response["status"] == True:
-            del response["status"]
-            # Upload files to FastAPI and return the resu
-            logging.info(f"Successfully uploaded files to server!")
-            return response
-        else:
-            logging.info(f"Failed to upload files to server!")
-            return {}
 
     """
     Test method to verify our API key is functioning
@@ -266,69 +204,66 @@ class RequestHandler:
             logging.error("Failed to recieive heartbeat from server!")
             return False
 
-    """
-    Send a request to our API endpoint, this includes our file upload procedure
-
-    :param data: The complete JSON data packet 
-    """
-
     def sendAPIRequest(self, fileNames: dict, data: dict):
         endpoint = self.endpoint + "/api/scan"
-        fileLocations = self.uploadFiles(fileNames)
 
-        if len(fileLocations) > 0:
+        # Get current timestamp
+        # Create file names for colorImage, depthImage, heatmapImage, topologyMap, and voiceRecording
 
-            # API Request
-            headers = {
-                "token": self.apiKey,
-            }
+        basenames = {k: os.path.basename(v) for k, v in fileNames.items()}
+        headers = {
+            "token": self.apiKey,
+            "accept": "application/json",
+        }
 
-            payload = {
-                "colorImage": str(fileLocations["colorImage"]),
-                "depthImage": str(fileLocations["depthImage"]),
-                "heatmapImage": str(fileLocations["heatmapImage"]),
-                "topologyMap": str(fileLocations["topologyMap"]),
-                "segmentImage": str(fileLocations["segmentImage"]),
-                "segmentResults": str(fileLocations["segmentResults"]),
-                "voiceRecording": str(fileLocations["voiceRecording"]),
-                "total_weight": float(data["NAU7802"]["data"]["weight"]),
-                "weight_delta": float(data["NAU7802"]["data"]["weight_delta"]),
-                "temperature": float(data["BME688"]["data"]["temperature(c)"]),
-                "pressure": float(data["BME688"]["data"]["pressure(kpa)"]),
-                "humidity": float(data["BME688"]["data"]["humidity(%rh)"]),
-                "iaq": float(data["BME688"]["data"]["iaq"]),
-                "co2_eq": float(data["BME688"]["data"]["CO2-eq"]),
-                "tvoc": float(data["BME688"]["data"]["bVOC-eq"]),
-                "transcription": str(
-                    data["SoundController"]["data"]["TranscribedText"]
-                ),
-                "userTrigger": bool(data["DriverManager"]["data"]["userTrigger"]),
-                "deviceID": str(self.serial),
-            }
+        payload = {
+            "colorImage": str(basenames["colorImage"]),
+            "depthImage": str(basenames["depthImage"]),
+            "heatmapImage": str(basenames["heatmapImage"]),
+            "topologyMap": str(basenames["topologyMap"]),
+            "voiceRecording": str(basenames["voiceRecording"]),
+            "total_weight": float(data["NAU7802"]["data"]["weight"]),
+            "weight_delta": float(data["NAU7802"]["data"]["weight_delta"]),
+            "temperature": float(data["BME688"]["data"]["temperature(c)"]),
+            "pressure": float(data["BME688"]["data"]["pressure(kpa)"]),
+            "humidity": float(data["BME688"]["data"]["humidity(%rh)"]),
+            "iaq": float(data["BME688"]["data"]["iaq"]),
+            "co2_eq": float(data["BME688"]["data"]["CO2-eq"]),
+            "tvoc": float(data["BME688"]["data"]["bVOC-eq"]),
+            "transcription": str(data["SoundController"]["data"]["TranscribedText"]),
+            "userTrigger": bool(data["DriverManager"]["data"]["userTrigger"]),
+            "deviceID": str(self.serial),
+        }
+        data = {"data": json.dumps(payload)}
 
-            logging.info("Sending API Request...")
-            client = httpx.Client()
+        file_keys = [
+            "colorImage",
+            "depthImage",
+            "heatmapImage",
+            "topologyMap",
+            "voiceRecording",
+        ]
+        files = [("files", open(fileNames[k], "rb")) for k in file_keys]
+
+        with httpx.Client(headers=headers, timeout=60) as client:
             try:
                 response = client.post(
-                    endpoint, headers=headers, json=payload, timeout=20.0
+                    endpoint,
+                    files=files,
+                    data=data,
                 )
-                jsonResponse = response.json()
+                response_json = response.json()
+                print(f"DEBUG: {response}")
             except Exception as e:
                 logging.error(f"Exception occurred while sending API request: {e}")
-                client.close()
                 return (False, -1, str(e))
-            finally:
-                client.close()
 
-            if "status" in jsonResponse and jsonResponse["status"] == True:
+            if "status" in response_json and response_json["status"] == True:
                 logging.info("Data successfully uploaded!")
                 return (True, response.status_code, response.text)
             else:
                 logging.error("Failed to upload data to API.")
                 return (False, response.status_code, response.text)
-        else:
-            logging.error("No file names supplied from file upload!")
-            return (False, -1, "No file names supplied from file upload!")
 
     """
     Sends an email to our support server when an error occurs when attempting to upload a packer

@@ -111,8 +111,14 @@ class RequestHandler:
         self.secret_file = secret_file
         self.dataDir = dataDir
         self.apiKey, self.endpoint, self.port = self.loadFastAPICredentials(secret_file)
-
         self.appPassword, self.emailAddress = self.loadEmailCredentials()
+
+        # Check if the app password is equal to FAILED then we know it didn't get the email credentials and should retry when we have a network connection
+        if self.appPassword == "FAILED":
+            self.gotEmailCreds = False
+        else:
+            self.gotEmailCreds = True
+
         self.endpoint = f"https://{self.endpoint}:{self.port}"
         self.serial = self._getSerial()
 
@@ -165,6 +171,17 @@ class RequestHandler:
 
         if "is_alive" in response and response["is_alive"] == True:
             logging.info("Succsessfully recieved hearbeat!")
+
+            # If we weren't able to get the email creds last time now that we for sure have network we should try again
+            if not self.gotEmailCreds:
+                self.appPassword, self.emailAddress = self.loadEmailCredentials()
+
+                # Check if the app password is equal to FAILED then we know it didn't get the email credentials and should retry when we have a network connection
+                if self.appPassword == "FAILED":
+                    self.gotEmailCreds = False
+                else:
+                    self.gotEmailCreds = True
+
             return True
         else:
             logging.error("Failed to recieive heartbeat from server!")
@@ -283,16 +300,17 @@ class RequestHandler:
         msg["From"] = self.emailAddress
         msg["To"] = self.emailAddress
 
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp_server:
-            try:
-                smtp_server.login(self.emailAddress, self.appPassword)
-                smtp_server.sendmail(
-                    self.emailAddress, self.emailAddress, msg.as_string()
-                )
-                return True
-            except Exception as e:
-                logging.error("Error occurred sending email: {e}")
-                return False
+        try:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp_server:
+                
+                    smtp_server.login(self.emailAddress, self.appPassword)
+                    smtp_server.sendmail(
+                        self.emailAddress, self.emailAddress, msg.as_string()
+                    )
+                    return True
+        except Exception as e:
+            logging.error("Error occurred sending email: {e}")
+            return False
 
     """
     Load and return our Fast API credentials
@@ -317,14 +335,18 @@ class RequestHandler:
     """
 
     def loadEmailCredentials(self):
-        client = botocore.session.get_session().create_client(
-            "secretsmanager", region_name="us-west-2"
-        )
-        cache_config = SecretCacheConfig()
-        cache = SecretCache(config=cache_config, client=client)
-        email = cache.get_secret_string("sb_notification_email")
-        pword = cache.get_secret_string("sb_notification_password")
-        return pword, email
+        try:
+            client = botocore.session.get_session().create_client(
+                "secretsmanager", region_name="us-west-2"
+            )
+            cache_config = SecretCacheConfig()
+            cache = SecretCache(config=cache_config, client=client)
+            email = cache.get_secret_string("sb_notification_email")
+            pword = cache.get_secret_string("sb_notification_password")
+            return pword, email
+        except Exception as e:
+            logging.error(f"Failed to retrieve email credentials: {e}")
+            return "FAILED", "FAILED"
 
         # secretFile = open(file, "r")
         # credsJson = json.load(secretFile)

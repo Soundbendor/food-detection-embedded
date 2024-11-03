@@ -200,15 +200,21 @@ class MainController:
         # Set the light to yellow before recording the
         self.manager.setEvent("LEDDriver.PROCESSING")
 
+        
+
+        # Add the most recent batch of data to the transcription and publishing queue
+        
+
+        self.manager.setEvent("SoundController.STOP_RECORDING")
+
+        # Wait for debounce time for load cell
+        time.sleep(6)
+        data = self.manager.getData()
         data["NAU7802"]["data"]["weight_delta"].value = (
             data["NAU7802"]["data"]["weight"].value - self.startingWeight
         )
-
-        # Add the most recent batch of data to the transcription and publishing queue
         uid = str(uuid.uuid4())
         self.publisherQueue.put((uid, fileNames, self.manager.getJSON(), False))
-
-        self.manager.setEvent("SoundController.STOP_RECORDING")
 
     """
     Shutdown device connected via the DriverManager

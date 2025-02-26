@@ -50,8 +50,8 @@ if (($LAST_UPDATED < $updateResponse)); then
   # Create temp file to signify to the proccess that is restarting that this is a reboot as a result of an update, and should not talk
   touch $updateOccuredFile
 
-  # Update bluetooth settings 
-  echo soundbendor | sudo bash fix_battery_read.sh
+  # Update bluetooth settings
+  echo soundbendor | sudo bash diagnostics/fix_battery_read.sh
 
   # Rebuild and restart the container
   ./buildDocker.sh

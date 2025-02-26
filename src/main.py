@@ -9,7 +9,6 @@ Records data when the lid is opened and then closed and once every 2 hours
 """
 
 import os
-import subprocess
 from time import sleep
 
 from drivers.MainController import MainController
@@ -20,10 +19,6 @@ def main():
     # Change our current working directory to this file so our relative paths still work no matter where this file was called from
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    # Run patch file
-    cmd = "echo soundbendor | sudo bash ../diagnostics/fix_battery_read.sh"
-    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output, error = process.communicate()
     # Create the instance of our controller
     controller = MainController()
     

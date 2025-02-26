@@ -30,6 +30,9 @@ LAST_UPDATED=$(cat $lastUpdateFile)
 # Hit the API to see if there was an update
 checkAPIForUpdates
 
+# Update bluetooth settings
+echo soundbendor | sudo bash diagnostics/fix_battery_read.sh
+
 # if the time that the last device was updated is less than the last time an update was pushed we want to update
 if (($LAST_UPDATED < $updateResponse)); then
   # Stop and remove the container if it is running
@@ -50,8 +53,6 @@ if (($LAST_UPDATED < $updateResponse)); then
   # Create temp file to signify to the proccess that is restarting that this is a reboot as a result of an update, and should not talk
   touch $updateOccuredFile
 
-  # Update bluetooth settings
-  echo soundbendor | sudo bash diagnostics/fix_battery_read.sh
 
   # Rebuild and restart the container
   ./buildDocker.sh

@@ -6,24 +6,25 @@ period='24h'
 name='binsight-firmware'
 server='sb-binsight.dri.oregonstate.edu:30080'
 
-getAPIKey () {
-    apiKey=$(cat ~/food-detection-embedded/src/config.secret | python -c "import sys, json; print(json.load(sys.stdin)['FASTAPI_CREDS']['apiKey'])")
+getAPIKey() {
+  apiKey=$(cat ~/food-detection-embedded/src/config.secret | python -c "import sys, json; print(json.load(sys.stdin)['FASTAPI_CREDS']['apiKey'])")
 }
 
-getSerialNumber () {
-    serialNumber=$(cat /proc/cpuinfo | grep Serial | cut -d ' ' -f 2)
+getSerialNumber() {
+  serialNumber=$(cat /proc/cpuinfo | grep Serial | cut -d ' ' -f 2)
 }
 
 # Check if the container is actaully running
-if [ "$( docker container inspect -f '{{.State.Running}}' $name )" = "true" ]; then
-    encodedData=$(docker logs --since=$period $name | base64 -w 0)
-    encodedData="${encodedData//$'\n'/}"
+if [ "$(docker container inspect -f '{{.State.Running}}' $name)" = "true" ]; then
+  encodedData=$(docker logs --since=$period $name | base64 -w 0)
+  encodedData="${encodedData//$'\n'/}"
 
-    # Pull the API key from the config file and the serial number from /proc/cpuinfo
-    getAPIKey
-    getSerialNumber
-    curl -v -X 'POST' "http://$server/api/upload_logs" -H "accept: application/json" -H"token: $apiKey" -H "Content-Type: application/json" -d "{\"deviceID\" : \"$serialNumber\", \"log\": \"$encodedData\"}"
+  # Pull the API key from the config file and the serial number from /proc/cpuinfo
+  getAPIKey
+  getSerialNumber
+  echo "{\"deviceID\" : \"$serialNumber\", \"log\": \"$encodedData\"}" | curl -v -X 'POST' "https://$server/api/upload_logs" -H "accept: application/json" -H"token: $apiKey" -H "Content-Type: application/json" -d @- "$HOST"
 else
-    # TODO: Temporarily change cron job to trigger more frequently
-    echo "Not running"
+  # TODO: Temporarily change cron job to trigger more frequently
+  echo "Not running"
 fi
+

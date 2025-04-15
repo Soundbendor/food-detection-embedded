@@ -28,6 +28,7 @@ RUN pip install -r requirements.txt --no-cache-dir --break-system-packages
 COPY whisper.cpp /firmware/whisper.cpp
 WORKDIR /firmware/whisper.cpp
 RUN make
+RUN ./models/download-ggml-model.sh small.en
 WORKDIR /firmware
 
 RUN mv /firmware/dependencies/librealsense2.so /usr/local/lib/python3.9/site-packages/librealsense2.so

@@ -38,13 +38,14 @@ class NAU7802(DriverBase):
         # List of events that the sensor can raise
         self.events = {
             "WEIGHT_CHANGE": Event(),
-            "CALIBRATE": Event()
+            "CALIBRATE": Event(),
+            "TARE": Event()
         }
 
         
 
     """
-    Initialize the NAU7802 to begin taking sensor readings
+    Initialize the NAU7802 to begin taking sensor readings, DOES NOT TARE
     """
     def initialize(self):
         i2cBus = smbus2.SMBus(1)
@@ -54,24 +55,27 @@ class NAU7802(DriverBase):
             logging.error("Failed to connect to NAU7802")
             return False
 
-        logging.info("Taring scale...")
+        
         self.nau.setSampleRate(PyNAU7802.NAU7802_SPS_40)
         self.nau.setGain(PyNAU7802.NAU7802_GAIN_16)
         self.nau.setLDO(PyNAU7802.NAU7802_LDO_4V5)
         self.nau.calibrateAFE()
 
-        self.tareScale()
-
         self.nau.setCalibrationFactor(self.calFactor)
         self.initialized = True
         self.data["initialized"].value = 1
-       
 
     """
     Measure and return the weight read from the load cell
     """
     def measure(self):
-        if not self.getEvent("CALIBRATE").is_set():
+        if self.getEvent("CALIBRATE").is_set():
+            self.calibrate()
+            self.getEvent("CALIBRATE").clear()
+        elif self.getEvent("TARE").is_set():
+            self.tareScale()
+            self.getEvent("TARE").clear()
+        else:
             logging.debug("Measuring...")
             self.lastWeight = self.collectedData
 
@@ -86,9 +90,7 @@ class NAU7802(DriverBase):
             # This will determine wether or not the event has occured in this cycle or not
             #self.determineEventState()
             self.data["weight"].value = self.collectedData
-        else:
-            self.calibrate()
-            self.getEvent("CALIBRATE").clear()
+        
 
 
     """
@@ -114,6 +116,7 @@ class NAU7802(DriverBase):
     Tare the values of the load cell
     """
     def tareScale(self):
+        logging.info("Taring scale...")
         self.nau.calculateZeroOffset()
     
     """

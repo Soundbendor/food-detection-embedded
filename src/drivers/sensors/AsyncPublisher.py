@@ -24,8 +24,9 @@ class AsyncPublisher(DriverBase):
     :param dataQueue: A queue of tuples of (fileNameDict, dataPacketDict)
     """
 
-    def __init__(self, dataQueue: Queue):
+    def __init__(self, dataQueue: Queue, commitID: str):
         super().__init__("AsyncPublisher")
+        self.commitID = commitID
         self.requests = RequestHandler()
         self.transcriber = AudioTranscriber()
         self.dataQueue = dataQueue
@@ -94,7 +95,7 @@ class AsyncPublisher(DriverBase):
 
                 # If our request succeeded  we don't need the files on device anymore
                 requestSuccess, responseCode, responseStr = (
-                    self.requests.sendAPIRequest(fileNames, data)
+                    self.requests.sendAPIRequest(fileNames, data, self.commitID)
                 )
                 if requestSuccess:
                     # Delete the transmitted files

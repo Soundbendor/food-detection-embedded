@@ -223,7 +223,7 @@ class RequestHandler:
             logging.error("Failed to recieive heartbeat from server!")
             return False
 
-    def sendAPIRequest(self, fileNames: dict, data: dict):
+    def sendAPIRequest(self, fileNames: dict, data: dict, commitID: str):
         endpoint = self.endpoint + "/api/scan"
 
         # Get current timestamp
@@ -252,6 +252,7 @@ class RequestHandler:
             "transcription": str(data["SoundController"]["data"]["TranscribedText"]),
             "userTrigger": bool(data["DriverManager"]["data"]["userTrigger"]),
             "deviceID": str(self.serial),
+            "commitID": commitID,
         }
         data = {"data": json.dumps(payload)}
 

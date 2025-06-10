@@ -124,12 +124,18 @@ class MainController:
             while self.manager.getEvent("SoundController.CONNECTED_TO_WIFI"):
                 time.sleep(0.1)
         
+        hadToWaitForClose = False
         # Check if the lid is open before taring and if so then yell at the user
         while self.manager.getData()["LidSwitch"]["data"]["Lid_State"].value == 1:
+            hadToWaitForClose = True
             self.manager.setEvent("SoundController.CLOSE_LID_TO_TARE")
             while self.manager.getEvent("SoundController.CLOSE_LID_TO_TARE"):
                 time.sleep(0.1)
             time.sleep(1)
+
+        # If we did have to wait for the lid to close we need to just wait a while before we tare
+        if hadToWaitForClose:
+            time.sleep(6)
 
         self.manager.clearEvent("LidSwitch.LID_CLOSED")
 

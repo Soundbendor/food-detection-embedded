@@ -47,6 +47,7 @@ class SoundController(DriverBase):
             "FAILED_TO_UPLOAD": Event(),
             "SERVER_ERROR": Event(),
             "STOP_RECORDING": Event(),
+            "CLOSE_LID_TO_TARE": Event(),
         }
 
     """
@@ -166,6 +167,9 @@ class SoundController(DriverBase):
         elif self.events["STOP_RECORDING"][0].is_set() and not self.isMuted:
             self.playClip("../media/stopRecording.wav")
             self.events["STOP_RECORDING"][0].clear()
+        if self.events["CLOSE_LID_TO_TARE"][0].is_set() and not self.isMuted:
+            self.playClip("../media/closeLidToTare.wav")
+            self.events["CLOSE_LID_TO_TARE"][0].clear()
         elif self.events["RECORD"][0].is_set():
 
             if not self.isMuted:

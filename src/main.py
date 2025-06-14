@@ -22,7 +22,6 @@ def main():
     # Create the instance of our controller
     controller = MainController()
     
-    
     # Register a callback for when the lid is closed so we can sample our data
     while(True):
         try:

@@ -34,12 +34,18 @@ class MainController:
     """
 
     def __init__(self) -> None:
+        self.is_initialized = False
         calibration = CalibrationLoader("CalibrationDetails.json")
 
         if not os.path.exists("../data/"):
             os.mkdir("../data/")
 
-
+        # Read in current commit number from git file
+        # NOTE: This for sure feels like some security vulnerablity like lfi or something but idc
+        with open("/firmware/.git/HEAD", "r") as HEADFile:
+            refPath = HEADFile.read().split(" ")[1].strip()
+            with open(f"/firmware/.git/{refPath}", "r") as commitIDFile:
+                self.commitID = commitIDFile.read().strip()
 
         # Create pipes to all proccesses that create files so we can retrieve the file name that they save the most recent data as
         self.soundControllerConnection, soundControllerConnection = Pipe()
@@ -55,6 +61,7 @@ class MainController:
         if self.isBootFromUpdate:
             os.remove("../data/updated.txt")
         print(self.isBootFromUpdate)
+
         # Create a manager device passing the NAU7802 in as well as a generic TestDriver that just adds two numbers
         self.manager = DriverManager(
             LEDDriver(self.isBootFromUpdate),
@@ -64,16 +71,13 @@ class MainController:
             LidSwitch(),
             RealsenseCam(realsenseControllerConenction),
             SoundController(soundControllerConnection, self.isMuted),
-            AsyncPublisher(self.publisherQueue),
+            AsyncPublisher(self.publisherQueue, self.commitID),
             BluetoothDriver(self.isMuted)
         )
 
         self.wifiManager = WiFiManager()
         self.lastRecording = ""
         
-        
-
-
         # Preform the device setup
         self.initialSetup()
 
@@ -88,6 +92,7 @@ class MainController:
             self.manager.setEvent("LEDDriver.NONE")
 
         self.startingWeight = self.manager.getData()["NAU7802"]["data"]["weight"].value
+        self.is_initialized = True
  
 
     """
@@ -123,6 +128,26 @@ class MainController:
             self.manager.setEvent("SoundController.CONNECTED_TO_WIFI")
             while self.manager.getEvent("SoundController.CONNECTED_TO_WIFI"):
                 time.sleep(0.1)
+        
+        hadToWaitForClose = False
+        # Check if the lid is open before taring and if so then yell at the user
+        while self.manager.getData()["LidSwitch"]["data"]["Lid_State"].value == 1:
+            hadToWaitForClose = True
+            self.manager.setEvent("SoundController.CLOSE_LID_TO_TARE")
+            while self.manager.getEvent("SoundController.CLOSE_LID_TO_TARE"):
+                time.sleep(0.1)
+            time.sleep(1)
+
+        # If we did have to wait for the lid to close we need to just wait a while before we tare
+        if hadToWaitForClose:
+            time.sleep(6)
+
+        self.manager.clearEvent("LidSwitch.LID_CLOSED")
+
+        # Set a lid tare event
+        self.manager.setEvent("NAU7802.TARE")
+        while self.manager.getEvent("NAU7802.TARE"):
+            time.sleep(0.1)
 
         self.manager.clearAllEvents()
 
@@ -131,7 +156,8 @@ class MainController:
     """
     def handleCallbacks(self):
         # Check the state of the LidSwitch
-        if self.manager.getEvent("LidSwitch.LID_CLOSED"):
+        if self.manager.getEvent("LidSwitch.LID_CLOSED") and self.is_initialized:
+            print("Lid closed event")
             time.sleep(0.25)
             self.collectData(triggeredByLid=True)
 

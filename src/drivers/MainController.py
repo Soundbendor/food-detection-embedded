@@ -4,14 +4,14 @@ Will Richards, Oregon State University, 2024
 Provides the top level of the whole system so individual components can be utilized individually without needing to give them their own thread via the DriverManager
 """
 
+import json
 import os
 import time
 import uuid
-import json
 from multiprocessing import Pipe, Queue
 
-from drivers.NetworkDriver import WiFiManager, BluetoothDriver
 from drivers.DriverManager import DriverManager
+from drivers.NetworkDriver import BluetoothDriver, WiFiManager
 from drivers.sensors.AsyncPublisher import AsyncPublisher
 from drivers.sensors.BME688 import BME688
 from drivers.sensors.LEDDriver import LEDDriver
@@ -91,7 +91,9 @@ class MainController:
             time.sleep(2)
             self.manager.setEvent("LEDDriver.NONE")
 
-        self.startingWeight = self.manager.getData()["NAU7802"]["data"]["weight"].value
+        # First-time setup weight
+        self.initialWeight = self.manager.getData()["NAU7802"]["data"]["weight"].value
+        self.startingWeight = self.manager.getData()["NAU7802"]["data"]["weight"].value - self.initialWeight
         self.is_initialized = True
  
 
@@ -147,7 +149,7 @@ class MainController:
         # Set a lid tare event
         self.manager.setEvent("NAU7802.TARE")
         while self.manager.getEvent("NAU7802.TARE"):
-            time.sleep(0.1)
+            time.sleep(1.0)
 
         self.manager.clearAllEvents()
 
